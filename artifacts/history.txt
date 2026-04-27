@@ -1,0 +1,8 @@
+#V2
+USE NS test;
+SELECT * FROM person ORDER BY id;
+SELECT id.id() FROM user_profile;\n
+INFO FOR ROOT;\n
+INFO FOR NS;\n
+INFO FOR DB;\n
+help\n
