@@ -7,21 +7,26 @@ defmodule SurrealDB.HTTP do
 
   @spec query(Client.t(), String.t()) :: {:ok, QueryResult.t()} | {:error, Error.t()}
   def query(%Client{} = client, query) when is_binary(query) do
+    query(client, query, %{})
+  end
+
+  @spec query(Client.t(), String.t(), map()) :: {:ok, QueryResult.t()} | {:error, Error.t()}
+  def query(%Client{} = client, query, variables) when is_binary(query) and is_map(variables) do
     request =
       [
         method: :post,
         url: client.endpoint <> "/sql",
-        headers: headers(client),
-        body: query
+        headers: headers(client, variables),
+        body: build_body(query, variables)
       ] ++ client.request_options
 
-    do_query(request)
+    run_request(request)
   rescue
     error in RuntimeError ->
-      {:error, Error.request(error)}
+      {:error, Error.http_error(error, %{})}
   end
 
-  defp do_query(request) do
+  defp run_request(request) do
     with {:ok, response} <- Req.request(request),
          {:ok, body} <- decode_body(response.body),
          :ok <- ensure_success(response.status, body),
@@ -32,17 +37,18 @@ defmodule SurrealDB.HTTP do
         {:error, error}
 
       {:error, reason} ->
-        {:error, Error.request(reason)}
+        {:error, Error.http_error(reason, %{})}
     end
   end
 
-  defp headers(%Client{} = client) do
-    base_headers = [
-      {"accept", "application/json"},
-      {"content-type", "text/plain"},
-      {"ns", client.namespace},
-      {"db", client.database}
-    ]
+  defp headers(%Client{} = client, variables) do
+    base_headers =
+      [
+        {"accept", "application/json"},
+        {"content-type", content_type(variables)},
+        {"ns", client.namespace},
+        {"db", client.database}
+      ]
 
     case client.auth do
       {:basic, %{username: username, password: password}} ->
@@ -56,13 +62,22 @@ defmodule SurrealDB.HTTP do
     end
   end
 
+  defp content_type(variables) when map_size(variables) == 0, do: "text/plain"
+  defp content_type(_variables), do: "application/json"
+
+  defp build_body(query, variables) when map_size(variables) == 0, do: query
+
+  defp build_body(_query, _variables) do
+    raise RuntimeError, "query variables are not implemented for the HTTP transport yet"
+  end
+
   defp decode_body(body) when is_list(body), do: {:ok, body}
   defp decode_body(body) when is_map(body), do: {:ok, body}
 
   defp decode_body(body) when is_binary(body) do
     case Jason.decode(body) do
       {:ok, decoded} -> {:ok, decoded}
-      {:error, reason} -> {:error, Error.decode_failure(body, reason)}
+      {:error, reason} -> {:error, Error.decode_error(body, reason)}
     end
   end
 
@@ -71,11 +86,11 @@ defmodule SurrealDB.HTTP do
   defp ensure_success(status, body) when status in 200..299 do
     case extract_statement_error(body) do
       nil -> :ok
-      statement -> {:error, Error.surreal_failure(statement)}
+      statement -> {:error, Error.surreal_error(statement)}
     end
   end
 
-  defp ensure_success(status, body), do: {:error, Error.http_failure(status, body)}
+  defp ensure_success(status, body), do: {:error, Error.http_error(status, body)}
 
   defp extract_statement_error(body) when is_list(body) do
     Enum.find(body, &(Map.get(&1, "status") == "ERR"))

@@ -30,4 +30,11 @@ defmodule SurrealDB do
   def query(%Client{} = client, query) when is_binary(query) or is_list(query) do
     HTTP.query(client, IO.iodata_to_binary(query))
   end
+
+  @spec query(Client.t(), iodata(), map()) ::
+          {:ok, SurrealDB.QueryResult.t()} | {:error, SurrealDB.Error.t()}
+  def query(%Client{} = client, query, variables)
+      when (is_binary(query) or is_list(query)) and is_map(variables) do
+    HTTP.query(client, IO.iodata_to_binary(query), variables)
+  end
 end

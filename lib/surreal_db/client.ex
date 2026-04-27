@@ -11,8 +11,9 @@ defmodule SurrealDB.Client do
           namespace: String.t(),
           database: String.t(),
           auth: auth(),
+          anonymous?: boolean(),
           request_options: keyword()
         }
 
-  defstruct [:endpoint, :namespace, :database, :auth, request_options: []]
+  defstruct [:endpoint, :namespace, :database, :auth, anonymous?: false, request_options: []]
 end

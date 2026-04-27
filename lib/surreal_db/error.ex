@@ -12,33 +12,25 @@ defmodule SurrealDB.Error do
 
   defexception [:type, :message, :status, :code, details: %{}, raw: nil]
 
-  @spec validation(String.t(), map()) :: t()
-  def validation(message, details \\ %{}) do
-    %__MODULE__{type: :validation, message: message, details: details}
+  @spec invalid_config(String.t(), map()) :: t()
+  def invalid_config(message, details \\ %{}) do
+    %__MODULE__{type: :invalid_config, message: message, details: details}
   end
 
-  @spec request(Exception.t() | term()) :: t()
-  def request(%{message: message} = error) when is_binary(message) do
+  @spec http_error(Exception.t() | integer() | term(), map() | term()) :: t()
+  def http_error(%{message: message} = error, details)
+      when is_binary(message) and is_map(details) do
     %__MODULE__{
-      type: :request,
+      type: :http_error,
       message: message,
-      details: %{exception: error.__struct__},
+      details: Map.merge(%{exception: error.__struct__}, details),
       raw: error
     }
   end
 
-  def request(error) do
+  def http_error(status, body) when is_integer(status) do
     %__MODULE__{
-      type: :request,
-      message: "request failed",
-      raw: error
-    }
-  end
-
-  @spec http_failure(integer(), term()) :: t()
-  def http_failure(status, body) do
-    %__MODULE__{
-      type: :http,
+      type: :http_error,
       status: status,
       message: "HTTP request failed with status #{status}",
       details: extract_error_details(body),
@@ -46,20 +38,29 @@ defmodule SurrealDB.Error do
     }
   end
 
-  @spec decode_failure(binary(), term()) :: t()
-  def decode_failure(body, reason) do
+  def http_error(error, details) when is_map(details) do
     %__MODULE__{
-      type: :decode,
+      type: :http_error,
+      message: "request failed",
+      details: details,
+      raw: error
+    }
+  end
+
+  @spec decode_error(binary(), term()) :: t()
+  def decode_error(body, reason) do
+    %__MODULE__{
+      type: :decode_error,
       message: "failed to decode SurrealDB response",
       details: %{body: body, reason: inspect(reason)},
       raw: reason
     }
   end
 
-  @spec surreal_failure(map()) :: t()
-  def surreal_failure(statement) do
+  @spec surreal_error(map()) :: t()
+  def surreal_error(statement) do
     %__MODULE__{
-      type: :surreal,
+      type: :surreal_error,
       code: statement["code"],
       message: statement["detail"] || statement["result"] || "SurrealDB query failed",
       details: Map.take(statement, ["detail", "status", "time"]),
@@ -67,7 +68,17 @@ defmodule SurrealDB.Error do
     }
   end
 
+  @spec unexpected_response(term()) :: t()
+  def unexpected_response(body) do
+    %__MODULE__{
+      type: :unexpected_response,
+      message: "unexpected response shape",
+      details: %{body: inspect(body)},
+      raw: body
+    }
+  end
+
   defp extract_error_details(%{"error" => error}) when is_binary(error), do: %{error: error}
   defp extract_error_details(%{"detail" => detail}) when is_binary(detail), do: %{detail: detail}
-  defp extract_error_details(_body), do: %{}
+  defp extract_error_details(body), do: %{body: body}
 end

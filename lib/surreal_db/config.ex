@@ -16,26 +16,26 @@ defmodule SurrealDB.Config do
          namespace: Keyword.fetch!(options, :namespace),
          database: Keyword.fetch!(options, :database),
          auth: auth,
+         anonymous?: Keyword.get(options, :anonymous, false),
          request_options: Keyword.get(options, :request_options, [])
        }}
     end
   rescue
     error in ArgumentError ->
-      {:error, Error.validation(Exception.message(error), %{options: options})}
+      {:error, Error.invalid_config(Exception.message(error), %{options: options})}
   end
 
   defp validate_required_fields(options) do
     missing =
       @required_fields
-      |> Enum.filter(&(blank?(Keyword.get(options, &1))))
+      |> Enum.filter(&blank?(Keyword.get(options, &1)))
 
     case missing do
       [] ->
         :ok
 
       _ ->
-        {:error,
-         Error.validation("missing required options", %{missing: missing})}
+        {:error, Error.invalid_config("missing required options", %{missing: missing})}
     end
   end
 
@@ -47,7 +47,7 @@ defmodule SurrealDB.Config do
     cond do
       present?(auth_token) and (present?(username) or present?(password)) ->
         {:error,
-         Error.validation(
+         Error.invalid_config(
            "auth_token cannot be combined with username/password",
            %{fields: [:auth_token, :username, :password]}
          )}
@@ -57,7 +57,7 @@ defmodule SurrealDB.Config do
 
       present?(username) or present?(password) ->
         {:error,
-         Error.validation(
+         Error.invalid_config(
            "username and password must be provided together",
            %{fields: [:username, :password]}
          )}
@@ -65,8 +65,15 @@ defmodule SurrealDB.Config do
       present?(auth_token) ->
         {:ok, {:bearer, auth_token}}
 
-      true ->
+      Keyword.get(options, :anonymous, false) == true ->
         {:ok, nil}
+
+      true ->
+        {:error,
+         Error.invalid_config(
+           "authentication is required unless anonymous: true is set",
+           %{fields: [:username, :password, :auth_token, :anonymous]}
+         )}
     end
   end
 
