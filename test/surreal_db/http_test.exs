@@ -29,14 +29,14 @@ defmodule SurrealDB.HTTPTest do
     assert is_list(result.raw)
   end
 
-  test "http error becomes structured error" do
+  test "transport status failures become structured errors" do
     client =
       client_with_adapter(fn request ->
         {request, Req.Response.new(status: 401, body: ~s({"error":"unauthorized"}))}
       end)
 
-    assert {:error, %Error{type: :http_error, status: 401, details: %{error: "unauthorized"}}} =
-             SurrealDB.query(client, "SELECT * FROM person")
+    assert {:error, %Error{type: :transport_error, status: 401}} =
+             SurrealDB.rpc(client, "query", ["SELECT * FROM person"])
   end
 
   test "json decode failure becomes structured error" do
@@ -45,11 +45,11 @@ defmodule SurrealDB.HTTPTest do
         {request, Req.Response.new(status: 200, body: "{not-json")}
       end)
 
-    assert {:error, %Error{type: :decode_error}} =
-             SurrealDB.query(client, "SELECT * FROM person")
+    assert {:error, %Error{type: :rpc_decode_error}} =
+             SurrealDB.rpc(client, "query", ["SELECT * FROM person"])
   end
 
-  test "surreal error becomes structured error" do
+  test "surreal query error remains structured on public query api" do
     client =
       client_with_adapter(fn request ->
         {request,
@@ -63,14 +63,14 @@ defmodule SurrealDB.HTTPTest do
              SurrealDB.query(client, "BAD QUERY")
   end
 
-  test "request failures become structured error" do
+  test "request failures become transport errors" do
     client =
       client_with_adapter(fn request ->
         {request, RuntimeError.exception("connection refused")}
       end)
 
-    assert {:error, %Error{type: :http_error, message: "connection refused"}} =
-             SurrealDB.query(client, "SELECT * FROM person")
+    assert {:error, %Error{type: :transport_error, message: "connection refused"}} =
+             SurrealDB.rpc(client, "query", ["SELECT * FROM person"])
   end
 
   test "supports bearer token auth" do

@@ -1,6 +1,6 @@
 # HgsSurrealdbSdk
 
-Minimal Elixir-native SurrealDB SDK for HTTP query execution and Phase 2 CRUD helpers.
+Minimal Elixir-native SurrealDB SDK for HTTP query execution, CRUD helpers, and a transport-neutral RPC abstraction.
 
 ## Status
 
@@ -9,6 +9,7 @@ Current support:
 - `SurrealDB.connect/1`
 - `SurrealDB.query/2`
 - `SurrealDB.query/3`
+- `SurrealDB.rpc/3`
 - `SurrealDB.select/2`
 - `SurrealDB.create/3`
 - `SurrealDB.update/3`
@@ -58,6 +59,14 @@ IO.inspect(result.results)
 {:ok, _} = SurrealDB.delete(client, "person:jane")
 
 IO.inspect(people.results)
+```
+
+## RPC
+
+```elixir
+{:ok, response} = SurrealDB.rpc(client, "query", ["SELECT * FROM person"])
+
+IO.inspect(response.result)
 ```
 
 For a runnable example, see [examples/basic_query.exs](/home/michael_intandem/src/elixir_src/prototypes/hgs_surrealdb_sdk/examples/basic_query.exs).

@@ -18,8 +18,10 @@ defmodule SurrealDB do
 
   alias SurrealDB.Client
   alias SurrealDB.Config
-  alias SurrealDB.HTTP
+  alias SurrealDB.Error
   alias SurrealDB.Identifier
+  alias SurrealDB.QueryResult
+  alias SurrealDB.RPC
 
   @spec connect(keyword()) :: {:ok, Client.t()} | {:error, SurrealDB.Error.t()}
   def connect(options) when is_list(options) do
@@ -29,14 +31,27 @@ defmodule SurrealDB do
   @spec query(Client.t(), iodata()) ::
           {:ok, SurrealDB.QueryResult.t()} | {:error, SurrealDB.Error.t()}
   def query(%Client{} = client, query) when is_binary(query) or is_list(query) do
-    HTTP.query(client, IO.iodata_to_binary(query))
+    query(client, query, %{})
   end
 
   @spec query(Client.t(), iodata(), map()) ::
           {:ok, SurrealDB.QueryResult.t()} | {:error, SurrealDB.Error.t()}
   def query(%Client{} = client, query, variables)
       when (is_binary(query) or is_list(query)) and is_map(variables) do
-    HTTP.query(client, IO.iodata_to_binary(query), variables)
+    with {:ok, response} <- RPC.call(client, "query", [IO.iodata_to_binary(query), variables]),
+         :ok <- ensure_query_success(response.result),
+         {:ok, result} <- QueryResult.from_response(response.result) do
+      {:ok, result}
+    else
+      {:error, %Error{} = error} ->
+        {:error, normalize_query_error(error)}
+    end
+  end
+
+  @spec rpc(Client.t(), String.t(), list()) ::
+          {:ok, SurrealDB.RPC.Response.t()} | {:error, SurrealDB.Error.t()}
+  def rpc(%Client{} = client, method, params) when is_binary(method) and is_list(params) do
+    RPC.call(client, method, params)
   end
 
   @spec select(Client.t(), String.t()) ::
@@ -86,4 +101,27 @@ defmodule SurrealDB do
       query(client, "DELETE #{identifier}")
     end
   end
+
+  defp ensure_query_success(body) when is_list(body) do
+    case Enum.find(body, &(Map.get(&1, "status") == "ERR")) do
+      nil -> :ok
+      statement -> {:error, Error.surreal_error(statement)}
+    end
+  end
+
+  defp ensure_query_success(_body), do: :ok
+
+  defp normalize_query_error(%Error{type: :transport_error, status: status, raw: raw}) when is_integer(status) do
+    Error.http_error(status, raw)
+  end
+
+  defp normalize_query_error(%Error{type: :transport_error, message: message, raw: raw, details: details}) do
+    %Error{type: :http_error, message: message, details: details, raw: raw}
+  end
+
+  defp normalize_query_error(%Error{type: :rpc_decode_error, message: message, details: details, raw: raw}) do
+    %Error{type: :decode_error, message: message, details: details, raw: raw}
+  end
+
+  defp normalize_query_error(error), do: error
 end
