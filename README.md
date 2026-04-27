@@ -1,6 +1,6 @@
 # HgsSurrealdbSdk
 
-Minimal Elixir-native SurrealDB SDK for HTTP query execution, CRUD helpers, and a transport-neutral RPC abstraction.
+Minimal Elixir-native SurrealDB SDK for HTTP query execution, CRUD helpers, a transport-neutral RPC abstraction, and WebSocket RPC transport.
 
 ## Status
 
@@ -10,6 +10,7 @@ Current support:
 - `SurrealDB.query/2`
 - `SurrealDB.query/3`
 - `SurrealDB.rpc/3`
+- `SurrealDB.connect_ws/1`
 - `SurrealDB.select/2`
 - `SurrealDB.create/3`
 - `SurrealDB.update/3`
@@ -20,6 +21,7 @@ Current support:
 - explicit anonymous mode with `anonymous: true`
 - identifier validation for CRUD helpers
 - JSON response parsing and structured errors
+- process-backed WebSocket RPC connections with request/response matching
 
 ## Installation
 
@@ -68,5 +70,24 @@ IO.inspect(people.results)
 
 IO.inspect(response.result)
 ```
+
+## WebSocket
+
+```elixir
+{:ok, conn} =
+  SurrealDB.connect_ws(
+    endpoint: "ws://localhost:8000/rpc",
+    namespace: "test",
+    database: "test",
+    username: "root",
+    password: "root"
+  )
+
+{:ok, result} = SurrealDB.query(conn, "SELECT * FROM person")
+
+IO.inspect(result.results)
+```
+
+The WebSocket transport uses `WebSockex` because it is a maintained Elixir WebSocket client with recent releases and an OTP-friendly process model, which fits the SDK's connection-process design.
 
 For a runnable example, see [examples/basic_query.exs](/home/michael_intandem/src/elixir_src/prototypes/hgs_surrealdb_sdk/examples/basic_query.exs).

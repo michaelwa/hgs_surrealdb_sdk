@@ -17,6 +17,7 @@ defmodule SurrealDB.Config do
          database: Keyword.fetch!(options, :database),
          auth: auth,
          anonymous?: Keyword.get(options, :anonymous, false),
+         transport: Keyword.get(options, :transport, :http),
          request_options: Keyword.get(options, :request_options, [])
        }}
     end

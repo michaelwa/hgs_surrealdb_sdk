@@ -22,10 +22,21 @@ defmodule SurrealDB do
   alias SurrealDB.Identifier
   alias SurrealDB.QueryResult
   alias SurrealDB.RPC
+  alias SurrealDB.WebSocket
 
   @spec connect(keyword()) :: {:ok, Client.t()} | {:error, SurrealDB.Error.t()}
   def connect(options) when is_list(options) do
     Config.build_client(options)
+  end
+
+  @spec connect_ws(keyword()) :: {:ok, Client.t()} | {:error, Error.t()}
+  def connect_ws(options) when is_list(options) do
+    with {:ok, %Client{} = client} <-
+           Config.build_client(Keyword.put(options, :transport, :websocket)),
+         {:ok, %Client{} = ws_client} <-
+           WebSocket.connect(client, Keyword.get(options, :websocket_options, [])) do
+      {:ok, ws_client}
+    end
   end
 
   @spec query(Client.t(), iodata()) ::
@@ -111,15 +122,26 @@ defmodule SurrealDB do
 
   defp ensure_query_success(_body), do: :ok
 
-  defp normalize_query_error(%Error{type: :transport_error, status: status, raw: raw}) when is_integer(status) do
+  defp normalize_query_error(%Error{type: :transport_error, status: status, raw: raw})
+       when is_integer(status) do
     Error.http_error(status, raw)
   end
 
-  defp normalize_query_error(%Error{type: :transport_error, message: message, raw: raw, details: details}) do
+  defp normalize_query_error(%Error{
+         type: :transport_error,
+         message: message,
+         raw: raw,
+         details: details
+       }) do
     %Error{type: :http_error, message: message, details: details, raw: raw}
   end
 
-  defp normalize_query_error(%Error{type: :rpc_decode_error, message: message, details: details, raw: raw}) do
+  defp normalize_query_error(%Error{
+         type: :rpc_decode_error,
+         message: message,
+         details: details,
+         raw: raw
+       }) do
     %Error{type: :decode_error, message: message, details: details, raw: raw}
   end
 
