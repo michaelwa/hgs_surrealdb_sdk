@@ -229,12 +229,227 @@ defmodule SurrealDB.WebSocketTest do
              Task.await(task)
   end
 
+  test "live query start stores subscription and returns subscription struct" do
+    {:ok, client} =
+      SurrealDB.connect_ws(
+        endpoint: "ws://localhost:8000/rpc",
+        namespace: "test",
+        database: "app",
+        username: "root",
+        password: "root",
+        request_options: [test_pid: self(), auto_setup: true],
+        websocket_options: [socket_module: FakeSocket, timeout: 50]
+      )
+
+    wait_for_setup()
+
+    task =
+      Task.async(fn -> SurrealDB.live(client, "LIVE SELECT * FROM person", send_to: self()) end)
+
+    assert_receive {:socket_sent, owner, payload}
+    decoded = Jason.decode!(payload)
+    assert decoded["method"] == "query"
+    assert decoded["params"] == ["LIVE SELECT * FROM person"]
+
+    send(
+      owner,
+      {:websocket_frame,
+       Jason.encode!(%{
+         id: decoded["id"],
+         result: [%{"status" => "OK", "result" => "live-person"}]
+       })}
+    )
+
+    assert {:ok,
+            %SurrealDB.Live.Subscription{
+              id: "live-person",
+              query: "LIVE SELECT * FROM person",
+              status: :active
+            }} =
+             Task.await(task)
+  end
+
+  test "incoming live event routes to subscribed pid" do
+    target = self()
+
+    {:ok, client} =
+      SurrealDB.connect_ws(
+        endpoint: "ws://localhost:8000/rpc",
+        namespace: "test",
+        database: "app",
+        username: "root",
+        password: "root",
+        request_options: [test_pid: self(), auto_setup: true],
+        websocket_options: [socket_module: FakeSocket, timeout: 50]
+      )
+
+    wait_for_setup()
+
+    task =
+      Task.async(fn -> SurrealDB.live(client, "LIVE SELECT * FROM person", send_to: target) end)
+
+    assert_receive {:socket_sent, owner, payload}
+    decoded = Jason.decode!(payload)
+    subscription_id = "live-person"
+
+    send(
+      owner,
+      {:websocket_frame,
+       Jason.encode!(%{
+         id: decoded["id"],
+         result: [%{"status" => "OK", "result" => subscription_id}]
+       })}
+    )
+
+    assert {:ok, subscription} = Task.await(task)
+
+    send(
+      owner,
+      {:websocket_frame,
+       Jason.encode!(%{
+         result: %{id: subscription_id, action: "CREATE", result: %{"id" => "person:one"}}
+       })}
+    )
+
+    assert_receive {:surrealdb_live, ^subscription_id,
+                    %SurrealDB.Live.Event{action: "CREATE", result: %{"id" => "person:one"}}}
+
+    assert subscription.id == subscription_id
+  end
+
+  test "unknown subscription event is handled safely" do
+    {:ok, client} =
+      SurrealDB.connect_ws(
+        endpoint: "ws://localhost:8000/rpc",
+        namespace: "test",
+        database: "app",
+        username: "root",
+        password: "root",
+        request_options: [test_pid: self(), auto_setup: true],
+        websocket_options: [socket_module: FakeSocket, timeout: 50]
+      )
+
+    wait_for_setup()
+
+    send(
+      client.connection,
+      {:websocket_frame,
+       Jason.encode!(%{
+         result: %{id: "missing-sub", action: "UPDATE", result: %{"id" => "person:one"}}
+       })}
+    )
+
+    refute_receive {:surrealdb_live, _, _}, 50
+    assert Process.alive?(client.connection)
+  end
+
+  test "kill removes subscription" do
+    {:ok, client} =
+      SurrealDB.connect_ws(
+        endpoint: "ws://localhost:8000/rpc",
+        namespace: "test",
+        database: "app",
+        username: "root",
+        password: "root",
+        request_options: [test_pid: self(), auto_setup: true],
+        websocket_options: [socket_module: FakeSocket, timeout: 50]
+      )
+
+    wait_for_setup()
+
+    task =
+      Task.async(fn -> SurrealDB.live(client, "LIVE SELECT * FROM person", send_to: self()) end)
+
+    assert_receive {:socket_sent, owner, payload}
+    decoded = Jason.decode!(payload)
+    subscription_id = "live-person"
+
+    send(
+      owner,
+      {:websocket_frame,
+       Jason.encode!(%{
+         id: decoded["id"],
+         result: [%{"status" => "OK", "result" => subscription_id}]
+       })}
+    )
+
+    assert {:ok, subscription} = Task.await(task)
+
+    kill_task = Task.async(fn -> SurrealDB.kill(client, subscription) end)
+    assert_receive {:socket_sent, ^owner, kill_payload}
+    kill_decoded = Jason.decode!(kill_payload)
+    assert kill_decoded["method"] == "kill"
+    assert kill_decoded["params"] == [subscription_id]
+
+    send(
+      owner,
+      {:websocket_frame, Jason.encode!(%{id: kill_decoded["id"], result: %{"ok" => true}})}
+    )
+
+    assert :ok = Task.await(kill_task)
+
+    send(
+      owner,
+      {:websocket_frame,
+       Jason.encode!(%{
+         result: %{id: subscription_id, action: "UPDATE", result: %{"id" => "person:one"}}
+       })}
+    )
+
+    refute_receive {:surrealdb_live, ^subscription_id, _}, 50
+  end
+
+  test "kill of missing subscription returns error" do
+    {:ok, client} =
+      SurrealDB.connect_ws(
+        endpoint: "ws://localhost:8000/rpc",
+        namespace: "test",
+        database: "app",
+        username: "root",
+        password: "root",
+        request_options: [test_pid: self(), auto_setup: true],
+        websocket_options: [socket_module: FakeSocket, timeout: 50]
+      )
+
+    wait_for_setup()
+
+    subscription = %SurrealDB.Live.Subscription{
+      id: "missing",
+      query: "LIVE SELECT * FROM person",
+      target: self(),
+      status: :active
+    }
+
+    assert {:error, %Error{type: :subscription_not_found}} = SurrealDB.kill(client, subscription)
+  end
+
+  test "malformed live event is handled as structured error behavior" do
+    client =
+      websocket_client(
+        request_options: [test_pid: self(), auto_setup: true],
+        auth: {:basic, %{username: "root", password: "root"}}
+      )
+
+    {:ok, pid} =
+      SurrealDB.WebSocket.Connection.start_link(client, socket_module: FakeSocket, timeout: 50)
+
+    wait_for_setup()
+
+    Process.unlink(pid)
+    ref = Process.monitor(pid)
+    send(pid, {:websocket_frame, "{bad-json"})
+
+    assert_receive {:DOWN, ^ref, :process, _pid, reason}
+    assert match?({:unexpected_response, %Error{type: :unexpected_response}}, reason) or
+             match?({:setup_failed, %Error{type: :unexpected_response}}, reason)
+  end
+
   defp websocket_client(overrides) do
     %Client{
       endpoint: "ws://localhost:8000/rpc",
       namespace: "test",
       database: "app",
-      auth: {:basic, %{username: "root", password: "root"}},
+      auth: Keyword.get(overrides, :auth, {:basic, %{username: "root", password: "root"}}),
       transport: :websocket,
       request_options: Keyword.fetch!(overrides, :request_options)
     }

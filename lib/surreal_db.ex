@@ -20,6 +20,8 @@ defmodule SurrealDB do
   alias SurrealDB.Config
   alias SurrealDB.Error
   alias SurrealDB.Identifier
+  alias SurrealDB.Live
+  alias SurrealDB.Live.Subscription
   alias SurrealDB.QueryResult
   alias SurrealDB.RPC
   alias SurrealDB.WebSocket
@@ -111,6 +113,16 @@ defmodule SurrealDB do
     with {:ok, identifier} <- Identifier.validate(thing) do
       query(client, "DELETE #{identifier}")
     end
+  end
+
+  @spec live(Client.t(), String.t(), keyword()) :: {:ok, Subscription.t()} | {:error, Error.t()}
+  def live(%Client{} = client, query, opts \\ []) when is_binary(query) and is_list(opts) do
+    Live.start(client, query, opts)
+  end
+
+  @spec kill(Client.t(), Subscription.t()) :: :ok | {:error, Error.t()}
+  def kill(%Client{} = client, %Subscription{} = subscription) do
+    Live.kill(client, subscription)
   end
 
   defp ensure_query_success(body) when is_list(body) do

@@ -11,6 +11,8 @@ Current support:
 - `SurrealDB.query/3`
 - `SurrealDB.rpc/3`
 - `SurrealDB.connect_ws/1`
+- `SurrealDB.live/3`
+- `SurrealDB.kill/2`
 - `SurrealDB.select/2`
 - `SurrealDB.create/3`
 - `SurrealDB.update/3`
@@ -89,5 +91,30 @@ IO.inspect(result.results)
 ```
 
 The WebSocket transport uses `WebSockex` because it is a maintained Elixir WebSocket client with recent releases and an OTP-friendly process model, which fits the SDK's connection-process design.
+
+## Live Queries
+
+```elixir
+{:ok, conn} =
+  SurrealDB.connect_ws(
+    endpoint: "ws://localhost:8000/rpc",
+    namespace: "test",
+    database: "test",
+    username: "root",
+    password: "root"
+  )
+
+{:ok, subscription} =
+  SurrealDB.live(conn, "LIVE SELECT * FROM person", send_to: self())
+
+receive do
+  {:surrealdb_live, "live-person", event} ->
+    IO.inspect(event)
+end
+
+:ok = SurrealDB.kill(conn, subscription)
+```
+
+Live queries use the message API. The query should be passed explicitly as `LIVE SELECT ...`; the SDK does not rewrite a normal `SELECT` into a live query automatically.
 
 For a runnable example, see [examples/basic_query.exs](/home/michael_intandem/src/elixir_src/prototypes/hgs_surrealdb_sdk/examples/basic_query.exs).
