@@ -56,6 +56,8 @@ defmodule SurrealDB.Transport.HTTP do
     base_headers = [
       {"accept", "application/json"},
       {"content-type", "text/plain"},
+      {"surreal-ns", client.namespace},
+      {"surreal-db", client.database},
       {"ns", client.namespace},
       {"db", client.database}
     ]
