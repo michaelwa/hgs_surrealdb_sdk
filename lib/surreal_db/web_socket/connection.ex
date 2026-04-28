@@ -267,7 +267,7 @@ defmodule SurrealDB.WebSocket.Connection do
   defp maybe_signin(_state), do: :ok
 
   defp use_namespace_database(%State{client: client} = state) do
-    request = Request.new("use", [%{ns: client.namespace, db: client.database}])
+    request = Request.new("use", [client.namespace, client.database])
 
     case do_roundtrip(state, request) do
       {:ok, _} -> :ok
