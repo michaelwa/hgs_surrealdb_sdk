@@ -1,0 +1,1222 @@
+{
+    "activeCloudOrg": "",
+    "activeCloudPage": "instances",
+    "activeConnection": "rS9rdcdFD",
+    "activeResource": "/c/rS9rdcdFD/query",
+    "activeScreen": "database",
+    "activeView": "query",
+    "commandHistory": [],
+    "configVersion": 2,
+    "connectionGroups": [],
+    "connections": [
+        {
+            "activeQuery": "1zkrzSdne",
+            "authentication": {
+                "access": "",
+                "accessFields": [],
+                "database": "",
+                "hostname": "127.0.1:8000",
+                "mode": "root",
+                "namespace": "",
+                "password": "root",
+                "protocol": "ws",
+                "scope": "",
+                "token": "",
+                "username": "root"
+            },
+            "designerTableList": true,
+            "diagramAlgorithm": "default",
+            "diagramDirection": "ltr",
+            "diagramLineStyle": "default",
+            "diagramLinkMode": "default",
+            "diagramMode": "fields",
+            "diagramShowLinks": false,
+            "diagramStrategy": "NETWORK_SIMPLEX",
+            "graphqlQuery": "",
+            "graphqlShowVariables": false,
+            "graphqlVariables": "{}",
+            "icon": 0,
+            "id": "v9fMYqqb4",
+            "lastDatabase": "main",
+            "lastNamespace": "main",
+            "name": "New connection",
+            "pinnedTables": [],
+            "queries": [
+                {
+                    "id": "etpMiOyLW",
+                    "name": "New query",
+                    "query": "select * from person;\n\n-- update person:blsrwqr66q14hhfgr7dx \n--     set first_name: \"Michael\"\n",
+                    "resultFormat": "sql",
+                    "resultMode": "combined",
+                    "showVariables": false,
+                    "type": "config",
+                    "valid": true,
+                    "variables": "{}"
+                },
+                {
+                    "id": "7Plo5ocBm",
+                    "name": "New query 2",
+                    "query": "update person \n    set first_name = \"Michael!\"\n    where id = 'person:blsrwqr66q14hhfgr7dx';\n",
+                    "resultFormat": "sql",
+                    "resultMode": "combined",
+                    "showVariables": false,
+                    "type": "config",
+                    "valid": true,
+                    "variables": "{}"
+                },
+                {
+                    "id": "FnUBGgIo1",
+                    "name": "New query 3",
+                    "query": "DEFINE TABLE user TYPE NORMAL SCHEMAFULL\n\tPERMISSIONS NONE\n;\nDEFINE FIELD firstName ON user TYPE string\n\tPERMISSIONS FULL\n;\nDEFINE FIELD lastName ON user TYPE string\n\tPERMISSIONS FULL\n;\nDEFINE FIELD email ON user TYPE string ASSERT string::is::email($value)\n\tPERMISSIONS FULL\n;",
+                    "resultFormat": "sql",
+                    "resultMode": "combined",
+                    "showVariables": false,
+                    "type": "config",
+                    "valid": true,
+                    "variables": "{}"
+                },
+                {
+                    "id": "sLh6Wt5AT",
+                    "name": "New query 4",
+                    "query": "CREATE user CONTENT {\n    firstName: 'John',\n    lastName: 'Doe',\n    email: 'johndoe@someemail.com',\n    photoURI: 'photo/asdfasdf.webp'\n}\n\nselect * from user;",
+                    "resultFormat": "sql",
+                    "resultMode": "combined",
+                    "showVariables": false,
+                    "type": "config",
+                    "valid": false,
+                    "variables": "{}"
+                },
+                {
+                    "id": "1zkrzSdne",
+                    "name": "New query 5",
+                    "query": "-- Using the CREATE statement\nCREATE IC_directory:{username: 'johndoe',full_name: 'John Doe'} CONTENT {\n\tusername: 'johndoe',\n\tfull_name: 'John Doe',\n\temail: 'johndoe@example.com',\n\tdate_of_birth: \"1990-01-01\",\n\tjoin_date: \"2024-05-30\",\n\tdepartment: 'Engineering',\n\trole: 'Software Engineer',\n\tskills: ['Python', 'JavaScript', 'surql'],\n\tmanager: manager_directory:janesmith,\n\ttags: ['full-time', 'remote']\n};\n\n-- Using the UPDATE statement\nCREATE manager_directory:janesmith CONTENT {\n\tusername: 'janesmith',\n\tfull_name: 'Jane Smith',\n\temail: 'janesmith@example.com',\n\tdate_of_birth: \"1985-01-01\",\n\tjoin_date: \"2019-05-30\",\n\tdepartment: 'Engineering',\n    role: 'Software Engineer Manager',\n\tskills: ['Python', 'JavaScript', 'surql'],\n\treport: IC_directory:{ full_name: 'John Doe', username: 'johndoe' },\n\ttags: ['full-time', 'remote']\n};\n\nselect * from manager_directory;\n",
+                    "resultFormat": "sql",
+                    "resultMode": "combined",
+                    "showVariables": false,
+                    "type": "config",
+                    "valid": true,
+                    "variables": "{}"
+                },
+                {
+                    "id": "LYVz2Ns4p",
+                    "name": "New query 6",
+                    "query": "RETURN 9;\n\nRETURN \"Aeon rode on a 🐎 to get to the 🗻.\";\n\nRETURN \"Aeon\nrode\non\na\n🐎.\";\n\nRETURN \"Aeon rode on a \\t\" + \"🐎.\";\n\nRETURN \"Aeon owns \" + \"9 horses.\";\nRETURN 9.5 + 9;\n\nRETURN \"Aeon owns \" + 9 + \" horses.\";\n\nRETURN \"Aeon rode on \" + <string> 9 + \" horses.\";\n\nRETURN <int>\"nine\" + 9;\n\nRETURN <string><int>\"9\" + \" is a good number\";\n\nRETURN <int>10.0;\nRETURN <int>10.1;\n\nRETURN 8.8888888888888888;\n\nRETURN 88888888888888888888;\n\nRETURN [8.888888888888888dec, 88888888888888888888dec];\n\nRETURN <decimal>88888888888888888888;\n\n-- Returns 8.88888888888889dec\nRETURN <decimal>8.888888888888888;\n\n// Will fail as a cast to `int` will result in data loss\nRETURN <int>(8.9 + 10);\n// But a `number` can also be a float, so no problem\nRETURN <number>(8.9 + 10);\n\nRETURN       '0191267e-102b-777c-8312-c290e1a2bb46';\nRETURN <uuid>'0191267e-102b-777c-8312-c290e1a2bb46';\n\nRETURN {\n    name: \"Aeon\",\n    age: 20,\n    town: \"Toria\",\n};\n\nRETURN {\n    name: \"Aeon\",\n    age: 20,\n    town: \"Toria\",\n}.town;\n\nRETURN {\n    name: \"Aeon\",\n    age: 20,\n    town: \"Toria\",\n}.town, age;\n\nRETURN {\n    name: \"Aeon\",\n    age: 20,\n    town: \"Toria\"\n}.{\n    town,\n    age\n};\n\n\nRETURN {\n    name: \"Aeon\",\n    age: 20,\n    town: {\n        name: \"Toria\",\n        population: 20685\n    }\n}.{\n    name,\n    age,\n    town_name: town.name,\n    town_population: town.population\n};\n\nRETURN {\n    name: \"Aeon\",\n    age: 20,\n    town: \"Toria\"\n} WHERE name = \"Aeon\";\n\n\nSELECT town, age FROM {\n    name: \"Aeon\",\n    age: 20,\n    town: \"Toria\",\n};\n\nSELECT * FROM {\n    name: \"Aeon\",\n    age: 20,\n    town: \"Toria\",\n};\n\nSELECT *\n    OMIT boring_data,\n    who_cares,\n    uninteresting_data\nFROM {\n    name: \"Aeon\",\n    age: 20,\n    town: \"Toria\",\n    boring_data: true,\n    who_cares: 888.9,\n    uninteresting_data: \"Bunch of data\"\n};\n\nINFO FOR DB;\n\nselect * from person;\n\nUSE NS demo;\n\n",
+                    "resultFormat": "sql",
+                    "resultMode": "combined",
+                    "showVariables": false,
+                    "type": "config",
+                    "valid": false,
+                    "variables": "{}"
+                }
+            ],
+            "queryHistory": [
+                {
+                    "id": "loCcPYer9",
+                    "origin": "New query 5",
+                    "query": "-- Using the CREATE statement\nCREATE IC_directory:{username: 'johndoe',full_name: 'John Doe'} CONTENT {\n\tusername: 'johndoe',\n\tfull_name: 'John Doe',\n\temail: 'johndoe@example.com',\n\tdate_of_birth: \"1990-01-01\",\n\tjoin_date: \"2024-05-30\",\n\tdepartment: 'Engineering',\n\trole: 'Software Engineer',\n\tskills: ['Python', 'JavaScript', 'surql'],\n\tmanager: manager_directory:janesmith,\n\ttags: ['full-time', 'remote']\n};\n\n-- Using the UPDATE statement\nUPDATE manager_directory:janesmith CONTENT {\n\tusername: 'janesmith',\n\tfull_name: 'Jane Smith',\n\temail: 'janesmith@example.com',\n\tdate_of_birth: \"1985-01-01\",\n\tjoin_date: \"2019-05-30\",\n\tdepartment: 'Engineering',\n    role: 'Software Engineer Manager',\n\tskills: ['Python', 'JavaScript', 'surql'],\n\treport: IC_directory:{ full_name: 'John Doe', username: 'johndoe' },\n\ttags: ['full-time', 'remote']\n};",
+                    "timestamp": 1731269651651
+                },
+                {
+                    "id": "OoA2c19HA",
+                    "origin": "New query 5",
+                    "query": "-- Using the UPDATE statement\nUPDATE manager_directory:janesmith CONTENT {\n\tusername: 'janesmith',\n\tfull_name: 'Jane Smith',\n\temail: 'janesmith@example.com',\n\tdate_of_birth: \"1985-01-01\",\n\tjoin_date: \"2019-05-30\",\n\tdepartment: 'Engineering',\n    role: 'Software Engineer Manager',\n\tskills: ['Python', 'JavaScript', 'surql'],\n\treport: IC_directory:{ full_name: 'John Doe', username: 'johndoe' },\n\ttags: ['full-time', 'remote']\n};",
+                    "timestamp": 1731269722288
+                },
+                {
+                    "id": "80UDdBXk2",
+                    "origin": "New query 5",
+                    "query": "-- Using the UPDATE statement\nUPDATE manager_directory:janesmith CONTENT {\n\tusername: 'janesmith',\n\tfull_name: 'Jane Smith',\n\temail: 'janesmith@example.com',\n\tdate_of_birth: \"1985-01-01\",\n\tjoin_date: \"2019-05-30\",\n\tdepartment: 'Engineering',\n    role: 'Software Engineer Manager',\n\tskills: ['Python', 'JavaScript', 'surql'],\n\treport: IC_directory:{ full_name: 'John Doe', username: 'johndoe' },\n\ttags: ['full-time', 'remote']\n};",
+                    "timestamp": 1731270015026
+                },
+                {
+                    "id": "ujuiu0cid",
+                    "origin": "New query 5",
+                    "query": "select * from IC_directory;",
+                    "timestamp": 1731270576478
+                },
+                {
+                    "id": "53TgBuf3v",
+                    "origin": "New query 5",
+                    "query": "select * from manager_directory;",
+                    "timestamp": 1731270641802
+                },
+                {
+                    "id": "X37hyfDnD",
+                    "origin": "New query 5",
+                    "query": "select manager_directory:janesmith from manager_directory;",
+                    "timestamp": 1731270666376
+                },
+                {
+                    "id": "9xbgJfAX1",
+                    "origin": "New query 5",
+                    "query": "-- Using the UPDATE statement\nCREATE manager_directory:janesmith CONTENT {\n\tusername: 'janesmith',\n\tfull_name: 'Jane Smith',\n\temail: 'janesmith@example.com',\n\tdate_of_birth: \"1985-01-01\",\n\tjoin_date: \"2019-05-30\",\n\tdepartment: 'Engineering',\n    role: 'Software Engineer Manager',\n\tskills: ['Python', 'JavaScript', 'surql'],\n\treport: IC_directory:{ full_name: 'John Doe', username: 'johndoe' },\n\ttags: ['full-time', 'remote']\n};",
+                    "timestamp": 1731270709802
+                },
+                {
+                    "id": "q51tnm08Y",
+                    "origin": "New query 5",
+                    "query": "select manager_directory:janesmith from manager_directory;",
+                    "timestamp": 1731270725831
+                },
+                {
+                    "id": "XRaORXaUK",
+                    "origin": "New query 5",
+                    "query": "select * from manager_directory;",
+                    "timestamp": 1731270737307
+                },
+                {
+                    "id": "JqMpg8hGH",
+                    "origin": "New query 6",
+                    "query": "RETURN 9;",
+                    "timestamp": 1731271807221
+                },
+                {
+                    "id": "L1NcizL9E",
+                    "origin": "New query 6",
+                    "query": "RETURN \"Aeon rode on a 🐎 to get to the 🗻.\";",
+                    "timestamp": 1731271837929
+                },
+                {
+                    "id": "jy6tsDrxG",
+                    "origin": "New query 6",
+                    "query": "RETURN \"Aeon\nrode\non\na\n🐎.\";",
+                    "timestamp": 1731271877275
+                },
+                {
+                    "id": "17yx4Moby",
+                    "origin": "New query 6",
+                    "query": "RETURN \"Aeon rode on a \\t\" + \"🐎.\";",
+                    "timestamp": 1731271893649
+                },
+                {
+                    "id": "u3RlrLRuW",
+                    "origin": "New query 6",
+                    "query": "RETURN \"Aeon owns \" + \"9 horses.\";\nRETURN 9.5 + 9;",
+                    "timestamp": 1731271911638
+                },
+                {
+                    "id": "hHyk5iLkM",
+                    "origin": "New query 6",
+                    "query": "RETURN \"Aeon owns \" + 9 + \" horses.\";",
+                    "timestamp": 1731271936080
+                },
+                {
+                    "id": "zYmnz7B8z",
+                    "origin": "New query 6",
+                    "query": "RETURN \"Aeon rode on \" + <string> 9 + \" horses.\";",
+                    "timestamp": 1731271981552
+                },
+                {
+                    "id": "ddPluTEm9",
+                    "origin": "New query 6",
+                    "query": "RETURN <int>\"nine\" + 9;",
+                    "timestamp": 1731272000932
+                },
+                {
+                    "id": "4QUDY0B1e",
+                    "origin": "New query 6",
+                    "query": "RETURN <string><int>\"9\" + \" is a good number\";",
+                    "timestamp": 1731273096891
+                },
+                {
+                    "id": "nkZbLNpE8",
+                    "origin": "New query 6",
+                    "query": "RETURN <int>10.0;\nRETURN <int>10.1;",
+                    "timestamp": 1731273155341
+                },
+                {
+                    "id": "GObaaOMiN",
+                    "origin": "New query 6",
+                    "query": "RETURN 8.8888888888888888;",
+                    "timestamp": 1731273225732
+                },
+                {
+                    "id": "UwzzNdnOB",
+                    "origin": "New query 6",
+                    "query": "RETURN 88888888888888888888;",
+                    "timestamp": 1731273244549
+                },
+                {
+                    "id": "lhRfr5tWc",
+                    "origin": "New query 6",
+                    "query": "RETURN [8.888888888888888dec, 88888888888888888888dec];",
+                    "timestamp": 1731273276057
+                },
+                {
+                    "id": "2RBfZ5xOb",
+                    "origin": "New query 6",
+                    "query": "RETURN <decimal>88888888888888888888;",
+                    "timestamp": 1731273300690
+                },
+                {
+                    "id": "IrNKIsmgT",
+                    "origin": "New query 6",
+                    "query": "RETURN <decimal>8.888888888888888;",
+                    "timestamp": 1731273357822
+                },
+                {
+                    "id": "R4rv7tGxA",
+                    "origin": "New query 6",
+                    "query": "// Will fail as a cast to `int` will result in data loss\nRETURN <int>(8.9 + 10);\n// But a `number` can also be a float, so no problem\nRETURN <number>(8.9 + 10);",
+                    "timestamp": 1731273406647
+                },
+                {
+                    "id": "MwSOdXlhx",
+                    "origin": "New query 6",
+                    "query": "RETURN       '0191267e-102b-777c-8312-c290e1a2bb46';\nRETURN <uuid>'0191267e-102b-777c-8312-c290e1a2bb46';",
+                    "timestamp": 1731273446748
+                },
+                {
+                    "id": "PlFP12vI6",
+                    "origin": "New query 6",
+                    "query": "RETURN {\n    name: \"Aeon\",\n    age: 20,\n    town: \"Toria\",\n};",
+                    "timestamp": 1731273493472
+                },
+                {
+                    "id": "CehjopR0l",
+                    "origin": "New query 6",
+                    "query": "RETURN {\n    name: \"Aeon\",\n    age: 20,\n    town: \"Toria\",\n}.town;",
+                    "timestamp": 1731273542652
+                },
+                {
+                    "id": "wmiQgGh08",
+                    "origin": "New query 6",
+                    "query": "RETURN {\n    name: \"Aeon\",\n    age: 20,\n    town: \"Toria\",\n}.town, age;",
+                    "timestamp": 1731273566779
+                },
+                {
+                    "id": "5j3Ai5XiL",
+                    "origin": "New query 6",
+                    "query": "RETURN {\n    name: \"Aeon\",\n    age: 20,\n    town: \"Toria\"\n}.{\n    town,\n    age\n};",
+                    "timestamp": 1731273593521
+                },
+                {
+                    "id": "NhpgKJwLV",
+                    "origin": "New query 6",
+                    "query": "RETURN {\n    name: \"Aeon\",\n    age: 20,\n    town: {\n        name: \"Toria\",\n        population: 20685\n    }\n}.{\n    name,\n    age,\n    town_name: town.name,\n    town_population: town.population\n};",
+                    "timestamp": 1731273639943
+                },
+                {
+                    "id": "mxF4tGpXQ",
+                    "origin": "New query 6",
+                    "query": "RETURN {\n    name: \"Aeon\",\n    age: 20,\n    town: \"Toria\"\n} WHERE name = \"Aeon\";",
+                    "timestamp": 1731273681768
+                },
+                {
+                    "id": "COp3JZCSQ",
+                    "origin": "New query 6",
+                    "query": "SELECT town, age FROM {\n    name: \"Aeon\",\n    age: 20,\n    town: \"Toria\",\n};",
+                    "timestamp": 1731273760806
+                },
+                {
+                    "id": "HqREwziDi",
+                    "origin": "New query 6",
+                    "query": "SELECT * FROM {\n    name: \"Aeon\",\n    age: 20,\n    town: \"Toria\",\n};",
+                    "timestamp": 1731273786387
+                },
+                {
+                    "id": "OBHYiThaN",
+                    "origin": "New query 6",
+                    "query": "SELECT *\n    OMIT boring_data,\n    who_cares,\n    uninteresting_data\nFROM {\n    name: \"Aeon\",\n    age: 20,\n    town: \"Toria\",\n    boring_data: true,\n    who_cares: 888.9,\n    uninteresting_data: \"Bunch of data\"\n};",
+                    "timestamp": 1731273821240
+                },
+                {
+                    "id": "7emagV04v",
+                    "origin": "New query 6",
+                    "query": "INFO FOR DB;",
+                    "timestamp": 1731273849576
+                },
+                {
+                    "id": "RgByUpkyp",
+                    "origin": "New query 6",
+                    "query": "select * from person;",
+                    "timestamp": 1731274414999
+                },
+                {
+                    "id": "3F3ikWlCj",
+                    "origin": "New query 6",
+                    "query": "USE NS test_ns;",
+                    "timestamp": 1732722815457
+                },
+                {
+                    "id": "J45fpS226",
+                    "origin": "New query 6",
+                    "query": "USE NS test_ns;",
+                    "timestamp": 1732722832957
+                },
+                {
+                    "id": "KYuKITv6w",
+                    "origin": "New query 6",
+                    "query": "INFO FOR DB;",
+                    "timestamp": 1756049775486
+                },
+                {
+                    "id": "pMozO8O6V",
+                    "origin": "New query 6",
+                    "query": "select * from person;",
+                    "timestamp": 1756049779901
+                },
+                {
+                    "id": "Ktoi5rIt2",
+                    "origin": "New query 6",
+                    "query": "USE NS test_ns;",
+                    "timestamp": 1756049782223
+                },
+                {
+                    "id": "zDIuGaj18",
+                    "origin": "New query 6",
+                    "query": "USE NS demo;",
+                    "timestamp": 1756049791980
+                },
+                {
+                    "id": "VOHAP0TBR",
+                    "origin": "New query 5",
+                    "query": "select * from manager_directory;",
+                    "timestamp": 1756049862925
+                },
+                {
+                    "id": "AR0gQJLMj",
+                    "origin": "New query 5",
+                    "query": "CREATE IC_directory:{username: 'johndoe',full_name: 'John Doe'} CONTENT {\n\tusername: 'johndoe',\n\tfull_name: 'John Doe',\n\temail: 'johndoe@example.com',\n\tdate_of_birth: \"1990-01-01\",\n\tjoin_date: \"2024-05-30\",\n\tdepartment: 'Engineering',\n\trole: 'Software Engineer',\n\tskills: ['Python', 'JavaScript', 'surql'],\n\tmanager: manager_directory:janesmith,\n\ttags: ['full-time', 'remote']\n};\n\n-- Using the UPDATE statement\nCREATE manager_directory:janesmith CONTENT {\n\tusername: 'janesmith',\n\tfull_name: 'Jane Smith',\n\temail: 'janesmith@example.com',\n\tdate_of_birth: \"1985-01-01\",\n\tjoin_date: \"2019-05-30\",\n\tdepartment: 'Engineering',\n    role: 'Software Engineer Manager',\n\tskills: ['Python', 'JavaScript', 'surql'],\n\treport: IC_directory:{ full_name: 'John Doe', username: 'johndoe' },\n\ttags: ['full-time', 'remote']\n};\n\nselect * from manager_directory;",
+                    "timestamp": 1756049874270
+                },
+                {
+                    "id": "etrcWLsiH",
+                    "origin": "New query 5",
+                    "query": "select * from manager_directory;",
+                    "timestamp": 1756049882296
+                },
+                {
+                    "id": "nhUT0HF7n",
+                    "origin": "New query 5",
+                    "query": "select * from manager_directory;",
+                    "timestamp": 1756058506822
+                },
+                {
+                    "id": "5JhRBojld",
+                    "origin": "New query 5",
+                    "query": "-- Using the CREATE statement\nCREATE IC_directory:{username: 'johndoe',full_name: 'John Doe'} CONTENT {\n\tusername: 'johndoe',\n\tfull_name: 'John Doe',\n\temail: 'johndoe@example.com',\n\tdate_of_birth: \"1990-01-01\",\n\tjoin_date: \"2024-05-30\",\n\tdepartment: 'Engineering',\n\trole: 'Software Engineer',\n\tskills: ['Python', 'JavaScript', 'surql'],\n\tmanager: manager_directory:janesmith,\n\ttags: ['full-time', 'remote']\n};\n\n-- Using the UPDATE statement\nCREATE manager_directory:janesmith CONTENT {\n\tusername: 'janesmith',\n\tfull_name: 'Jane Smith',\n\temail: 'janesmith@example.com',\n\tdate_of_birth: \"1985-01-01\",\n\tjoin_date: \"2019-05-30\",\n\tdepartment: 'Engineering',\n    role: 'Software Engineer Manager',\n\tskills: ['Python', 'JavaScript', 'surql'],\n\treport: IC_directory:{ full_name: 'John Doe', username: 'johndoe' },\n\ttags: ['full-time', 'remote']\n};\n\nselect * from manager_directory;",
+                    "timestamp": 1756058517005
+                },
+                {
+                    "id": "2iYAGRkSI",
+                    "origin": "New query 5",
+                    "query": "select * from manager_directory;",
+                    "timestamp": 1756058521078
+                },
+                {
+                    "id": "VwwZmDuax",
+                    "origin": "New query 5",
+                    "query": "select * from manager_directory;",
+                    "timestamp": 1777234189635
+                }
+            ],
+            "queryTabList": true
+        },
+        {
+            "activeQuery": "NfjYaR3jo",
+            "authentication": {
+                "access": "",
+                "accessFields": [],
+                "database": "test",
+                "hostname": "localhost:8000",
+                "mode": "database",
+                "namespace": "test",
+                "password": "root",
+                "protocol": "ws",
+                "scope": "",
+                "scopeFields": [],
+                "token": "",
+                "username": "root"
+            },
+            "designerTableList": false,
+            "diagramAlgorithm": "default",
+            "diagramDirection": "ltr",
+            "diagramLineStyle": "default",
+            "diagramLinkMode": "default",
+            "diagramMode": "fields",
+            "diagramShowLinks": true,
+            "diagramStrategy": "NETWORK_SIMPLEX",
+            "explorerTableList": true,
+            "graphqlQuery": "",
+            "graphqlShowVariables": false,
+            "graphqlVariables": "{}",
+            "icon": 3,
+            "id": "rS9rdcdFD",
+            "lastDatabase": "test",
+            "lastNamespace": "test",
+            "name": "Local database",
+            "pinnedTables": [],
+            "queries": [
+                {
+                    "id": "PXdATrWh4",
+                    "name": "New query",
+                    "query": "USE NS test_ns;\n\n\nSELECT * FROM person;\n\nSELECT * FROM user;\n\nCREATE person, person:aeon, cat:aeons_cat;\n\nCREATE person SET\n    name = \"Aeon\",\n    town = \"Toria\";\n\nCREATE person CONTENT {\n    town: \"Toria\",\n    name: 0.5\n};\n\nSELECT * FROM person;\n\nINFO FOR DB;\n\nCREATE person SET name = 'Billy';\nCREATE cat;\nCREATE dog SET age = 2;\n\n\nCREATE book:aeon;\nCREATE person:aeon;\n\nCREATE bird:𓅃;\nCREATE person:Αἰών;\nCREATE person:éon;\n\nCREATE building:`façade`;\n\nCREATE building:`faç\n   ad\n   e`;\n\nCREATE user:`7962a62e-7782-423c-b899-04a3c9d2d552`\nSET \n    email = \"asdf@asdf.com\",\n    firstName = \"asdf\",\n    lastName = \"asdf\"\n;\n\n\nCREATE `Gebäude`:`façade`;\n\nCREATE \n    bird:`𓅃`,\n    artist:`👉**BRUCE DICKINSON**👈`,\n    `𓊖`:`𓏠𓈖𓄤𓆑𓂋𓉴𓊖`;\n\n\nCREATE person:5;\nCREATE person:00005;\n\nCREATE person:`00005`;\n\n\nCREATE bird   SET id = \"𓅃\";\nCREATE person SET id = 0;\nCREATE person SET id = \"0\";\n\n\nCREATE townsperson, townsperson, person SET name = \"Just a person\";\n\n\n// Three `townsperson` records with a random id\nCREATE |townsperson:3| SET name = \"Just a person\";\n// Two `person` and three `townsperson` records with a random id\nCREATE |person:2|, |townsperson:3| SET name = \"Just a person\";\n\n\nRETURN 9;\nSELECT * FROM 9;\nRETURN [ 9 ]; // You can use [] if you want to emulate the SELECT output\n\nCREATE person:1 SET name = 'Aeon';\nSELECT name FROM person:1;\nSELECT name FROM ONLY person:1;\n\nSELECT * FROM ONLY person LIMIT 1;\n\nSELECT * FROM ONLY person LIMIT 2;\n\nSELECT VALUE id FROM person;\n\n\n",
+                    "resultFormat": "sql",
+                    "resultMode": "combined",
+                    "showVariables": false,
+                    "type": "config",
+                    "valid": false,
+                    "variables": "{}"
+                },
+                {
+                    "id": "Z25mv0G3I",
+                    "name": "New query 2",
+                    "query": "CREATE person:aeon;\n\nSELECT * FROM person;\n\nCREATE town:the_naimo SET\n    name = \"The Naimo\",\n    population = 7490,\n\tdata = {\n\t\tlocation: \"Northwest of Toria\",\n\t\tgeography: \"Coastal town\"\n\t};\n\n\nSELECT\n    population,\n    \"Weather for \" + name,\n    10.5,\n    \"Cloudy\"\n    FROM town:the_naimo;\n\nSELECT\n    population,\n    \"Weather for \" + name AS name,\n    10.5 AS temperature,\n    \"Cloudy\" AS conditions\n    FROM town:the_naimo;\n\nSELECT *,\n\t\"Name: \" + name + \". Population: \" + <string>population AS data\nFROM town:the_naimo;\n\nSELECT\n    *,\n    \"Name: \" + name + \". Population: \" + <string>population AS data,\n    data AS other_data\nFROM town:the_naimo;\n\nCREATE town:sukh SET name = \"Sukh\";\n\n// Whoops, forgot to add the population...\nUPDATE town:sukh SET population = 2955;\n\nselect * from town; \n\n\nUPDATE airplane SET name = \"Aeon's plane\";\nUPDATE airplane:aeons_plane SET name = \"Aeon's plane\";\n\nUPSERT airplane:aeons_plane SET name = \"Aeon's plane\";\nUPSERT airplane:aeons_plane SET seats = 20;\n\nSELECT * FROM airplane;\n\nCREATE town:{ name: 'Sukh' };\nSELECT id.name FROM town;\n\n\nCREATE town:{ name: 'Toria' }, town:{ name: 'Black Bay' };\n\n\n// Everything starting from 'S'\nSELECT * FROM town:{ name: 'S' }..;\n// Everything up to but not including 'Toria'\nSELECT * FROM town:..{ name: 'Toria' };\n// Everything up to and including 'Toria'\nSELECT * FROM town:..={ name: 'Toria' };\n// From 'Black Bay' and up to but not including 'Toria'\nSELECT * FROM town:{ name: 'Black Bay' }..{ name: 'Toria' };\n// From 'Black Bay' and up to and including 'Toria'\nSELECT * FROM town:{ name: 'Black Bay' }..={ name: 'Toria' };\n\n\n// Two bool checks\nRETURN 5 > 0 AND 5 < 10;\n// Or just use a range\nRETURN 5 IN 0..10;\n\n\n-- An array from 0 to 3, not including 4\nRETURN <array>0..4;\n-- Get the item at index 30 from this array\nRETURN (<array>50..1000)[30];\n\n\nSELECT name, id FROM town;\n\nRETURN null = null;\nRETURN [null, 1] = [null, 1];\nRETURN 1000 / 0;\n\nCREATE town:the_hill SET name = \"The Hill\";\n\nCREATE town:the_hill SET name = \"The Hill\";\nUPDATE town:the_hill SET population = 1125;\nUPDATE town:the_hill SET population = null;\nUPDATE town:the_hill SET population = NONE;\nSELECT * FROM town:the_hill;\nUPDATE town UNSET name, population;\n\n\nDELETE FROM town;\nSELECT * FROM town;\n\nCREATE town SET name = \"Toria\",     population = 20685;\nCREATE town SET name = \"Sukh\",      population = 2955;\nCREATE town SET name = \"Black Bay\", population = 4137;\n\nSELECT * from town where population  in 2000..9000;\n\nCREATE town:{ name: \"test\", population: \"8585\" };\n\nSELECT * from town:{name: \"M\"}..;\n\nselect * from town;\n",
+                    "resultFormat": "sql",
+                    "resultMode": "combined",
+                    "showVariables": false,
+                    "type": "config",
+                    "valid": true,
+                    "variables": "{}"
+                },
+                {
+                    "id": "4Y9NUoNV5",
+                    "name": "New query 3",
+                    "query": "CREATE |person:50| RETURN NONE;\n\nRETURN count(SELECT * FROM person);\n\nDELETE person;\nSELECT * FROM person;\n\nCREATE |person:50| SET num = rand::int();\n\nCREATE |person:50| SET num = rand::int();\n// Now see how many there are\nRETURN count(SELECT * FROM person);\n// Will this delete about half of them?\nRETURN count(SELECT * FROM person WHERE num);\n// Oops! Try the WHERE clause again\nRETURN count(SELECT * FROM person WHERE num < 0);\n// Looks good, now change SELECT * FROM to DELETE\nDELETE person WHERE num < 0;\n\nCREATE person SET name = 'Aeon';\nSElECT * from person; \n\nUPDATE person SET town = 'Toria' WHERE name RETURN BEFORE;\n\nUPDATE person SET age = 20, fears_delete = true RETURN DIFF;\nUPDATE person UNSET age RETURN DIFF;\n\nUPDATE person SET age = 20 RETURN BEFORE, AFTER;\nUPDATE person SET age = 20 RETURN $before, $after;\n\n\nLET $name = \"Aeon\";\nCREATE person SET name = $name;\n\nDELETE FROM person;\n\nCREATE person SET name = \"Aeon\";\nLET $name: string = SELECT name FROM person;\n\nDELETE FROM person;\nCREATE person SET name = \"Aeon\";\nLET $name: string = SELECT VALUE name FROM person;\n\nDELETE FROM person;\nCREATE person SET name = \"Aeon\";\nLET $name: string = (SELECT VALUE name FROM person)[0];\nRETURN $name;\n\nSELECT * FROM person;\n\nRETURN $session;\n\nCREATE person;\nSELECT $before, $after FROM person;\n\nCREATE person:aeon;\nLET $before = \"Before!\";\nDELETE person RETURN $before;\nRETURN $before;\n\nCREATE person:aeon;\nLET $before = \"Before!\";\nSELECT $before FROM person;\n\nLET $session = \"Is this thing on?\";\n\nselect * from town;\n\ndelete from town:{\n    name: 'test',\n    population: '8585'\n}\n\nDELETE town WHERE population < 5000 RETURN BEFORE;\n\nFOR $data IN [{ name: \"Black Bay\", population: 4137 }, { name: \"Sukh\", population: 2955 }] {\n    CREATE town SET\n      name = $data.name,\n      population = $data.population;\n}\n\n\nFOR $t IN SELECT * FROM town WHERE population < 5000 {\n    CREATE village SET\n        name = $t.name,\n        population = $t.population;\n    DELETE $t;\n};\nSELECT * FROM town, village;\n\nSELECT * FROM person;\n\nFOR $num IN 1..=10 {\n    CREATE person SET name = \"Person number \" + <string>$num;\n}\n\n\nCREATE town;\nDELETE town;\nINFO FOR DB;\n\nCREATE town;\nREMOVE TABLE town;\n\ncreate town set \n    name = 'Toria',\n    population = 206685;\n\ndelete town:noh4b3lfghaetfo1pjsg;\n\nSELECT * FROM town, village;\n\nSELECT\n    name,\n    population,\n    record::tb(id) AS type\nFROM town, village;\n\nCREATE type::thing(\"settlement\", 1);\n// id: settlement:1\nCREATE type::thing(\"settlement\", \"1\");\n// id: settlement:⟨1⟩\n\nselect * from settlement;\n\nFOR $name IN [\"roman_god\", \"planet\"] {\n    CREATE type::thing($name, \"jupiter\");\n};\n\nselect * from roman_god, planet;\n\n\n// Won't work:\n// CREATE person_made_at:time::now();\n\n// Will work:\nCREATE type::thing(\"person_made_at\", time::now());\n\nRETURN string::is::latitude(\"87.5519\");\nRETURN string::is::latitude(\"97.5519\");\nRETURN string::is::longitude(\"97.5519\");\nRETURN string::is::longitude(\"187.5519\");\n\n-- Have a string, call a method on it\nRETURN \"87.5519\".is_latitude();\n\n\n-- Could only do this prior to 2.0\nRETURN array::len(array::push([1,2,3], 4));\n-- Now you can do this\nRETURN [1,2,3].push(4).len();\n\nLET $some_data = \"Some data\";\nLET $some_other_data = [1,2,3];\n--\n-- Lots of lines of code...\n--\n-- Hmm, which one is the string, and which one is the array?\nRETURN [$some_data.len(), $some_other_data.len()];\n-- This makes it clear which one is which\nRETURN [string::len($some_data), array::len($some_other_data)];\n\n\n-- YYYY-MM-DDTHH:MM:SSZ\n\nRETURN <datetime>'2024-06-06T12:00:00Z';\n\n// Wrong format: has a _ between the year and month instead of -\nRETURN <datetime>\"2024_06-06T12:00:00Z\";\n\n\nRETURN <datetime>'2024-06-06T12:00:00.101Z';\n\nRETURN <datetime>\"2024-06-06\";\n\n-- This event took place long before the tunnel was discovered,\n-- so is only accurate down to the month\nLET $date = \"0003-04\";\nLET $info = \"First ever democratic elections in Toria\";\n\nCREATE ONLY event SET\n    at = (IF string::is::datetime($date) {\n        <datetime>$date\n    } ELSE {\n        <datetime>($date + \"-15\")\n    }),\n    at_historical = time::format(at, \"Month %m Day %d, %Y years since Toria's glorious founding\"),\n    info = $info;\n\n\nLET $date = \"0424-04-24T08:00:00Z\";\nLET $info = \"Start of day 50 of the project to restore civilization\";\n\nCREATE ONLY event SET\n    at = IF string::is::datetime($date) {\n        <datetime>$date\n    } ELSE {\n        <datetime>$date + \"-15\"\n    },\n    at_historical = time::format(at, \"Month %m Day %d, %Y glorious years since Toria's founding\"),\n    info = $info;\n\n\nLET $today = <datetime>\"0424-04-25\";\nSELECT $today - at AS time_passed, * FROM event; \n\n\nRETURN d'27000024-06-06T12:00:00Z';\nRETURN r'person:::::aeon';\nRETURN u'01912b31-d67d-704b-b49d-WRONGINPUT';\n\nRETURN [\n    d'2724-06-06T12:00:00Z',\n    u'01912b31-d67d-704b-b49d-f2aed93da1fc',\n    r'person:aeon'\n];\n\nRETURN 1y1m1s;\nRETURN type::is::duration(1y1m1s);\n1y1m1s.is_duration();\n\n\nRETURN 1y1m      + 1m1y;\nRETURN 1ms1ms1ms + 1ms1ms1ms;\n\nLET $first = time::now();\nLET $second = time::now();\nRETURN $second - $first;\n\nLET $first = time::now();\nSLEEP 1s;\nLET $second = time::now();\nRETURN $second - $first;\n\nCREATE person:[time::now()];\nCREATE person:[time::now()];\nCREATE person:[time::now()];\n\nCREATE counter:my_counter SET value += 1;\n\nCREATE city:toria SET nicknames += \"The centre of the known world\";\n\nCREATE ONLY town\n    CONTENT {\n        name: \"Toria\",\n        population: 3500\n    }\n    RETURN\n        \"Nice\" AS the_weather_today,\n        10,\n        15 AS another_number,\n        $after\n    TIMEOUT 1s\n    PARALLEL;\n\nLET $data = [\n    { name: \"Toria\",     population: 20685  },\n    { name: \"Sukh\",      population: 2955   },\n    { name: \"Abeston\",   population: 1000  }\n];\nfor $item in $data {\n    CREATE type::thing(\"town\", $item.name)\n        SET\n            name = $item.name,\n            population = $item.population\n};\n\nDELETE town WHERE population > 2000 RETURN BEFORE;\nDELETE town WHERE population > 2000 RETURN $before;\n\nSELECT\n    \"A \" + record::tb(id) + \" called \" + name AS description\n    FROM town;\n\nUPDATE town SET location = \"Centre of the world\" WHERE name = \"Toria\" RETURN NONE TIMEOUT 1s ;\n\n\nLET $now = time::now();\nCREATE |town:1000|   RETURN NONE;\nCREATE |person:1000| RETURN NONE;\nRETURN time::now() - $now;\n",
+                    "resultFormat": "sql",
+                    "resultMode": "combined",
+                    "showVariables": false,
+                    "type": "config",
+                    "valid": false,
+                    "variables": "{}"
+                },
+                {
+                    "id": "PQk0ZwvMx",
+                    "name": "New query 4",
+                    "query": "-- delete from person;\nselect * from person;\n\nCREATE person:the_nobleman SET\n    name = \"The Nobleman\",\n    class = \"Count\",\n    money = 100000; --  Just a made-up number\n\nUPDATE person:the_noblem SET\n    money = 50;\n\nUPDATE person:the_nobleman\n-- Whoops, updated with weather data\nSET money = {\n    temperature: 15.5,\n    location: \"Toria\"\n};\n\nREMOVE TABLE airplane;\nREMOVE TABLE city;\nREMOVE TABLE counter;\nREMOVE TABLE event;\nREMOVE TABLE person_made_at;\nREMOVE TABLE planet;\nREMOVE TABLE roman_god;\nREMOVE TABLE settlement;\nREMOVE TABLE town;\nREMOVE TABLE village;\n\nINFO FOR DB;\n\nCREATE person;\nDEFINE TABLE person TYPE ANY SCHEMAFULL PERMISSIONS NONE;\n\nCREATE person;\nDEFINE TABLE OVERWRITE person TYPE ANY SCHEMAFULL PERMISSIONS NONE;\nDEFINE FIELD name ON TABLE person TYPE string;\nDEFINE FIELD class ON TABLE person TYPE string;\nDEFINE FIELD money ON TABLE person TYPE ing;\n\nCREATE person SET name = \"Random person\";\n\nDEFINE FIELD OVERWRITE class ON TABLE person TYPE option<string>;\nDEFINE FIELD OVERWRITE money ON TABLE person TYPE option<int>;\n\n\nDEFINE FIELD OVERWRITE money ON TABLE person TYPE option<int> DEFAULT 0;\n\n\nCREATE person SET name = \"Random person\";\n\n\n\n--DELETE FROM person;\nSELECT * FROM person;\n\nRETURN \"Adrian\".is_alpha();\nRETURN \"Adrian Fahrenheit Ţepeş\".is_alpha();\n\nRETURN \"Adrian Fahrenheit Ţepeş\".replace(\" \", \"\").replace(\"-\", \"\").is_alpha();\n\n\nDEFINE FIELD OVERWRITE name ON TABLE person\n    TYPE string\n    ASSERT $value.replace(\" \", \"\").replace(\"-\", \"\").is_alpha();\n\n\nCREATE person SET name = '😊';\nCREATE person SET name = '11';\nCREATE person SET name = '***';\n\n\nDEFINE FIELD OVERWRITE money ON TABLE person\n    TYPE option<int>\n    ASSERT $value >= 0;\n\nCREATE person SET name = \"Brother of Nobleman\";\nUPDATE person SET money = -1 WHERE name = \"Brother of Nobleman\";\n\nCREATE building:old_castle SET\n  name = \"Old castle\",\n  kind = \"castle\";\n\nDEFINE TABLE OVERWRITE building SCHEMAFULL;\nDEFINE FIELD name ON TABLE building TYPE string;\n\nRETURN [\"cat\", \"dog\"] CONTAINS \"dog\";\nRETURN \"dog\" IN [\"cat\", \"dog\"];\n\nDEFINE FIELD kind ON TABLE building\n    TYPE string\n    ASSERT [\"house\", \"castle\"] CONTAINS $value;\n\nCREATE building SET\n    name = \"Mr. Meow\",\n    kind = \"Cat\";\n\nCREATE catfood:dry SET name = 'Dry food';\nCREATE catfood:wet SET name = 'Wet food';\n\nCREATE cat SET\n  name = \"Mr. Meow\",\n  foods = [catfood:dry, catfood:wet];\n\nSELECT name, foods FROM cat;\nSELECT name, foods.name FROM cat;\n\nSELECT\n    name,\n    foods.name AS foods\nFROM cat;\n\n\nDEFINE FIELD properties ON TABLE person TYPE option<array<record<building>>>;\n\nUPDATE person:the_nobleman SET properties = [building:old_castle];\n\nCREATE person:the_nobleman SET\n    name = \"The Nobleman\",\n    class = \"Count\",\n    money = 100000; --  Just a made-up number\n\nUPDATE person:the_nobleman SET\n    money = 50;\n\n\nSELECT\n    name,\n    money,\n    properties.*.* AS castles\nFROM person;\n\n\nSELECT\n    name,\n    money,\n    properties FROM person\n    FETCH properties;\n\nSELECT * FROM person FETCH properties;\n\nINFO FOR DB;\nINFO FOR TABLE building;\nINFO FOR TABLE person;\n\nDEFINE TABLE sometable SCHEMAFULL;\nDEFINE FIELD lots_of_arrays ON sometable TYPE array<array<array<array<int>>>>;\n\nINFO FOR TABLE sometable;\n\nRETURN \"123456\".is_numeric();\n\nDEFINE TABLE user SCHEMAFULL;\nDEFINE FIELD OVERWRITE comments ON user TYPE option<array<record<comment>>>; \n\noption<array<record<building>>>;\n\n-- REMOVE TABLE user;\n\nDEFINE TABLE comment SCHEMAFULL;\nDEFINE FIELD content ON comment TYPE string;\n\nINFO FOR TABLE user\nINFO FOR TABLE comment;\n\nCREATE user;\n\nCREATE comment SET \n    content = \"testing\";\n\nSELECT * FROM comment;\n\nUPDATE user SET \n    comments += comment:c20zv0erv436zgjs5hyj;\n\n\nSELECT * FROM user FETCH comments;\n\n\nDEFINE TABLE no_data SCHEMAFULL;\n\nCREATE no_data:{\n    actually: \"Has\",\n    a_lot_of: \"data\"\n};\n\nCREATE no_data:[\"lots\", \"of\", \"daaaataaaa\"];\n\nINFO FOR ROOT;\n\n",
+                    "resultFormat": "sql",
+                    "resultMode": "combined",
+                    "showVariables": false,
+                    "type": "config",
+                    "valid": false,
+                    "variables": "{}"
+                },
+                {
+                    "id": "bK8XELdPD",
+                    "name": "New query 5",
+                    "query": "SELECT * FROM person FETCH properties;\n\nCREATE person:the_noblewoman SET\n    name = \"The Noblewoman\",\n    properties = [building:old_castle];\nCREATE person:wulfield SET name = \"Wulfield\";\nCREATE person:adelaide SET name = \"Adelaide\";\nCREATE person:bertha   SET name = \"Bertha\";\n\nRELATE person:the_nobleman->parent_of->person:wulfield;\n\nSELECT * FROM person:the_nobleman;\nINFO FOR DB;\n\n-- REMOVE TABLE catfood;\n-- REMOVE TABLE no_data;\n-- REMOVE TABLE comment;\n-- REMOVE TABLE sometable;\n-- REMOVE TABLE user;\n\nSELECT * FROM parent_of;\n\nRELATE person:the_noblewoman->parent_of->person:wulfield;\n\n-- And then RELATE for each of the parents for each of the other two daughters\nFOR $daughter IN [person:adelaide, person:bertha] {\n    RELATE person:the_nobleman->parent_of->$daughter;\n    RELATE person:the_noblewoman->parent_of->$daughter;\n}\n\nSELECT\n    value\n        \"Parent: \"     + <string>in.name  +\n        \". Daughter: \" + <string>out.name\nFROM parent_of;\n\nSELECT ->parent_of FROM person;\n\nSELECT <-parent_of FROM person;\n\nSELECT ->parent_of->person.name FROM person;\nSELECT VALUE ->parent_of->person.name FROM person;\n\nSELECT VALUE ->parent_of<-person.name FROM person;\n\nSELECT VALUE <-parent_of->person.name FROM person;\n\nSELECT VALUE <-parent_of<-person.name FROM person;\n\n\nCREATE user:aeon SET name = \"Aeon\";\nCREATE cat:one SET name = \"Mr. Meow\";\nCREATE cat:two SET name = \"Mrs. Meow\";\nRELATE user:aeon->feeds->[cat:one, cat:two];\n\nSELECT in, out FROM feeds;\n\nSELECT name FROM user;\n\nSELECT\n    name,\n    ->feeds->cat.name\nFROM user;\n\nSELECT name FROM cat;\n\nSELECT\n    name,\n    <-feeds<-user.name\nFROM cat;\n\nSELECT <-feeds->cat FROM cat;\n\nSELECT ->feeds<-user.name FROM user;\n\nSELECT\n    name,\n    ->feeds->cat.name,\n\t->feeds->cat.id\nFROM user;\n\nSELECT\n\tname,\n\t->feeds->cat.{ id, name }\nFROM user;\n\nINFO FOR ROOT;\nINFO FOR NS;\nINFO FOR DB;\nINFO FOR TABLE table;\nINFO FOR USER user ON NAMESPACE;\nINFO FOR USER user ON DATABASE;\n",
+                    "resultFormat": "sql",
+                    "resultMode": "combined",
+                    "showVariables": false,
+                    "type": "config",
+                    "valid": false,
+                    "variables": "{}"
+                },
+                {
+                    "id": "t7sHqbGxW",
+                    "name": "New query 6",
+                    "query": "-- Define the namespace and database if they don't already exist\nDEFINE NAMESPACE auth;\nDEFINE DATABASE user_auth;\n\n-- Switch to the newly created namespace and database\nUSE NS auth DB user_auth;\n\n-- Create a table named 'user_auth'\nDEFINE TABLE user_auth SCHEMAFULL;\n\n-- Define fields within the 'user_auth' table\nDEFINE FIELD username ON user_auth TYPE string ASSERT $value != '';\nDEFINE FIELD hashed_password ON user_auth TYPE string ASSERT $value != '';\nDEFINE FIELD is_locked ON user_auth TYPE bool DEFAULT false;\nDEFINE FIELD last_successful_login ON user_auth TYPE datetime;\nDEFINE FIELD password_expiration ON user_auth TYPE datetime;\n\n-- Optionally, add indexes for faster query performance\nDEFINE INDEX idx_username ON user_auth FIELDS username UNIQUE;\n\nINFO FOR root;\nINFO FOR DB;\nINFO FOR TABLE user_auth;",
+                    "resultFormat": "sql",
+                    "resultMode": "combined",
+                    "showVariables": false,
+                    "type": "config",
+                    "valid": true,
+                    "variables": "{}"
+                },
+                {
+                    "id": "Um54s840J",
+                    "name": "New query 7",
+                    "query": "INSERT INTO building [\n    { id: \"bear_castle\",  name: \"Bear castle\",  kind: \"castle\" },\n    { id: \"eagle_castle\", name: \"Eagle castle\", kind: \"castle\" },\n    { id: \"fish_castle\",  name: \"Fish castle\",  kind: \"castle\" },\n];\n\nCREATE town:toria SET\n    name = \"Toria\",\n    population = 20685,\n    year = <datetime>\"0424-01-01\";\n\ndelete town:toria;\n\n-- INSERT INTO town [\n--     { id: \"toria\", population: 25212, year: <datetime>\"0434-01-01\" }\n-- ]\n-- ON DUPLICATE KEY UPDATE\n-- historical_data += {\n--     year: year,\n--     population: population\n-- },\n-- population = population, -- What do we write here?\n-- year = year; \n\n\nINSERT INTO town [\n    { id: \"toria\", population: 25212, year: <datetime>\"0434-01-01\" }\n]\nON DUPLICATE KEY UPDATE\nhistorical_data += {\n    year: year,\n    population: population\n},\npopulation = $input.population,\nyear = $input.year;\n\n-- One final note: don’t forget to add the historical data first, because if you set population and year first, those will become the values of the existing record and then the new values would be entered into historical_data. Order matters here.\n\nINSERT INTO person [\n    { id: \"bear_knight\",  name: \"Bear knight\",  money: 100000, properties: [building:bear_castle ] },\n    { id: \"eagle_knight\", name: \"Eagle knight\", money: 200000, properties: [building:eagle_castle] },\n    { id: \"fish_knight\",  name: \"Fish knight\",  money: 500000, properties: [building:fish_castle]  },\n];\n\n\nSELECT\n    name,\n    properties.name AS properties\nFROM person\nWHERE properties IS NOT NONE;\n\n\n// Husband marries wife...\nRELATE person:eagle_knight->married->person:adelaide;\n// Or wife marries husband\nRELATE person:wulfield->married->person:bear_knight;\n\n\nRELATE person:eagle_knight->married->person:adelaide;\nRELATE person:wulfield->married->person:bear_knight;\nRELATE person:bertha->married->person:fish_knight;\nRELATE person:the_nobleman->married->person:the_noblewoman;\n\n\nSELECT\n    id,\n    ->married->person AS married\nFROM person;\n\n\nSELECT\n    id,\n    <->married<->person AS married\nFROM person;\n\nSELECT\n    id,\n    ->married<->person AS married\nFROM person;\n\n\nSELECT\n    id,\n    <->married->person AS married\nFROM person;\n\nRETURN [1,2,3,4,5].complement([2,3,4]);\nRETURN array::complement([person:eagle_knight, person:adelaide], [person:eagle_knight]);\n\n\nSELECT\n    id,\n    array::complement(<->married<->person, [id]) AS partner\nFROM person;\n\nSELECT\n    id,\n    array::complement(<->married<->person, [id])[0] AS partner\nFROM person;\n\nCREATE building:1 SET name = \"Toria town hall\", kind = \"public\";\nCREATE building:2 SET name = \"Toria castle\", kind = \"castle\";\nCREATE building:3 SET name = \"Toria merchants' guild\", kind = \"Public\";\n\nSELECT * FROM building;\n\nINFO FOR TABLE building;\n\nDEFINE FIELD OVERWRITE kind ON TABLE building TYPE string ASSERT ['house', 'castle', 'public'] CONTAINS $value; \n\nLET $data = [\n    { id: 1, name: \"Toria town hall\", floors: 3,  kind: \"public\"},\n    { id: 2, name: \"Toria castle\",    floors: 10, kind: \"castle\"}\n];\n\nINSERT INTO building $data ON DUPLICATE KEY UPDATE floors = $input.floors;\n\nRETURN $data;\n\nFOR $item IN $data {\n    UPSERT type::thing(\"building\", $item.id) SET floors = $item.floors    \n}; \n\nSELECT * FROM building;\n\nINFO FOR DB;\n\nREMOVE DATABASE test_db;\n",
+                    "resultFormat": "sql",
+                    "resultMode": "combined",
+                    "showVariables": false,
+                    "type": "config",
+                    "valid": true,
+                    "variables": "{}"
+                },
+                {
+                    "id": "sSbRvHpHU",
+                    "name": "New query 8",
+                    "query": "-- Chapter 5\nDEFINE TABLE person SCHEMAFULL;\nDEFINE TABLE building SCHEMAFULL;\nDEFINE FIELD name ON TABLE person \n    TYPE string \n    ASSERT $value.replace(\" \", \"\").replace(\"-\", \"\").is_alpha();\nDEFINE FIELD class ON table person TYPE option<string>;\nDEFINE FIELD money ON TABLE person \n    TYPE option<int>\n    ASSERT $value >= 0 OR $value IS NONE;\nDEFINE FIELD name ON TABLE building TYPE string;\nDEFINE FIELD kind ON TABLE building \n    TYPE string\n    ASSERT \n    [\"house\", \"castle\"] CONTAINS $value;\nDEFINE FIELD properties ON TABLE person TYPE option<array<record<building>>>;\nCREATE person:the_nobleman SET \n    name = \"The Nobleman\",\n    class = \"Count\",\n    money = 50;\nCREATE building:old_castle SET\n  name = \"Old castle\",\n  kind = \"castle\";\nUPDATE person:the_nobleman SET properties = [building:old_castle];\n\n-- Chapter 6\nCREATE person:the_noblewoman SET\n    name = \"The Noblewoman\",\n    properties = [building:old_castle];\nCREATE person:wulfield SET name = \"Wulfield\";\nCREATE person:adelaide SET name = \"Adelaide\";\nCREATE person:bertha SET name = \"Bertha\";\nRELATE person:the_nobleman->parent_of->person:wulfield;\nRELATE person:the_noblewoman->parent_of->person:wulfield;\nFOR $daughter in [person:adelaide, person:bertha] {\n    RELATE person:the_nobleman->parent_of->$daughter;\n    RELATE person:the_noblewoman->parent_of->$daughter;\n};\n\n-- Chapter 7\nINSERT INTO building [\n    { id: \"bear_castle\",  name: \"Bear castle\",  kind: \"castle\" },\n    { id: \"eagle_castle\", name: \"Eagle castle\", kind: \"castle\" },\n    { id: \"fish_castle\",  name: \"Fish castle\",  kind: \"castle\" },\n];\n\nINSERT INTO person [\n    { id: \"bear_knight\",  name: \"Bear knight\",  money: 100000, properties: [building:bear_castle ] },\n    { id: \"eagle_knight\", name: \"Eagle knight\", money: 200000, properties: [building:eagle_castle] },\n    { id: \"fish_knight\",  name: \"Fish knight\",  money: 500000, properties: [building:fish_castle]  },\n];\nRELATE person:eagle_knight->married->person:adelaide;\nRELATE person:wulfield->married->person:bear_knight;\nRELATE person:bertha->married->person:fish_knight;\nRELATE person:the_nobleman->married->person:the_noblewoman;",
+                    "resultFormat": "sql",
+                    "resultMode": "combined",
+                    "showVariables": false,
+                    "type": "config",
+                    "valid": true,
+                    "variables": "{}"
+                },
+                {
+                    "id": "8y2XPRdmo",
+                    "name": "New query 9",
+                    "query": "SELECT\n    ->parent_of->person\n\t->parent_of->person\nFROM person;\n\nCREATE person:grandmother SET\n    name    = \"Mother of the Nobleman\",\n    feeling = \"Disappointed in son\";\n\nRELATE person:grandmother->parent_of->person:the_nobleman;\n\nSELECT\n    name,\n    ->parent_of->person\n\t->parent_of->person AS grandchildren\nFROM person;\n\n\nSELECT\n    name,\n    ->parent_of->person AS children,\n    ->parent_of->person->parent_of->person AS grandchildren\nFROM person;\n\nSELECT\n    name,\n    ->parent_of->person<->married<->person FROM person;\n\nSELECT\n    name,\n    ->parent_of->person<->married<->person AS kids_and_spouses,\n    ->parent_of->person->parent_of->person<->married<->person AS grandkids_and_spouses\nFROM person;\n\n\nCREATE person:reginald SET name = \"Reginald\";\nRELATE [person:the_nobleman, person:the_noblewoman]->parent_of->person:reginald;\nCREATE person:sorcerer SET name = \"Zornebock\";\nRELATE [\n    person:reginald,\n    person:bear_knight,\n    person:eagle_knight,\n    person:fish_knight\n]->enemy_of->person:sorcerer;\n\nRELATE [knight:one, knight:two]->enemy_of->[sorcerer:one, sorcerer:two];\n\nSELECT ->enemy_of->sorcerer AS enemies FROM knight;\n\nCREATE knight:one, knight:two;\nSELECT ->enemy_of->sorcerer from knight;\n\n\nCREATE sorcerer:one, sorcerer:two;\nSELECT ->enemy_of->sorcerer FROM knight;\n\n\nSELECT\n\tname,\n\t<-parent_of<-person\n\t<-parent_of<-person\n\t->parent_of->person\n\t->parent_of->person\n\t<->enemy_of<->person AS grandparent_to_grandchild_enemies\nFROM person;\n\n-- DEFINE INDEX only_unique ON TABLE likes FIELDS in, out UNIQUE;\n\n-- REMOVE INDEX only_unique ON TABLE likes;\n\n\n",
+                    "resultFormat": "sql",
+                    "resultMode": "combined",
+                    "showVariables": false,
+                    "type": "config",
+                    "valid": true,
+                    "variables": "{}"
+                },
+                {
+                    "id": "pTv1pIrhE",
+                    "name": "New query 10",
+                    "query": "INFO FOR ROOT;\nINFO FOR NS;\nINFO FOR DB;\n\nINFO FOR TABLE person;\n\nRETURN [$auth, $access, $session, $token];",
+                    "resultFormat": "sql",
+                    "resultMode": "combined",
+                    "showVariables": false,
+                    "type": "config",
+                    "valid": true,
+                    "variables": "{}"
+                },
+                {
+                    "id": "Trl6cUcfY",
+                    "name": "New query 11",
+                    "query": "-- Returns true\nRETURN (-0.1276, 51.5072).is_geometry();\n\nRETURN (-0.1119, 51.5091);\n\nRETURN [(-0.1119, 51.5091),\n{\n    \"type\": \"Point\",\n    \"coordinates\": [\n        -0.1119,\n\t\t51.5091\n    ]\n}];\n\n\nRETURN geo::distance(\n    (12.9271, 41.8924),\n    (28.9505, 40.6899)\n);\n\nRETURN geo::bearing(\n    (12.9271, 41.8924),\n    (28.9505, 40.6899)\n);\n\n\nLET $rome     = (12.9271, 41.8924);\nLET $istanbul = (28.9505, 40.6899);\n\nRETURN {\n    rome_to_istanbul: geo::bearing($rome, $istanbul),\n    istanbul_to_rome: geo::bearing($istanbul, $rome)\n};\n\n\nRETURN geo::area({\n\ttype: \"Polygon\",\n\tcoordinates: [[\n        [-110.0006, 59.9872],\n        [-102.0861, 59.9947],\n        [-101.3903, 48.9766],\n        [-109.9867, 49.0249]\n    ]]\n});\n\nRETURN geo::centroid({\n\ttype: \"Polygon\",\n\tcoordinates: [[\n        [-110.0006, 59.9872],\n        [-102.0861, 59.9947],\n        [-101.3903, 48.9766],\n        [-109.9867, 49.0249]\n    ]]\n});\n\nRETURN geo::hash::encode((23.726653194839038, 37.97153324769507));\n\nRETURN geo::hash::encode((23.726653194839038, 37.97153324769508));\n\nRETURN geo::hash::decode('swbb5bt0pnff');\nRETURN geo::hash::decode('swbb5bt0pn');\nRETURN geo::hash::decode('swbb5bt0');\nRETURN geo::hash::decode('swbb5b');\nRETURN geo::hash::decode('swbb');\nRETURN geo::hash::decode('sw');\nRETURN geo::hash::decode('s');\n\nRETURN [\n\t// Dublin\n    geo::hash::encode((-6.1971555689385, 53.42134668221924)),\n\t// Limerick\n    geo::hash::encode((-8.590306690257298, 52.70463210234539)),\n\t// Cork\n    geo::hash::encode((-8.501730637251514, 51.92118887515803)),\n\t// Galway\n    geo::hash::encode((-9.06855268816339, 53.33052233370851))\n];\n\n\nRETURN [\n\t// Cambridge\n    geo::hash::encode((0.12828879218748016, 52.22088932116364)),\n\t// Northampton\n    geo::hash::encode((-0.8910089824568541, 52.26533564501211)),\n];\n\nRETURN geo::distance(\n    geo::hash::decode('u1214ft2tr74'),\n    geo::hash::decode('gcr37dx5tuxx')\n);\n\nRETURN geo::hash::encode((-104.6268, 50.4620));\n\nLET $saskatchewan = {\n\ttype: \"Polygon\",\n\tcoordinates: [[\n        [-110.0006, 59.9872],\n        [-102.0861, 59.9947],\n        [-101.3903, 48.9766],\n        [-109.9867, 49.0249]\n    ]]\n};\nRETURN geo::hash::decode('c8vx54m46ye7') INSIDE $saskatchewan;\n\nLET $regina = {\n\ttype: \"Polygon\",\n\tcoordinates: [[\n\t\t[-104.7713, 50.5136],\n\t\t[-104.5402, 50.5113],\n\t\t[-104.5649, 50.3977],\n\t\t[-104.7622, 50.3978]\n\t]]\n};\nRETURN $saskatchewan CONTAINS $regina;\n\nINSERT INTO weather (at, temperature, date) VALUES\n    (city:toria,   15, \"175-07-01\"),\n    (city:toria,   18, \"175-07-02\"),\n    (city:toria,   16, \"175-07-03\"),\n    (city:redmont, 16, \"175-07-01\"),\n    (city:redmont, 17, \"175-07-02\");\n\nSELECT * FROM weather WHERE at = city:toria AND temperature IN 10..20;\n\nCREATE city:toria, city:redmont, city:black_bay;\n\n// From redmont and up to but not including toria\nSELECT * FROM city:redmont..toria;\n// From redmont and up to and including toria\nSELECT * FROM city:redmont..=toria;\n// Everything starting from black_bay\nSELECT * FROM city:black_bay..;\n\n\nINSERT INTO weather (id) VALUES\n    ({temperature: 19.0, humidity: 55.0}),\n    ({temperature: 15.0, humidity: 40.4}),\n    ({temperature: 28.7, humidity: 90.5});\n\nSELECT * FROM weather:{\n    temperature:0.0,\n    humidity: 0.0\n}..={\n    temperature: 20.0,\n    humidity: 70.0\n};\n\nINSERT INTO weather (id) VALUES\n    ({temperature: 19.0, humidity: 55.0}),\n    ({temperature: 15.0, humidity: 40.4}),\n    ({temperature: 28.7, humidity: 90.5});\n\nSELECT * FROM weather:{\n    temperature:0.0\n}..={\n    temperature: 20.0,\n    humidity: 70.0\n};\n\nRETURN 'Aeon' > 10;\n\nRETURN [\n    null > none,\n    true > null,\n    1 > true,\n    'a' > 999999999,\n    1s > 'a',\n    time::now() > 1s,\n    rand::uuid() > time::now(),\n    [] > rand::uuid(),\n    {} > [],\n    (89.0, 89.0) > {},\n    <bytes>'Aeon' > (89.0, 89.0),\n    person:aeon > <bytes>'Aeon'\n];\n\nCREATE timestamp:[time::now()];\nSLEEP 10ms; -- Make sure that the next time::now() is unique\nCREATE timestamp:[time::now()];\nCREATE timestamp:[NONE];\n\nSELECT * FROM timestamp:[NONE]..;\n\nINSERT INTO conditions (id) VALUES\n    ({ at: time::now(), humidity: 66.5 }),\n    ({ at: time::now(), humidity: 50.0 }),\n    ({ at: NONE,        humidity: 34.7 }),\n    ({ at: time::now(), humidity: NONE }) RETURN NONE;\n\nSELECT * FROM conditions:{\n    at: NONE,\n    humidity: 55.0,\n}..;\n\n\nSELECT * FROM conditions:{\n    time: NONE,\n    humidity: 55.0,\n}..;\n\nINSERT INTO conditions (id) VALUES\n    ({ at:   time::now(), humidity: 66.5 }),\n    ({ time: time::now(), humidity: 50.0 });\n\nSELECT * FROM conditions:{\n    time: NONE,\n    humidity: 55.0,\n}..;\n\nLET $cond1 = { time: NONE,        humidity: 55.0 };\nLET $cond2 = { time: time::now(), humidity: 50.0 };\nRETURN [$cond1, $cond2, $cond1 > $cond2];\n\nINSERT INTO conditions (id) VALUES\n    ({ at: time::now(), humidity: 66.5 }),\n    ({ at: time::now(), humidity: 50.0 }),\n    ({ at: NONE,        humidity: 34.7 }),\n    ({ at: time::now(), humidity: NONE }) RETURN NONE;\n\nSELECT * FROM conditions:{\n    humidity: 55.0,\n}..;\n\nINSERT INTO conditions (id) VALUES\n    ({ at: time::now(), humidity: 66.5 }),\n    ({ at: time::now(), humidity: 50.0 }),\n    ({ at: NONE,        humidity: 34.7 }),\n    ({ at: time::now(), humidity: NONE }) RETURN NONE;\n\nSELECT * FROM conditions:{\n    at: NONE,\n    humidity: 55.0,\n}..;",
+                    "resultFormat": "sql",
+                    "resultMode": "combined",
+                    "showVariables": false,
+                    "type": "config",
+                    "valid": true,
+                    "variables": "{}"
+                },
+                {
+                    "id": "eaVd7rfNg",
+                    "name": "New query 12",
+                    "query": "LET $city1 = {\n\tname: \"Edmond's Field\",\n\told_name: \"Edmonton\",\n\tpopulation: 6000,\n\tlocation: (-113.602, 53.697)\n};\nLET $city2 = {\n\tlocation: (-122.282, 47.682),\n\tname: 'Redmont',\n\told_name: 'Seattle (Redmond)',\n\tpopulation: 30000\n};\nRETURN geo::distance($city1.location, $city2.location);\n\n\nDEFINE FIELD name        ON TABLE town TYPE string;\nDEFINE FIELD old_name    ON TABLE town TYPE option<string>;\nDEFINE FIELD population  ON TABLE town TYPE option<int>;\nDEFINE FIELD location    ON TABLE town TYPE geometry<point>;\n\nDEFINE INDEX unique_town ON TABLE town FIELDS name UNIQUE;\n\nDEFINE FIELD bearing ON TABLE to\n    VALUE geo::bearing(in.location, out.location);\n\nDEFINE INDEX unique_key ON TABLE to FIELDS in, out UNIQUE;\n\n\nDEFINE INDEX unique_key ON TABLE to FIELDS in, out UNIQUE;\n\nREMOVE FIELD bearing ON TABLE to;\n\nRELATE town:one->to->town:two;\nRELATE town:two->to->town:one;\nRELATE town:one->to->town:two;\nRELATE town:two->to->town:one;\n\n\nDEFINE FIELD crookedness ON TABLE to TYPE string\n    ASSERT [\"straight\", \"crooked\", \"very crooked\"] CONTAINS $value;\n\nDEFINE FIELD terrain ON TABLE to TYPE string\n    ASSERT [\"road\", \"normal\", \"hard\", \"water\"] CONTAINS $value;\n\nDEFINE FIELD slope ON TABLE to TYPE string\n    ASSERT [\"flat\", \"up\", \"down\", \"steep\"] CONTAINS $value;\n\n\nREMOVE FIELD crookedness ON TABLE to;\nREMOVE FIELD terrain ON TABLE to;\nREMOVe FIELD slope ON  TABLE to;\n\nLET $aeon: \"Aeon\" = \"Aeon\";\nLET $aeon: \"Aeon\" = \"Aeon!\";\n\nLET $database_expert: \"Aeon\" | \"Landevin\" = \"Aeon\";\n\n\nLET $place:\n\t\"Uninhabited\" |\n\t{ type: \"town\", population: int } |\n\t{ type: \"city\", population: int }\n  = { type: \"town\", population: 3150 };\n\n\nSELECT\nterrain,\ndistance,\ncrookedness,\nslope,\ndays_travel,\nbearing,\nin.name AS from,\nout.name AS to\nFROM to\nWHERE in.name = 'Toria';\n\nREMOVE FUNCTION fn::add_trip;\n\nDEFINE FUNCTION fn::add_trip($from: string, $to: string, $crookedness: string, $terrain: string, $slope: string) {\n\n};\n\nSELECT * FROM fn::add_trip();\n\nDEFINE FUNCTION fn::add_trip($from: string, $to: string, $crookedness: string, $terrain: string, $slope: string) {\nLET $begin = (SELECT * FROM ONLY town WHERE name = $from LIMIT 1);\nLET $end =   (SELECT * FROM ONLY town WHERE name = $to LIMIT 1);\nLET $relation = RELATE $begin->to->$end\n    SET\n    crookedness = $crookedness,\n    terrain = $terrain,\n    slope = $slope,\n    distance = geo::distance($begin.location, $end.location),\n    speed_modifier =\n        (IF     crookedness = \"straight\"     { 1.0 }\n        ELSE IF crookedness = \"crooked\"      { 0.8 }\n        ELSE IF crookedness = \"very crooked\" { 0.5 })\n        *\n        (IF     slope = \"flat\"               { 1.0 }\n        ELSE IF slope = \"up\"                 { 0.8 }\n        ELSE IF slope = \"down\"               { 1.2 }\n        ELSE IF slope = \"steep\"              { 0.5 })\n        *\n        (IF terrain = \"road\"                 { 1.2 }\n        ELSE IF terrain = \"normal\"           { 1.0 }\n        ELSE IF terrain = \"hard\"             { 0.7 }\n        ELSE IF terrain = \"water\"            { 1.0 }),\n\tdays_travel =\n        IF $trip.terrain = \"water\" { 1 + (distance / 100000) / speed_modifier }\n        ELSE                       {      (distance / 20000)  / speed_modifier  };\n\tRETURN <string>$relation.in.name + \" to \" + <string>$relation.out.name + \" trip created!\";\n};\n\nINSERT INTO town\n[\n\t{\n\t\tid: town:08360dh6yacji1z9jpqa,\n\t\tlocation: (-123.414, 48.688),\n\t\tname: 'Black Bay',\n\t\told_name: 'Swartz Bay',\n\t\tpopulation: 1100\n\t},\n\t{\n\t\tid: town:0g3ekxce0fk4a4st3hi4,\n\t\tlocation: (-123.338, 48.481),\n\t\tname: 'Toria',\n\t\told_name: 'Victoria',\n\t\tpopulation: 7000\n\t},\n\t{\n\t\tid: town:1tjylyf3a6p09bof4l38,\n\t\tlocation: (-123.723, 48.377),\n\t\tname: 'Sukh',\n\t\told_name: 'Sooke',\n\t\tpopulation: 1200\n\t},\n\t{\n\t\tid: town:6wlrbsm03hyy99uskfde,\n\t\tlocation: (-120.481, 49.473),\n\t\tname: 'Princeton',\n\t\told_name: 'Princeton',\n\t\tpopulation: 200\n\t},\n\t{\n\t\tid: town:7udzks4ao1zyvoq2mcci,\n\t\tlocation: (-118.1, 51.05),\n\t\tname: 'Revelry',\n\t\told_name: 'Revelstoke',\n\t\tpopulation: 123\n\t},\n\t{\n\t\tid: town:aeij3fqruqycbetlisln,\n\t\tlocation: (-123.1, 49.278),\n\t\tname: 'Gaston',\n\t\told_name: 'Vancouver',\n\t\tpopulation: 20000\n\t},\n\t{\n\t\tid: town:cqh7zjq2o2n34pfhdac7,\n\t\tlocation: (-113.602, 53.697),\n\t\tname: \"Edmond's Field\",\n\t\told_name: 'Edmonton',\n\t\tpopulation: 6000\n\t},\n\t{\n\t\tid: town:cwmsx1u3g4y9wo5copbh,\n\t\tlocation: (-122.282, 47.682),\n\t\tname: 'Redmont',\n\t\told_name: 'Seattle (Redmond)',\n\t\tpopulation: 30000\n\t},\n\t{\n\t\tid: town:emj1gvfln0xpi8uug54g,\n\t\tlocation: (-123.908, 49.185),\n\t\tname: 'The Naimo',\n\t\told_name: 'Nanaimo',\n\t\tpopulation: 9500\n\t},\n\t{\n\t\tid: town:ga3o499dj72m15bqk8pj,\n\t\tlocation: (-122.199, 48.081),\n\t\tname: 'Marysville',\n\t\told_name: 'Marysville',\n\t\tpopulation: 50\n\t},\n\t{\n\t\tid: town:j1pgbzeozmzq8n1renmq,\n\t\tlocation: (-119.513, 49.94),\n\t\tname: 'Lake Country',\n\t\told_name: 'Kelowna',\n\t\tpopulation: 2500\n\t},\n\t{\n\t\tid: town:j63nt2t1r6z0m231i3ym,\n\t\tlocation: (-124.051, 48.823),\n\t\tname: 'Honeymoon',\n\t\told_name: 'Honeymoon Bay (Lake Cowichan)',\n\t\tpopulation: 200\n\t},\n\t{\n\t\tid: town:o0b7bgxva6g946gy4box,\n\t\tlocation: (-123.601, 48.688),\n\t\tname: 'The Hill',\n\t\told_name: 'Duncan (Cobble Hill)',\n\t\tpopulation: 1100\n\t},\n\t{\n\t\tid: town:pggp7i3fsr9xo783ib62,\n\t\tlocation: (-122.328, 49.079),\n\t\tname: 'Abeston',\n\t\told_name: 'Abbotsford',\n\t\tpopulation: 1000\n\t},\n\t{\n\t\tid: town:pjnrbg2htfwfu3nedu1n,\n\t\tlocation: (-121.459, 49.388),\n\t\tname: 'Hope',\n\t\told_name: 'Hope',\n\t\tpopulation: 50\n\t},\n\t{\n\t\tid: town:q63w19u4kgkyzvf7vpzi,\n\t\tlocation: (-120.329, 50.677),\n\t\tname: 'Copper Creek',\n\t\told_name: 'Kamloops',\n\t\tpopulation: 2400\n\t},\n\t{\n\t\tid: town:ta7jxthyyqzybjh9n24t,\n\t\tlocation: (-119.57, 49.515),\n\t\tname: 'Southlake',\n\t\told_name: 'Penticton',\n\t\tpopulation: 500\n\t},\n\t{\n\t\tid: town:u31nqc6kq6gtoluj6ewq,\n\t\tlocation: (-119.472, 49.033),\n\t\tname: 'Grasslands',\n\t\told_name: 'Osoyoos',\n\t\tpopulation: 120\n\t},\n\t{\n\t\tid: town:x17f84ydibp37dphsf96,\n\t\tlocation: (-113.867, 51.182),\n\t\tname: 'Bulton',\n\t\told_name: 'Calgary',\n\t\tpopulation: 6000\n\t},\n\t{\n\t\tid: town:yu1j4ox57zdshtk82fbr,\n\t\tlocation: (-120.758, 50.144),\n\t\tname: 'Merit',\n\t\told_name: 'Merritt',\n\t\tpopulation: 250\n\t}\n];\n\n    \nselect * from town;\n    \nfn::add_trip(\"Gaston\", \"Redmont\", \"straight\", \"road\", \"flat\");\n\nLET $from = \"GASTON\";\n(SELECT * FROM ONLY town WHERE name = \"GASTON\" LIMIT 1);\n\nLET $end =   (SELECT * FROM ONLY town WHERE name = $to ",
+                    "resultFormat": "sql",
+                    "resultMode": "combined",
+                    "showVariables": false,
+                    "type": "config",
+                    "valid": false,
+                    "variables": "{}"
+                },
+                {
+                    "id": "51PrVLhXu",
+                    "name": "New query 13",
+                    "query": "DEFINE FUNCTION fn::divide($one: number, $two: number) -> number {\n    IF $two == 0 {\n        THROW \"Can't divide by zero, you should know that by now\";\n    };\n    RETURN $one / $two;\n};\n\nRETURN fn::divide(100, 0);\nRETURN fn::divide(100, 10);\n\nDEFINE FUNCTION OVERWRITE fn::add_trip($from: string, $to: string, $crookedness: string, $terrain: string, $slope: string) -> string {\n    IF $crookedness NOT IN [\"straight\", \"crooked\", \"very crooked\"] {\n    THROW \"Third argument is crookedness: straight, crooked, or very crooked\";\n    };\n    IF $terrain NOT IN [\"road\", \"normal\", \"land\", \"water\"] {\n        THROW \"Fourth argument is terrain: road, normal, land, or water\";\n    };\n    IF $slope NOT IN [\"flat\", \"up\", \"down\", \"steep\"] {\n      THROW \"Fifth argument is slope: flat, up, down, or steep\";\n    };\n    LET $begin = (SELECT * FROM ONLY town WHERE name = $from LIMIT 1);\n    LET $end =   (SELECT * FROM ONLY town WHERE name = $to LIMIT 1);\n\n    IF count($begin) = 0 {\n        THROW \"Could not find town \" + $from + \" in the database\"\n    };\n\n    IF count($end) = 0 {\n        THROW \"Could not find town \" + $to + \" in the database\"\n    };\n\n    LET $relation = RELATE $begin->to->$end\n        SET\n        crookedness = $crookedness,\n        terrain = $terrain,\n        slope = $slope,\n        distance = geo::distance($begin.location, $end.location),\n        speed_modifier =\n            (IF     crookedness = \"straight\"     { 1.0 }\n            ELSE IF crookedness = \"crooked\"      { 0.8 }\n            ELSE IF crookedness = \"very crooked\" { 0.5 })\n            *\n            (IF     slope = \"flat\"               { 1.0 }\n            ELSE IF slope = \"up\"                 { 0.8 }\n            ELSE IF slope = \"down\"               { 1.2 }\n            ELSE IF slope = \"steep\"              { 0.5 })\n            *\n            (IF terrain = \"road\"                 { 1.2 }\n            ELSE IF terrain = \"normal\"           { 1.0 }\n            ELSE IF terrain = \"hard\"             { 0.7 }\n            ELSE IF terrain = \"water\"            { 1.0 }),\n        days_travel =\n            IF $trip.terrain = \"water\" { 1 + (distance / 100000 * speed_modifier) }\n            ELSE                       {      distance / 20000  * speed_modifier  };\n\tRETURN <string>$relation.in.name + \" to \" + <string>$relation.out.name + \" trip created!\";\n};\n\nfn::add_trip(\"one\", \"two\", \"three\", \"four\", \"five\");\n\nINFO F\nCREATE town SET name = \"one\", location = (-123.338, 48.481);\nCREATE town SET name = \"two\", location = (-123.4, 48.5);\nfn::add_trip(\"one\", \"two\", \"straight\", \"road\", \"down\");\nfn::add_trip(\"two\", \"one\", \"straight\", \"road\", \"up\");\nSELECT * OMIT id, in, out FROM to WHERE in.name = 'one' OR out.name = 'one';\n\n\nfn::add_trip(\"The Hill\", \"Toria\", \"straight\", \"road\", \"down\");\n\nSELECT \n\tbearing,\n\tcrookedness,\n\tdays_travel,\n\tdistance,\n\tslope,\n\tterrain\nFROM to\nWHERE\n\tin.name = \"The Hill\" AND\n\tout.name = \"Toria\";\n\n\nSELECT\n\t->to->town.name AS next_routes\n\tFROM town\n\tWHERE name = 'The Hill';\n\nRETURN [8,9,0][0];\nRETURN [8,9,0][WHERE $this != 9];\n\nRETURN\n\t[1,2,3,4,5,6,7,8,9,0]\n\t[WHERE $this != 2]\n\t[WHERE $this != 4]\n\t[WHERE $this % 2 = 0];\n\n\nRETURN [\n\t{\n\t\tname: 'Toria',\n\t\ttemperature: 10.0\n\t},\n\t{\n\t\tname: 'The Hill',\n\t\ttemperature: 12.5\n\t}\n][WHERE temperature > 10.0];\n\nSELECT\n\t->to->town[WHERE name = 'Toria']\n\t->to->town.name\nFROM town\nWHERE name = 'The Hill';\n\nINSERT INTO to \n[\n\t{\n\t\tbearing: -39.94767014691305f,\n\t\tcrookedness: 'straight',\n\t\tdays_travel: 1.2528075688309748f,\n\t\tdistance: 30067.381651943393f,\n\t\tid: to:00e3umdmix6dxabp3h93,\n\t\tin: town:hxu5ksmeafhc0wzxb5q1,\n\t\tout: town:vrnhlqrs7us7qssfchk5,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 1.2f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: -18.459664884845388f,\n\t\tcrookedness: 'straight',\n\t\tdays_travel: 7.809456894175814f,\n\t\tdistance: 187426.96546021954f,\n\t\tid: to:0kuikmfv5or063579o5c,\n\t\tin: town:r2sqe96z43sbaak17rvh,\n\t\tout: town:9gzs30wukn10e45m4rlk,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 1.2f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: 160.9278145967164f,\n\t\tcrookedness: 'straight',\n\t\tdays_travel: 7.809456894175814f,\n\t\tdistance: 187426.96546021954f,\n\t\tid: to:2pnfxvilskhfj147urjw,\n\t\tin: town:9gzs30wukn10e45m4rlk,\n\t\tout: town:r2sqe96z43sbaak17rvh,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 1.2f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: 30.651148127047193f,\n\t\tcrookedness: 'crooked',\n\t\tdays_travel: 5.103451708133978f,\n\t\tdistance: 97986.27279617237f,\n\t\tid: to:3ugsbk0nwkqlekoap9dx,\n\t\tin: town:6d9ohonzpvs6ckll0hc8,\n\t\tout: town:p8ksxbmsnzrkfsuwjfte,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 0.96f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: 82.01711196509373f,\n\t\tcrookedness: 'very crooked',\n\t\tdays_travel: 5.946262949457436f,\n\t\tdistance: 71355.15539348923f,\n\t\tid: to:415mwzs5rw68p61s55uq,\n\t\tin: town:6d9ohonzpvs6ckll0hc8,\n\t\tout: town:euxo9hoohziw98glwkcl,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 0.6f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: 103.83519624512158f,\n\t\tcrookedness: 'crooked',\n\t\tdays_travel: 4.778920253246148f,\n\t\tdistance: 91755.26886232603f,\n\t\tid: to:4fqc8vl079nxwarm6lk1,\n\t\tin: town:p8ksxbmsnzrkfsuwjfte,\n\t\tout: town:ij97637fdnz7io0k5ik4,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 0.96f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: 26.98976177746749f,\n\t\tcrookedness: 'crooked',\n\t\tdays_travel: 3.4691966708059825f,\n\t\tdistance: 66608.57607947486f,\n\t\tid: to:4rr96pucxv1jimh9po8w,\n\t\tin: town:p8ksxbmsnzrkfsuwjfte,\n\t\tout: town:irvljhy0i0a0qdv03192,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 0.96f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: 111.22813997318887f,\n\t\tcrookedness: 'straight',\n\t\tdays_travel: 2.5133565637539164f,\n\t\tdistance: 60320.55753009399f,\n\t\tid: to:5b9zpismgo1u6hahx0cn,\n\t\tin: town:9gzs30wukn10e45m4rlk,\n\t\tout: town:b3xax3jqehrexle19trt,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 1.2f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: -175.02327105179737f,\n\t\tcrookedness: 'straight',\n\t\tdays_travel: 1.9764656510291416f,\n\t\tdistance: 47435.1756246994f,\n\t\tid: to:6n5fo8li7l55lawrfnl3,\n\t\tin: town:ij97637fdnz7io0k5ik4,\n\t\tout: town:nexs022xs8r5vhmts81o,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 1.2f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: -160.6283333598338f,\n\t\tcrookedness: 'crooked',\n\t\tdays_travel: 1.868643834163779f,\n\t\tdistance: 69491.50673310233f,\n\t\tid: to:9v4cee0kczcbwt3kg8d8,\n\t\tin: town:9gzs30wukn10e45m4rlk,\n\t\tout: town:jox86mjrejbsxkhe6sj6,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 0.8f,\n\t\tterrain: 'water'\n\t},\n\t{\n\t\tbearing: 139.8550972268954f,\n\t\tcrookedness: 'straight',\n\t\tdays_travel: 1.2528075688309748f,\n\t\tdistance: 30067.381651943393f,\n\t\tid: to:acpbdsofimpp7dyergot,\n\t\tin: town:vrnhlqrs7us7qssfchk5,\n\t\tout: town:hxu5ksmeafhc0wzxb5q1,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 1.2f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: -97.23997416514051f,\n\t\tcrookedness: 'very crooked',\n\t\tdays_travel: 5.946262949457436f,\n\t\tdistance: 71355.15539348923f,\n\t\tid: to:b9xfdy28139ci08bo77p,\n\t\tin: town:euxo9hoohziw98glwkcl,\n\t\tout: town:6d9ohonzpvs6ckll0hc8,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 0.6f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: -148.8136850183741f,\n\t\tcrookedness: 'crooked',\n\t\tdays_travel: 5.103451708133978f,\n\t\tdistance: 97986.27279617237f,\n\t\tid: to:dppnuyg2xx2d72yff0t7,\n\t\tin: town:p8ksxbmsnzrkfsuwjfte,\n\t\tout: town:6d9ohonzpvs6ckll0hc8,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 0.96f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: -172.0270134443322f,\n\t\tcrookedness: 'straight',\n\t\tdays_travel: 1.8665215561587098f,\n\t\tdistance: 44796.51734780903f,\n\t\tid: to:eawy1bozj57gkj3igmdn,\n\t\tin: town:c46yc8sr3g1w24ee0lr3,\n\t\tout: town:r2sqe96z43sbaak17rvh,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 1.2f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: -103.98265530296517f,\n\t\tcrookedness: 'very crooked',\n\t\tdays_travel: 13.48629095661598f,\n\t\tdistance: 161835.49147939176f,\n\t\tid: to:ej5kblllhj31s2nwidpj,\n\t\tin: town:casepafntpohkgxtz7ve,\n\t\tout: town:irvljhy0i0a0qdv03192,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 0.6f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: 117.39553589330698f,\n\t\tcrookedness: 'straight',\n\t\tdays_travel: 1.9529820601422698f,\n\t\tdistance: 95298.20601422698f,\n\t\tid: to:f9ta4lkazgsucfwrus3j,\n\t\tin: town:hxu5ksmeafhc0wzxb5q1,\n\t\tout: town:c46yc8sr3g1w24ee0lr3,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 1,\n\t\tterrain: 'water'\n\t},\n\t{\n\t\tbearing: -21.97012145225076f,\n\t\tcrookedness: 'straight',\n\t\tdays_travel: 2.0708363803053396f,\n\t\tdistance: 59640.08775279378f,\n\t\tid: to:got6newrzll6cx3r3imc,\n\t\tin: town:vrnhlqrs7us7qssfchk5,\n\t\tout: town:1mgi455vyf0ihcp8cjf7,\n\t\tslope: 'down',\n\t\tspeed_modifier: 1.44f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: -68.18764451636294f,\n\t\tcrookedness: 'straight',\n\t\tdays_travel: 2.5133565637539164f,\n\t\tdistance: 60320.55753009399f,\n\t\tid: to:h16u16puq1hfglhohue1,\n\t\tin: town:b3xax3jqehrexle19trt,\n\t\tout: town:9gzs30wukn10e45m4rlk,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 1.2f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: 114.29843592685148f,\n\t\tcrookedness: 'straight',\n\t\tdays_travel: 1.5101404162011642f,\n\t\tdistance: 36243.36998882794f,\n\t\tid: to:jii8lofk59c1eopnecxx,\n\t\tin: town:qv9pywdmftx0w4exoaiq,\n\t\tout: town:vrnhlqrs7us7qssfchk5,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 1.2f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: -91.19474534030621f,\n\t\tcrookedness: 'very crooked',\n\t\tdays_travel: 24.649679486931802f,\n\t\tdistance: 295796.1538431816f,\n\t\tid: to:k3i217dtsom6cklcgo1g,\n\t\tin: town:lypbxac9aowykf8o5em1,\n\t\tout: town:casepafntpohkgxtz7ve,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 0.6f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: 67.70485109797652f,\n\t\tcrookedness: 'straight',\n\t\tdays_travel: 1.2779254059115488f,\n\t\tdistance: 30670.20974187717f,\n\t\tid: to:kb6ic46szfrfbdl3y4am,\n\t\tin: town:ehwwb6u1s8lq68iu5be8,\n\t\tout: town:hxu5ksmeafhc0wzxb5q1,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 1.2f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: -176.2194613257893f,\n\t\tcrookedness: 'straight',\n\t\tdays_travel: 11.676306954906643f,\n\t\tdistance: 280231.3669177594f,\n\t\tid: to:lqdys7wkn5knlh2zwaqy,\n\t\tin: town:k3tmrojjcs03ev52lj2p,\n\t\tout: town:lypbxac9aowykf8o5em1,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 1.2f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: -7.519300830938573f,\n\t\tcrookedness: 'straight',\n\t\tdays_travel: 2.2527302879206372f,\n\t\tdistance: 54065.526910095294f,\n\t\tid: to:lr6ksjf4m1cxpjxfssll,\n\t\tin: town:8ha57iw51nvziontmjhd,\n\t\tout: town:nexs022xs8r5vhmts81o,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 1.2f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: -65.36320668887264f,\n\t\tcrookedness: 'straight',\n\t\tdays_travel: 1.5101404162011642f,\n\t\tdistance: 36243.36998882794f,\n\t\tid: to:ne43jcudaq5nt2naeo4p,\n\t\tin: town:vrnhlqrs7us7qssfchk5,\n\t\tout: town:qv9pywdmftx0w4exoaiq,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 1.2f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: -152.67963373021027f,\n\t\tcrookedness: 'crooked',\n\t\tdays_travel: 3.4691966708059825f,\n\t\tdistance: 66608.57607947486f,\n\t\tid: to:o1qlq51pvm0i3w3k7r4o,\n\t\tin: town:irvljhy0i0a0qdv03192,\n\t\tout: town:p8ksxbmsnzrkfsuwjfte,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 0.96f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: 85.5096164178955f,\n\t\tcrookedness: 'very crooked',\n\t\tdays_travel: 24.649679486931802f,\n\t\tdistance: 295796.1538431816f,\n\t\tid: to:pgoriv0256pis1ffp3lp,\n\t\tin: town:casepafntpohkgxtz7ve,\n\t\tout: town:lypbxac9aowykf8o5em1,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 0.6f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: 123.36349730585616f,\n\t\tcrookedness: 'crooked',\n\t\tdays_travel: 4.587036980618195f,\n\t\tdistance: 88071.11002786935f,\n\t\tid: to:psnqso92tkei37h8xv09,\n\t\tin: town:euxo9hoohziw98glwkcl,\n\t\tout: town:8ha57iw51nvziontmjhd,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 0.96f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: 61.10076802712854f,\n\t\tcrookedness: 'crooked',\n\t\tdays_travel: 3.741892840039095f,\n\t\tdistance: 71844.34252875063f,\n\t\tid: to:q9cc4iq5rnalki0j2eoc,\n\t\tin: town:b3xax3jqehrexle19trt,\n\t\tout: town:6d9ohonzpvs6ckll0hc8,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 0.96f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: -112.00711670161101f,\n\t\tcrookedness: 'straight',\n\t\tdays_travel: 1.2779254059115488f,\n\t\tdistance: 30670.20974187717f,\n\t\tid: to:r5tth03lfoohwsz43iyb,\n\t\tin: town:hxu5ksmeafhc0wzxb5q1,\n\t\tout: town:ehwwb6u1s8lq68iu5be8,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 1.2f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: -13.622896156189338f,\n\t\tcrookedness: 'straight',\n\t\tdays_travel: 0.9869387114588063f,\n\t\tdistance: 23686.529075011353f,\n\t\tid: to:rqmasjkfm0ovr55om6uy,\n\t\tin: town:hxu5ksmeafhc0wzxb5q1,\n\t\tout: town:jox86mjrejbsxkhe6sj6,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 1.2f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: -75.2104750508691f,\n\t\tcrookedness: 'crooked',\n\t\tdays_travel: 4.778920253246148f,\n\t\tdistance: 91755.26886232603f,\n\t\tid: to:rrjpfsgk8cklpfbwmv2k,\n\t\tin: town:ij97637fdnz7io0k5ik4,\n\t\tout: town:p8ksxbmsnzrkfsuwjfte,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 0.96f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: 157.79840365242597f,\n\t\tcrookedness: 'straight',\n\t\tdays_travel: 3.106254570458009f,\n\t\tdistance: 59640.08775279378f,\n\t\tid: to:s5r9sqpnbkx6hw2k69k2,\n\t\tin: town:1mgi455vyf0ihcp8cjf7,\n\t\tout: town:vrnhlqrs7us7qssfchk5,\n\t\tslope: 'up',\n\t\tspeed_modifier: 0.96f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: -118.24106361216865f,\n\t\tcrookedness: 'crooked',\n\t\tdays_travel: 3.741892840039095f,\n\t\tdistance: 71844.34252875063f,\n\t\tid: to:tv7zv134hhq2mohq4mlb,\n\t\tin: town:6d9ohonzpvs6ckll0hc8,\n\t\tout: town:b3xax3jqehrexle19trt,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 0.96f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: 19.134745568900165f,\n\t\tcrookedness: 'crooked',\n\t\tdays_travel: 1.868643834163779f,\n\t\tdistance: 69491.50673310233f,\n\t\tid: to:tw1nh3agxig1ank218ai,\n\t\tin: town:jox86mjrejbsxkhe6sj6,\n\t\tout: town:9gzs30wukn10e45m4rlk,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 0.8f,\n\t\tterrain: 'water'\n\t},\n\t{\n\t\tbearing: 3.570419756310929f,\n\t\tcrookedness: 'straight',\n\t\tdays_travel: 11.676306954906643f,\n\t\tdistance: 280231.3669177594f,\n\t\tid: to:twfv0dzbv9vs5qy4obaz,\n\t\tin: town:lypbxac9aowykf8o5em1,\n\t\tout: town:k3tmrojjcs03ev52lj2p,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 1.2f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: 166.32010890451448f,\n\t\tcrookedness: 'straight',\n\t\tdays_travel: 0.9869387114588063f,\n\t\tdistance: 23686.529075011353f,\n\t\tid: to:tx4h84ud4kpeumc7u56e,\n\t\tin: town:jox86mjrejbsxkhe6sj6,\n\t\tout: town:hxu5ksmeafhc0wzxb5q1,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 1.2f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: 4.933238862910103f,\n\t\tcrookedness: 'straight',\n\t\tdays_travel: 1.9764656510291416f,\n\t\tdistance: 47435.1756246994f,\n\t\tid: to:upu7odwsn27823y0vaji,\n\t\tin: town:nexs022xs8r5vhmts81o,\n\t\tout: town:ij97637fdnz7io0k5ik4,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 1.2f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: 7.911420153142422f,\n\t\tcrookedness: 'straight',\n\t\tdays_travel: 1.8665215561587098f,\n\t\tdistance: 44796.51734780903f,\n\t\tid: to:uyhbkcqeha8joexmc8dv,\n\t\tin: town:r2sqe96z43sbaak17rvh,\n\t\tout: town:c46yc8sr3g1w24ee0lr3,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 1.2f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: 74.28833712226961f,\n\t\tcrookedness: 'very crooked',\n\t\tdays_travel: 13.48629095661598f,\n\t\tdistance: 161835.49147939176f,\n\t\tid: to:vctgs4qmticn3clt7cly,\n\t\tin: town:irvljhy0i0a0qdv03192,\n\t\tout: town:casepafntpohkgxtz7ve,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 0.6f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: -61.75427694706376f,\n\t\tcrookedness: 'straight',\n\t\tdays_travel: 1.9529820601422698f,\n\t\tdistance: 95298.20601422698f,\n\t\tid: to:x20mvy1jfst9rbr81glw,\n\t\tin: town:c46yc8sr3g1w24ee0lr3,\n\t\tout: town:hxu5ksmeafhc0wzxb5q1,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 1,\n\t\tterrain: 'water'\n\t},\n\t{\n\t\tbearing: -55.87207108819502f,\n\t\tcrookedness: 'crooked',\n\t\tdays_travel: 4.587036980618195f,\n\t\tdistance: 88071.11002786935f,\n\t\tid: to:x8kswxq71zs8wdmpr6n1,\n\t\tin: town:8ha57iw51nvziontmjhd,\n\t\tout: town:euxo9hoohziw98glwkcl,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 0.96f,\n\t\tterrain: 'road'\n\t},\n\t{\n\t\tbearing: 172.40643034651757f,\n\t\tcrookedness: 'straight',\n\t\tdays_travel: 2.2527302879206372f,\n\t\tdistance: 54065.526910095294f,\n\t\tid: to:xwdkjs187333iefz66at,\n\t\tin: town:nexs022xs8r5vhmts81o,\n\t\tout: town:8ha57iw51nvziontmjhd,\n\t\tslope: 'flat',\n\t\tspeed_modifier: 1.2f,\n\t\tterrain: 'road'\n\t}\n];\n\nSELECT * FROM to;\n\nSELECT\n\t->to->town[WHERE name = 'Toria']\n\t-- ->to->town[WHERE name = 'Black Bay']\n\t-- ->to->town[WHERE name = 'Gaston']\n\t-- ->to->town[WHERE name = 'Abeston']\n\t-- ->to->town[WHERE name = 'Hope'].* AS town_info\nFROM town\nWHERE name = 'The Hill';\n\nSELECT * FROM town WHERE name = \"Hope\" ;\n\nLET $split = |$record: record| [$record.tb(), $record.id()];\n\n$split(town:pjnrbg2htfwfu3nedu1n);\n\nSELECT ->parent_of->person->parent_of->person.name FROM person;\n\nCREATE city:kago;\n\nINFO FOR DB;\n\nRELATE person:bertha ->city->person:the_nobleman SET name = \"Nice City\";\nDELETE FROM city:vv264ws6o781znktmpnp;\n\nSELECT * FROM city;\n\nCREATE weather SET temperature = 10.0, location = city:toria;\nCREATE weather SET temperature = 15.0, location = city:toria;\nSELECT * from weather;\n\nDEFINE TABLE weather_data AS SELECT * FROM weather;\n\nINSERT INTO weather (location, temperature) VALUES\n    (city:toria, 10.0), (city:toria, 15.0),\n    (city:sukh, 9.5), (city:sukh, 10.1),\n    (city:redmont, 16.0);\n\nSELECT * FROM weather_data;\n\n\nCREATE person, person SET age = 20;\nCREATE person SET age = 45;\n-- SELECT id FROM person GROUP BY age;\n\nSELECT age FROM person GROUP BY age;",
+                    "resultFormat": "sql",
+                    "resultMode": "combined",
+                    "showVariables": false,
+                    "type": "config",
+                    "valid": false,
+                    "variables": "{}"
+                },
+                {
+                    "id": "EnpppszxR",
+                    "name": "New query 14",
+                    "query": "DEFINE TABLE person SCHEMAFULL;\nDEFINE TABLE building SCHEMAFULL;\nDEFINE FIELD name ON TABLE person \n    TYPE string \n    ASSERT $value.replace(\" \", \"\").replace(\"-\", \"\").is_alpha();\nDEFINE FIELD class ON table person TYPE option<string>;\nDEFINE FIELD money ON TABLE person \n    TYPE option<int>\n    ASSERT $value >= 0 OR $value IS NONE;\nDEFINE FIELD name ON TABLE building TYPE string;\nDEFINE FIELD kind ON TABLE building \n    TYPE string\n    ASSERT \n    [\"house\", \"castle\"] CONTAINS $value;\nDEFINE FIELD properties ON TABLE person TYPE option<array<record<building>>>;\n\n\nRETURN\n  \"In the year 1878 I took my degree of Doctor of Medicine of the University of London\" ~\n  \"I took my degree of Doctor of Medicine\";\n\n\n-- Returns true\nRETURN\n  \"In the year 1878 I took my degree of Doctor of Medicine of the University of London\" ~ \"In the yar 1878 I took my degree of Doctor of Medicine of the University of London\";\n\n-- Returns false\nRETURN\n  \"In the year 1878 I took my degree of Doctor of Medicine of the University of London\" ~\n  \"In the yarr 1878 I took my degree of Doctor of Medicine of the University of London\";\n\nRETURN [\"Eon\", \"eon\", \"Aion\", \"aeon\", \"léon\"] ?~ \"Aeon\"; // true\nRETURN [\"Eon\", \"eon\", \"Aion\", \"aeon\", \"léon\"] *~ \"Aeon\"; // false\nRETURN [\"aeon\", \"Aeons\", \"aeons\"] *~ \"Aeon\"; // true\n\nCREATE bank:one SET vault_one_funds = 0,  vault_two_funds = 100;\nCREATE bank:two SET vault_one_funds = 50, vault_two_funds = 100;\n\nSELECT vault_one_funds ?? vault_two_funds AS vault_funds FROM bank;\nSELECT vault_one_funds ?: vault_two_funds AS vault_funds FROM bank;\n\nLET $words = ['Comets', 'are', 'bodies', 'of', 'dust', 'and', 'ice', 'commonly', 'seen', 'as','bad', 'omens'];\n\n$words\n\t.map(|$word| $word.split('').filter(|$letter| $letter IN [\"a\", \"e\", \"i\", \"o\", \"u\"]))\n    .map(|$letter| $letter.join(''))\n    .map(|$word| $word.len());\n\nLET $words = ['Comets', NONE, 'are', 'bodies', 'of', 'dust', 'and', 'ice', 'commonly', 'seen', 'as','bad', 'omens'];\n\n$words\n\t.map(|$word| $word.split('').filter(|$letter| $letter IN [\"a\", \"e\", \"i\", \"o\", \"u\"]))\n    .map(|$letter| $letter.join(''))\n    .map(|$word| $word.len());\n\nLET $words = ['Comets', NONE, 'are', 'bodies', 'of', 'dust', 'and', 'ice', 'commonly', 'seen', 'as','bad', 'omens'];\n\n$words\n\t.map(|$word| $word?.split('').filter(|$letter| $letter IN [\"a\", \"e\", \"i\", \"o\", \"u\"]))\n    .map(|$letter| $letter?.join(''))\n    .map(|$word| $word?.len());\n\nDEFINE TABLE form SCHEMAFULL;\nDEFINE FIELD name ON TABLE form\n    TYPE string;\nDEFINE FIELD action ON TABLE form\n    TYPE string;\nDEFINE FIELD target ON TABLE form\n    ASSERT [\"_blank\", \"_self\", \"_partent\", \"_top\"] CONTAINS $value;\nDEFINE FIELD method ON TABLE form\n    ASSERT [\"get\", \"post\"] CONTAINS $value;\nDEFINE FIELD autocomplete ON TABLE form\n    ASSERT [\"on\", \"off\"] CONTAINS $value;\n-- missing \n-- novalidate\n-- accept-charset\n-- enctype\n-- rel\n\nselect\n    -- attributes \n        --autofocus\n        -- disabled\n        -- form form_id\n        -- multiple \n        -- name \n        -- required\n        -- size\n    option\n\n\n\ninput \nlabel\ntextarea\nbutton\nfieldset\nlegend\ndatalist\noutput\noptgroup\n\n\n\n\n\n\n\n",
+                    "resultFormat": "sql",
+                    "resultMode": "combined",
+                    "showVariables": false,
+                    "type": "config",
+                    "valid": false,
+                    "variables": "{}"
+                },
+                {
+                    "id": "tRWoTflQ3",
+                    "name": "New query 15",
+                    "query": "REMOVE TABLE form;\n\nDEFINE TABLE form SCHEMAFULL\n    SCHEMALESS\n    PERMISSIONS\n        FOR select, create, update, delete NONE;\n//required fields\nDEFINE FIELD action ON form TYPE string ASSERT $value != \"\";\n\n//form specific attributes\nDEFINE FIELD accept_charset ON form TYPE option<array<string>> DEFAULT [\"utf-8\"];\nDEFINE FIELD autocomplete ON form TYPE string DEFAULT \"off\" ASSERT $value IN [\"on\", \"off\"]; \nDEFINE FIELD enctype ON form TYPE string ASSERT $value IN [\"application/x-www-form-urlencoded\", \"multipart/form-data\", \"text/plain\"];\nDEFINE FIELD method ON form TYPE string ASSERT $value IN [\"get\", \"post\"];\nDEFINE FIELD name ON form TYPE option<string>;\nDEFINE FIELD novalidate ON form TYPE bool DEFAULT false;\nDEFINE FIELD target ON form TYPE option<string>;\n\n//global html element attributes\nDEFINE FIELD accesskey ON form TYPE option<string>;\nDEFINE FIELD class ON form TYPE option<array<string>>;\nDEFINE FIELD draggable ON form TYPE option<string> ASSERT $value IN [\"true\", \"false\", \"auto\"];\nDEFINE FIELD dir ON form TYPE option<string> ASSERT $value IN [\"ltr\", \"rtl\", \"auto\"];\nDEFINE FIELD id ON form TYPE option<string>;\nDEFINE FIELD hidden ON form TYPE bool DEFAULT false;\nDEFINE FIELD lang ON form TYPE option<string>;\nDEFINE FIELD rel ON form TYPE option<string>;\nDEFINE FIELD spellcheck ON form TYPE option<string> ASSERT $value IN [\"true\", \"false\"];\nDEFINE FIELD style ON form TYPE option<string>;\nDEFINE FIELD tabindex ON form TYPE option<int>;\nDEFINE FIELD title ON form TYPE option<string>;\nDEFINE FIELD translate ON form TYPE option<string> ASSERT $value IN [\"yes\", \"no\"];\n\nINSERT INTO form {\n    action: \"/login\",\n    method: \"post\",\n    autocomplete: \"off\",\n    enctype: \"application/x-www-form-urlencoded\"\n};\n\n\n",
+                    "resultFormat": "sql",
+                    "resultMode": "combined",
+                    "showVariables": false,
+                    "type": "config",
+                    "valid": true,
+                    "variables": "{}"
+                },
+                {
+                    "id": "QplZrsIJ1",
+                    "name": "New query 16",
+                    "query": "DEFINE TABLE select SCHEMAFULL\n    SCHEMALESS\n    PERMISSIONS\n        FOR select, create, update, delete NONE;\n\n// Required fields\nDEFINE FIELD name ON select TYPE option<string>;\n\n// Select-specific attributes\nDEFINE FIELD autocomplete ON select TYPE option<string> ASSERT $value IN [\"on\", \"off\"];\nDEFINE FIELD disabled ON select TYPE bool DEFAULT false;\nDEFINE FIELD form ON select TYPE option<string>;\nDEFINE FIELD multiple ON select TYPE bool DEFAULT false;\nDEFINE FIELD required ON select TYPE bool DEFAULT false;\nDEFINE FIELD size ON select TYPE option<int>;\n\n// Global HTML element attributes\nDEFINE FIELD accesskey ON select TYPE option<string>;\nDEFINE FIELD class ON select TYPE option<array<string>>;\nDEFINE FIELD draggable ON select TYPE option<string> ASSERT $value IN [\"true\", \"false\", \"auto\"];\nDEFINE FIELD dir ON select TYPE option<string> ASSERT $value IN [\"ltr\", \"rtl\", \"auto\"];\nDEFINE FIELD id ON select TYPE option<string>;\nDEFINE FIELD hidden ON select TYPE bool DEFAULT false;\nDEFINE FIELD lang ON select TYPE option<string>;\nDEFINE FIELD spellcheck ON select TYPE option<string> ASSERT $value IN [\"true\", \"false\"];\nDEFINE FIELD style ON select TYPE option<string>;\nDEFINE FIELD tabindex ON select TYPE option<int>;\nDEFINE FIELD title ON select TYPE option<string>;\nDEFINE FIELD translate ON select TYPE option<string> ASSERT $value IN [\"yes\", \"no\"];\n\nINSERT INTO select {\n    \n}",
+                    "resultFormat": "sql",
+                    "resultMode": "combined",
+                    "showVariables": false,
+                    "type": "config",
+                    "valid": true,
+                    "variables": "{}"
+                },
+                {
+                    "id": "aJpveSjNy",
+                    "name": "New query 17",
+                    "query": "DEFINE TABLE option SCHEMAFULL\n    SCHEMALESS\n    PERMISSIONS\n        FOR select, create, update, delete NONE;\n\n// Required fields\nDEFINE FIELD value ON option TYPE option<string>;\n\n// Option-specific attributes\nDEFINE FIELD disabled ON option TYPE bool DEFAULT false;\nDEFINE FIELD label ON option TYPE option<string>;\nDEFINE FIELD selected ON option TYPE bool DEFAULT false;\n\n// Global HTML element attributes\nDEFINE FIELD accesskey ON option TYPE option<string>;\nDEFINE FIELD class ON option TYPE option<array<string>>;\nDEFINE FIELD draggable ON option TYPE option<string> ASSERT $value IN [\"true\", \"false\", \"auto\"];\nDEFINE FIELD dir ON option TYPE option<string> ASSERT $value IN [\"ltr\", \"rtl\", \"auto\"];\nDEFINE FIELD id ON option TYPE option<string>;\nDEFINE FIELD hidden ON option TYPE bool DEFAULT false;\nDEFINE FIELD lang ON option TYPE option<string>;\nDEFINE FIELD spellcheck ON option TYPE option<string> ASSERT $value IN [\"true\", \"false\"];\nDEFINE FIELD style ON option TYPE option<string>;\nDEFINE FIELD tabindex ON option TYPE option<int>;\nDEFINE FIELD title ON option TYPE option<string>;\nDEFINE FIELD translate ON option TYPE option<string> ASSERT $value IN [\"yes\", \"no\"];",
+                    "resultFormat": "sql",
+                    "resultMode": "combined",
+                    "showVariables": false,
+                    "type": "config",
+                    "valid": true,
+                    "variables": "{}"
+                },
+                {
+                    "id": "3VfrLIdp6",
+                    "name": "New query 18",
+                    "query": "INFO FOR ROOT;\nINFO FOR NS;\nINFO FOR DB;\n\nREMOVE TABLE user_profile;\n\nDEFINE TABLE user_profile TYPE NORMAL SCHEMAFULL PERMISSIONS NONE;\nDEFINE FIELD email ON user_profile TYPE STRING ASSERT $value.is_email();\nDEFINE FIELD first_name ON user_profile TYPE STRING ASSERT $value.replace(\" \", \"\").replace(\"-\", \"\").is_alpha();\nDEFINE FIELD last_name ON user_profile TYPE STRING ASSERT $value.replace(\" \", \"\").replace(\"-\", \"\").is_alpha();\nDEFINE FIELD middle_name ON user_profile TYPE OPTION<STRING> ASSERT $value.replace(\" \", \"\").replace(\"-\", \"\").is_alpha();\nDEFINE FIELD full_name ON user_profile VALUE ($this.first_name + \" \" + ($this.middle_name ?: + '')  + \" \" + $this.last_name).replace(\"  \", \" \");\nDEFINE FIELD created_at ON user_profile TYPE DATETIME READONLY DEFAULT time::now();\nDEFINE FIELD updated_at ON user_profile TYPE DATETIME VALUE time::now()\n\n\n$test = \"http://mercurysmith.com\"\nparse::url::domain(\"http://mercurysmith.com\")\n\nmath::max([ 26.164, 13.746189, 23, 16.4, 41.42 ])\n\n-- TODO\n-- unique index ON email\n\nINFO FOR TABLE user_profile;\n\nINSERT INTO user_profile {\n    email: \"michael.a.johnson.wa@gmail.com\",\n    first_name: \"Michael\",\n    last_name: \"Johnson\"\n};\n\nINSERT INTO user_profile {\n    email: \"robert.j.crosby.wa@gmail.com\",\n    first_name: \"Robert\",\n    last_name: \"Crosby\",\n    middle_name: \"J\"\n};\n\nSELECT * FROM user_profile;\n\n-----------------------------------------------------------------------------------------------------------------------------------------------------\n\nREMOVE TABLE user_auth;\n\nDEFINE TABLE user_auth TYPE NORMAL SCHEMAFULL PERMISSIONS NONE;\nDEFINE FIELD hashed_password ON user_auth TYPE STRING PERMISSIONS FULL;\nDEFINE FIELD is_locked ON user_auth TYPE BOOL PERMISSIONS FULL DEFAULT FALSE;\nDEFINE FIELD email_validated_date ON user_auth TYPE option<DATETIME>;\nDEFINE FIELD last_successful_login ON user_auth TYPE option<DATETIME>;\nDEFINE FIELD failed_login_attempts ON user_auth TYPE INT DEFAULT 0;\nDEFINE FIELD password_expiration_date ON user_auth TYPE DATETIME DEFAULT time::now() + 90d;\nDEFINE FIELD created_at ON user_auth TYPE DATETIME READONLY DEFAULT time::now();\nDEFINE FIELD updated_at ON user_auth TYPE DATETIME VALUE time::now();\n\nINFO FOR TABLE user_auth;\n\n-- TODO \n-- number of successful logins\n\nINSERT INTO user_auth{\n    user_profile_id: user_profile:pctl4dwjsiu9xy6r1pt4,\n    id: rand::guid(),\n    hashed_password: crypto::argon2::generate(\"this is a strong password\"),\n};\n\n\nSELECT \n    created_at as user_profile.created_at, \n    email as user_profile.email,\n    first_name as user_profile.first_name,\n    id as user_profile.id,\n    last_name as user_profile.last_name,\n    middle_name as user_profile.middle_name,\n    updated_at as user_profile.updated_at, \n    \"create_changeset\" as user_profile._type_changeset\nFROM user_profile;\n\nSELECT * FROM user_profile;\nSELECT * FROM user_auth;\n\n---\n\nCREATE flow:user_auth\n    SET create = 'create_changeset',\n        login_post = {\n            'MyApp.UserAuth.login',\n            'user_name',\n            'password'\n        }\n;\n\nCREATE processes:register\n    set inputs = [\"email\", \"first_name\", \"last_name\"],\n        http_verb = \"POST\"\n    ;\n\n\nUPDATE processes:register \n    set inputs = [\"email\", \"first_name\", \"last_name\"],\n        http_verb = \"POST\"\n    ;\n\n    \nSELECT * from flow:user_auth;\n\nDELETE flow:user_auth;\n\nRETURN time::now();\n\n\n-----------------------------------------------------------------------------------------------------------------------------------------------------\n\n-- Define the table 'alltypes' with full schema.\nDEFINE TABLE alltypes SCHEMAFULL\n    PERMISSIONS\n        FOR select FULL,\n        FOR create FULL,\n        FOR update FULL,\n        FOR delete FULL;\n\n-- Define one field per core built-in type.\nDEFINE FIELD boolField     ON alltypes TYPE bool;\nDEFINE FIELD intField      ON alltypes TYPE int;\nDEFINE FIELD floatField    ON alltypes TYPE float;\nDEFINE FIELD decimalField  ON alltypes TYPE decimal;\nDEFINE FIELD stringField   ON alltypes TYPE string;\nDEFINE FIELD durationField ON alltypes TYPE duration;\nDEFINE FIELD datetimeField ON alltypes TYPE datetime;\nDEFINE FIELD uuidField     ON alltypes TYPE uuid;\nDEFINE FIELD arrayField    ON alltypes TYPE array;\nDEFINE FIELD objectField   ON alltypes TYPE object;\nDEFINE FIELD geomField     ON alltypes TYPE geometry;\n\n\n\n-- need user_oauth table\n-- need user_saml table\n\n-- how does registration or new account creation work?\n    -- invite user workflow\n    -- self apply workflow\n    -- must accept 'privacy policy' and 'terms of agreement'\n\n-- need user_role table\n\n-- need main db\n    -- organizations table\n    -- subscriptions\n    -- payment methods\n    -- contacts\n    -- \n\n\n-----------------------------------------------------------------------------------------------------------------------------------------------------\n\nDEFINE TABLE chat_room TYPE NORMAL SCHEMAFULL PERMISSIONS NONE;\nDEFINE FIELD name ON chat_room TYPE STRING PERMISSIONS FULL;\nDEFINE FIELD type ON chat_room TYPE STRING ASSERT [\"direct\", \"group\", \"room\"] PERMISSIONS FULL;\nDEFINE FIELD created_at ON chat_room TYPE DATETIME READONLY DEFAULT time::now() PERMISSIONS FULL;\nDEFINE FIELD updated_at ON chat_room TYPE DATETIME VALUE time::now() PERMISSIONS FULL;\n\n--todo \n--authorized users \n--direct has two users\n--group has more than two users; once created users cannot be added or removed \n--room has dynamic users; users may be added or removed\n\nselect * from user_profile;\n\nSELECT * FROM chat_room;\n\nDEFINE TABLE chat_message TYPE RELATION IN user_profile OUT chat_room SCHEMAFULL PERMISSIONS NONE;\nDEFINE FIELD message ON chat_message TYPE STRING PERMISSIONS FULL;\nDEFINE FIELD created_at ON chat_message TYPE DATETIME READONLY DEFAULT time::now() PERMISSIONS FULL;\nDEFINE FIELD updated_at ON chat_message TYPE DATETIME VALUE time::now() PERMISSIONS FULL;\n\n\nINSERT INTO chat_room {\n    name: \"Test_Room\",\n    type: \"direct\"\n};\n\nRELATE user_profile:rooojawh071fq980pa5p->chat_message:ulid()->chat_room:hgw9t98gobkwnsjbgprk\n    CONTENT {\n        message: \"Hello\"\n    };\nRELATE user_profile:ryjvwm8cscamzoj0pg48->chat_message:ulid()->chat_room:hgw9t98gobkwnsjbgprk\n    CONTENT {\n        message: \"how are you?\"\n    };\nRELATE user_profile:rooojawh071fq980pa5p->chat_message:ulid()->chat_room:hgw9t98gobkwnsjbgprk\n    CONTENT {\n        message: \"just fine. how about you?\"\n    };\nRELATE user_profile:ryjvwm8cscamzoj0pg48->chat_message:ulid()->chat_room:hgw9t98gobkwnsjbgprk\n    CONTENT {\n        message: \"well enough\"\n    };\n\nSELECT <-chat_message.{\n\tid,\n\tmessage,\n\tin.{\n\t\tid,\n\t\tfull_name\n\t}\n} AS messages, name AS room_name \nFROM ONLY chat_room WHERE id = chat_room:hgw9t98gobkwnsjbgprk LIMIT 1;\n\n--REMOVE TABLE chat_message;\n\ndelete from chat_message where in = NONE;\n\nDEFINE TABLE OVERWRITE test SCHEMAFULL TYPE RELATION IN user_profile OUT chat_message ENFORCED;\n\nselect * from chat_message;\n\nselect * from user_profile;\n\nselect <-chat_message.{id, message}<-chat_message<-user_profile.first_name\nfrom chat_room\nwhere id = chat_room:hgw9t98gobkwnsjbgprk;\n\n\nselect * from user_profile;\n\nINFO FOR DB;\nINFO FOR TABLE user_profile;\n\nfn::divide(10, 5);\n\n-- instead of chat_message being a table it could be a releation from user_profile to chat_room\n-- the in and out would be readonly\n-- message could be edited\n-- the chat room would contain the access members at creation \n--    direct would be one to one and allow only two users\n--    group would be any subset of users with this the greater oontext\n--    room would be all users with in the context and could be topical\n--    if a new user is added to the greater context then if they have been invited to the room they have the context \n\nLET $time = time::now();\nRELATE person:l19zjikkw1p1h9o6ixrg->wrote->article:8nkk6uj4yprt49z7y3zm\n    CONTENT {\n        time: {\n            written: $time\n        }\n    };\n\nREMOVE TABLE chat_message;\n\nDEFINE TABLE chat_message TYPE NORMAL SCHEMAFULL PERMISSIONS FULL;\nDEFINE FIELD message ON chat_message TYPE STRING PERMISSIONS FULL;\nDEFINE FIELD created_at ON chat_message TYPE DATETIME READONLY DEFAULT time::now() PERMISSIONS FULL;\nDEFINE FIELD updated_at ON chat_message TYPE DATETIME VALUE time::now() PERMISSIONS FULL;\nDEFINE FIELD from ON chat_message TYPE record<user_profile> PERMISSIONS FULL;\n\nINFO FOR TABLE chat_message;\nINFO FOR TABLE chat_room;\n\nSELECT * FROM chat_room WHERE id = 'asdf';\n\nCREATE ONLY chat_room_message:ulid() CONTENT {\n    message: \"hello!\",\n    from: user_profile:dohs6e5uks42ucm1svh5\n};\n\nUPDATE chat_room_message:01JD33T732NHBEBF14EJCV4YG8 SET message = \"Hello world!😎🧒🏻💗\" RETURN AFTER;\n\n\n-- https://www.prosettings.com/emoji-list/\nselect * from chat_room_message;\ndelete chat_room_message;\n\nselect * from user_profile;\n\nREMOVE TABLE chat_room;\nREMOVE TABLE chat_room_message;\n\n\n\n-- kruft below here\n\nTYPE option<array<record<building>>>\nASSERT ['house', 'castle']\n\nINFO FOR DB;\nINFO FOR TABLE building;\n\n\nINSERT INTO cat (id, feet) VALUES (\"mr_meowd\", 4), (\"mrs_meowd\", 4), (\"kittend\", 5);\nRELATE [cat:mr_meow, cat:mrs_meow]->parent_of_1:ulid()->cat:kitten;\n\nselect * from cat;\n\nINFO FOR TABLE parent_of_1;\nSELECT * FROM parent_of_1;\n\nDEFINE TABLE person SCHEMAFULL;\nDEFINE TABLE building SCHEMAFULL;\nDEFINE FIELD name ON TABLE person \n    TYPE string \n    ASSERT $value.replace(\" \", \"\").replace(\"-\", \"\").is_alpha();\nDEFINE FIELD class ON table person TYPE option<string>;\nDEFINE FIELD money ON TABLE person \n    TYPE option<int>\n    ASSERT $value >= 0 OR $value IS NONE;\nDEFINE FIELD name ON TABLE building TYPE string;\nDEFINE FIELD kind ON TABLE building \n    TYPE string\n    ASSERT \n    [\"house\", \"castle\"] CONTAINS $value;\nDEFINE FIELD properties ON TABLE person TYPE option<array<record<building>>>;\n\n-- can this be used to share the id between the reocrds\nCREATE bank:first_bank_of_toria, person:aeon, person:customer, person:employee SET name = id.id();\nCREATE ONLY person:ulid() CONTENT { \n    name: \"jack\" \n} RETURN AFTER;\nCREATE ONLY person:ulid() CONTENT { \n    name: \"michael\" \n} RETURN AFTER;\nCREATE ONLY person:ulid() CONTENT { \n    name: \"nathan\" \n} RETURN AFTER;\n\nSELECT * FROM person ORDER BY id;\n\nSELECT id.id() FROM user_profile;\n\nRETURN time::now();\n\n\nRETURN crypto::argon2::generate(\"this is a strong password\");\n\nLET $hash = \"$argon2id$v=19$m=4096,t=3,p=1$pbZ6yJ2rPJKk4pyEMVwslQ$jHzpsiB+3S/H+kwFXEcr10vmOiDkBkydVCSMfRxV7CA\";\nLET $pass = \"this is a strong password\";\nRETURN crypto::argon2::compare($hash, $pass);\n\nDEFINE TABLE user_token TYPE NORMAL SCHEMAFULL PERMISSIONS NONE;\n\n\n\n",
+                    "resultFormat": "sql",
+                    "resultMode": "combined",
+                    "showVariables": false,
+                    "type": "config",
+                    "valid": false,
+                    "variables": "{\n\targon2id: '',\n\thash: '',\n\tjHzpsiB: '',\n\tm: '',\n\tpass: '',\n\tpbZ6yJ2rPJKk4pyEMVwslQ: '',\n\tv: ''\n}"
+                },
+                {
+                    "id": "NfjYaR3jo",
+                    "name": "Tenants",
+                    "query": "INFO FOR DB;\nINFO FOR TABLE tenant;\n\n--- IF REMOVE IS NECESSARY\nREMOVE TABLE tenant;\n\n-- CREATE TABLE\nDEFINE TABLE tenant SCHEMAFULL PERMISSIONS NONE;\n\nDEFINE FIELD created_at ON tenant TYPE DATETIME READONLY DEFAULT time::now();\nDEFINE FIELD domain ON tenant TYPE STRING ASSERT string::is::domain($value);\nDEFINE FIELD name ON tenant TYPE STRING;\nDEFINE FIELD namespace ON tenant TYPE STRING;\nDEFINE FIELD status ON tenant TYPE STRING DEFAULT \"new\";\nDEFINE FIELD updated_at ON tenant TYPE DATETIME VALUE time::now();\nDEFINE FIELD url ON tenant TYPE STRING ASSERT string::is::url($value);\n\nDEFINE INDEX domainIndex ON TABLE tenant COLUMNS domain UNIQUE;\n\nCREATE tenant SET\n    domain = 'example.com',\n    name = 'Simple Test',\n    namespace = 'example_com',\n    url = 'http://example.com';\n\nINSERT INTO tenant {\n    domain: 'www.valid-example.com',\n    name: 'My Test Site',\n    namespace: 'www_valid-example_com',\n    url: 'https://www.valid-example.com/path'\n};\n\nSELECT * from tenant;\n\n-- do i need a department or group to hold project\n\n-- projects = database and schema\n\n--- IF REMOVE IS NECESSARY\nREMOVE TABLE project;\n\ntype::thing(\"apple\", rand::ulid())\ntype::thing(\"banana\", information:{age:23,gender:'m'})\ntype::thing(information:{age:23,gender:'m'}, rand::ulid())\n\n\n-- CREATE TABLE\nDEFINE TABLE project SCHEMAFULL PERMISSIONS NONE;\n\nDEFINE FIELD database ON project TYPE STRING;\nDEFINE FIELD name ON project TYPE STRING;\nDEFINE FIELD description on project TYPE OPTION<STRING>;\n\nDEFINE FIELD created_at ON project TYPE DATETIME READONLY DEFAULT time::now();\nDEFINE FIELD updated_at ON project TYPE DATETIME VALUE time::now();\n\n-- DEFINE INDEX domainIndex ON TABLE project COLUMNS domain UNIQUE;\n\n-----------------------------------------------------------------------------------------------------------\n\n--- IF REMOVE IS NECESSARY\nREMOVE TABLE test_tenant;\n\n--- THIS BELOW WORKS BUT THE DOMAIN AND THE NAMESPACE ARE \"OPTION\"\n--- IT WILL BE BETTER TO VALIDATE AND COERSE THESE FEILDS WITHIN THE APPLICATION\n\n-- CREATE TABLE\nDEFINE TABLE test_tenant SCHEMAFULL PERMISSIONS NONE;\n\nDEFINE FIELD created_at ON test_tenant TYPE DATETIME READONLY DEFAULT time::now();\nDEFINE FIELD domain ON test_tenant TYPE OPTION<STRING> VALUE parse::url::domain(url);\nDEFINE FIELD name ON test_tenant TYPE STRING;\nDEFINE FIELD namespace ON test_tenant TYPE OPTION<STRING> VALUE parse::url::domain(url).replace(\".\", \"_\");\nDEFINE FIELD status ON test_tenant TYPE STRING DEFAULT \"NEW\";\nDEFINE FIELD updated_at ON test_tenant TYPE DATETIME VALUE time::now();\nDEFINE FIELD url ON test_tenant TYPE STRING ASSERT string::is::url($value);\n\nDEFINE INDEX domainIndex ON TABLE test_tenant COLUMNS domain UNIQUE;\n\nparse::url::domain(\"http://www.mercurysmith.com\").replace(\".\", \"_\")\n\n-- LET $url = \"https://www.valid-example.com/path\";\n-- string::is::url($url) AND (CREATE type::thing(\"tenant\", parse::url::domain($url)));\n\n\n--- ALL RECORD CREATION ATTEMPTS CAUSE SAME ERROR\nCREATE test_tenant SET\n    name = 'My Test Site',\n    url = 'https://www.valid-example.com/path';\n--- 'Found NONE for field `domain`, with record `test_tenant:e620goxqc4r32lej8txz`, but expected a string'\n\nINSERT INTO test_tenant {\n    name: 'My Test Site',\n    url: 'https://www.valid-example.com/path'\n};\n\n--- 'Found NONE for field `domain`, with record `test_tenant:e620goxqc4r32lej8txz`, but expected a string'\n\nCREATE test_tenant SET\n    name = 'Simple Test',\n    url = 'http://example.com';\n--- 'Found NONE for field `domain`, with record `test_tenant:e620goxqc4r32lej8txz`, but expected a string'\n\n\nSELECT * FROM test_tenant;\n\n-- select * from users;\n\nselect * from type::table(\"users\");\n# delete from users where id = users:na4q8saxp6ogpnodhpdu;\n\nupdate users \nset first_name = \"Michael\", last_name = \"Johnson\", middle_name = \"A\"\nwhere id = users:odk5nwr46r0ror9lk1s6;\n\nLET $table = \"users\";\nINFO FOR TABLE $table;\n\nINFO FOR ROOT;\nINFO FOR NS;\nINFO FOR DB;\nINFO FOR TABLE user_auth;\nINFO FOR TABLE user_profile;\nINFO FOR USER \"john.doe\";\nINFO FOR INDEX @index ON @table;\n\nSELECT * FROM user_auth;\nSELECT * FROM user_profile;\nUSE NS @ns; \nUSE DB @db;\nUSE NS @ns DB @db;\n\n\n-- Enable authentication directly against a SurrealDB record\nDEFINE ACCESS account ON DATABASE TYPE RECORD\n    SIGNUP ( CREATE user SET email = $email, pass = crypto::argon2::generate($pass) )\n    SIGNIN ( SELECT * FROM user WHERE email = $email AND crypto::argon2::compare(pass, $pass) )\n    DURATION FOR SESSION 24h\n;\n\nINFO FOR DB;\nREMOVE ACCESS account ON DATABASE;\n\n\nDEFINE ACCESS account ON DATABASE TYPE RECORD\n    SIGNIN (\n        SELECT * FROM account WHERE eamil = $email AND crypto::argon2::compare(password, $password)\n    )\n    SIGNUP (\n        CREATE account CONTENT {\n            name: $name,\n            email: $email,\n            password: crypto::argon2::generate($password)\n        }\n    );\n\nREMOVE ACCESS account ON DATABASE;\nREMOVE TABLE account;\n\nSElECT * FROM account;\nINFO FOR TABLE account;\n\nINFO FOR ROOT;\nINFO FOR NS;\nINFO FOR DB;\n\n---\nINFO FOR ROOT;\n-- Create the user with an owner role and some example durations\nDEFINE USER root2 ON ROOT PASSWORD '123456' ROLES OWNER DURATION FOR SESSION 15m, FOR TOKEN 5s;\nINFO FOR ROOT;\n\n---\nINFO FOR NS;\n-- Create the user with an editor role and some example durations\nDEFINE USER OVERWRITE nsuser ON NAMESPACE PASSWORD '123456' ROLES EDITOR;\nINFO FOR NS;\n\n---\nINFO FOR DB;\n-- Create the user with a viewer role and some example durations\nDEFINE USER OVERWRITE dbuserj  ON DATABASE PASSWORD '123456' ROLES VIEWER;\nINFO FOR DB;\n\nDEFINE USER mary ON DATABASE PASSWORD \"VerySecurePassword!\" ROLES EDITOR;\n---\nINFO FOR DB;\nDEFINE TABLE user2 SCHEMAFULL\n\tPERMISSIONS\n\t\tFOR select, update, delete WHERE id = $auth.id;\n\nDEFINE FIELD name ON user2 TYPE string;\nDEFINE FIELD email ON user2 TYPE string ASSERT string::is::email($value);\nDEFINE FIELD password ON user2 TYPE string;\n\nDEFINE INDEX email ON user2 FIELDS email UNIQUE;\n\nINFO FOR DB;\n\nDEFINE ACCESS user2 ON DATABASE TYPE RECORD\n\tSIGNIN (\n\t\tSELECT * FROM user2 WHERE email = $email AND crypto::argon2::compare(password, $password)\n\t)\n\tSIGNUP (\n\t\tCREATE user2 CONTENT {\n\t\t\tname: $name,\n\t\t\temail: $email,\n\t\t\tpassword: crypto::argon2::generate($password)\n\t\t}\n\t);\n\nINFO FOR DB;\n\nSELECT * FROM user2;\n\n---\n\nselect * from users;\n\nselect * from person;",
+                    "resultFormat": "sql",
+                    "resultMode": "combined",
+                    "showVariables": false,
+                    "type": "config",
+                    "valid": true,
+                    "variables": "{}"
+                }
+            ],
+            "queryHistory": [
+                {
+                    "id": "y6dYLRTdT",
+                    "origin": "Tenants",
+                    "query": "REMOVE ACCESS account ON DATABASE;",
+                    "timestamp": 1760537413254
+                },
+                {
+                    "id": "hPuC8Z6Tf",
+                    "origin": "Tenants",
+                    "query": "SElECT * FROM account;",
+                    "timestamp": 1760537417465
+                },
+                {
+                    "id": "itLiESchb",
+                    "origin": "Tenants",
+                    "query": "REMOVE TABLE account;",
+                    "timestamp": 1760537446964
+                },
+                {
+                    "id": "7TT4v0tfV",
+                    "origin": "Tenants",
+                    "query": "SElECT * FROM account;",
+                    "timestamp": 1760537449945
+                },
+                {
+                    "id": "JYR53HdiV",
+                    "origin": "Tenants",
+                    "query": "INFO FOR DB;",
+                    "timestamp": 1760537452249
+                },
+                {
+                    "id": "08vmxYAiA",
+                    "origin": "Tenants",
+                    "query": "INFO FOR TABLE account;",
+                    "timestamp": 1760537462998
+                },
+                {
+                    "id": "56C9q7DoB",
+                    "origin": "Tenants",
+                    "query": "INFO FOR NS;",
+                    "timestamp": 1760538001254
+                },
+                {
+                    "id": "DrexaIWyB",
+                    "origin": "Tenants",
+                    "query": "INFO FOR ROOT;",
+                    "timestamp": 1760538018527
+                },
+                {
+                    "id": "hj2TkWcHf",
+                    "origin": "Tenants",
+                    "query": "INFO FOR ROOT;",
+                    "timestamp": 1760538461618
+                },
+                {
+                    "id": "d1qMpj7a9",
+                    "origin": "Tenants",
+                    "query": "DEFINE USER root2 ON ROOT PASSWORD '123456' ROLES OWNER DURATION FOR SESSION 15m, FOR TOKEN 5s;",
+                    "timestamp": 1760538502507
+                },
+                {
+                    "id": "EwnjpDsVN",
+                    "origin": "Tenants",
+                    "query": "INFO FOR ROOT;",
+                    "timestamp": 1760538505375
+                },
+                {
+                    "id": "ROQ7obrpf",
+                    "origin": "Tenants",
+                    "query": "INFO FOR NS;",
+                    "timestamp": 1760538558266
+                },
+                {
+                    "id": "j8tBrNuV6",
+                    "origin": "Tenants",
+                    "query": "DEFINE USER nsuser ON NAMESPACE PASSWORD '123456' ROLES EDITOR DURATION FOR SESSION 12h, FOR TOKEN 1m;",
+                    "timestamp": 1760538576494
+                },
+                {
+                    "id": "AyO98F49G",
+                    "origin": "Tenants",
+                    "query": "INFO FOR NS;",
+                    "timestamp": 1760538579020
+                },
+                {
+                    "id": "gP9bES8ay",
+                    "origin": "Tenants",
+                    "query": "INFO FOR DB;",
+                    "timestamp": 1760538621356
+                },
+                {
+                    "id": "HSLzGRpkF",
+                    "origin": "Tenants",
+                    "query": "DEFINE USER dbuser ON DATABASE PASSWORD '123456' ROLES VIEWER DURATION FOR SESSION 5d, FOR TOKEN 2h;",
+                    "timestamp": 1760538645241
+                },
+                {
+                    "id": "iK07fnB4l",
+                    "origin": "Tenants",
+                    "query": "INFO FOR DB;",
+                    "timestamp": 1760538647851
+                },
+                {
+                    "id": "y8BdEeJX9",
+                    "origin": "Tenants",
+                    "query": "INFO FOR DB;",
+                    "timestamp": 1760539724001
+                },
+                {
+                    "id": "iLGwpJsAu",
+                    "origin": "Tenants",
+                    "query": "DEFINE TABLE user2 SCHEMAFULL\n\tPERMISSIONS\n\t\tFOR select, update, delete WHERE id = $auth.id;\n\nDEFINE FIELD name ON user2 TYPE string;\nDEFINE FIELD email ON user2 TYPE string ASSERT string::is_email($value);\nDEFINE FIELD password ON user2 TYPE string;\n\nDEFINE INDEX email ON user2 FIELDS email UNIQUE;",
+                    "timestamp": 1760539746813
+                },
+                {
+                    "id": "HxupWgwuQ",
+                    "origin": "Tenants",
+                    "query": "INFO FOR DB;\nDEFINE TABLE user2 SCHEMAFULL\n\tPERMISSIONS\n\t\tFOR select, update, delete WHERE id = $auth.id;\n\nDEFINE FIELD name ON user2 TYPE string;\nDEFINE FIELD email ON user2 TYPE string ASSERT string::is::email($value);\nDEFINE FIELD password ON user2 TYPE string;\n\nDEFINE INDEX email ON user2 FIELDS email UNIQUE;",
+                    "timestamp": 1760539788832
+                },
+                {
+                    "id": "HBLy9TB5n",
+                    "origin": "Tenants",
+                    "query": "INFO FOR DB;",
+                    "timestamp": 1760539804196
+                },
+                {
+                    "id": "nNPKcyJbg",
+                    "origin": "Tenants",
+                    "query": "DEFINE ACCESS user2 ON DATABASE TYPE RECORD\n\tSIGNIN (\n\t\tSELECT * FROM user2 WHERE email = $email AND crypto::argon2::compare(password, $password)\n\t)\n\tSIGNUP (\n\t\tCREATE user2 CONTENT {\n\t\t\tname: $name,\n\t\t\temail: $email,\n\t\t\tpassword: crypto::argon2::generate($password)\n\t\t}\n\t);",
+                    "timestamp": 1760539844146
+                },
+                {
+                    "id": "Srjnhpglb",
+                    "origin": "Tenants",
+                    "query": "INFO FOR DB;",
+                    "timestamp": 1760539856641
+                },
+                {
+                    "id": "UpYKnmO4l",
+                    "origin": "Tenants",
+                    "query": "INFO FOR DB;",
+                    "timestamp": 1760540197769
+                },
+                {
+                    "id": "QM8YRoJnf",
+                    "origin": "Tenants",
+                    "query": "SELECT * FROM user2;",
+                    "timestamp": 1760540230717
+                },
+                {
+                    "id": "xNek7rVJ6",
+                    "origin": "Tenants",
+                    "query": "INFO FOR NS;",
+                    "timestamp": 1760541289954
+                },
+                {
+                    "id": "taYJPGtRz",
+                    "origin": "Tenants",
+                    "query": "INFO FOR NS;",
+                    "timestamp": 1760543651145
+                },
+                {
+                    "id": "PY60IM6sL",
+                    "origin": "Tenants",
+                    "query": "INFO FOR DB;",
+                    "timestamp": 1760544045586
+                },
+                {
+                    "id": "XIwjPyHIs",
+                    "origin": "Tenants",
+                    "query": "DEFINE USER mary ON DATABASE PASSWORD \"VerySecurePassword!\" ROLES EDITOR;",
+                    "timestamp": 1760544630941
+                },
+                {
+                    "id": "paBrXstAp",
+                    "origin": "Tenants",
+                    "query": "DEFINE USER OVERWRITE nsuser ON NAMESPACE PASSWORD '123456' ROLES EDITOR;",
+                    "timestamp": 1760545300599
+                },
+                {
+                    "id": "qJ9iAwqDe",
+                    "origin": "Tenants",
+                    "query": "INFO FOR NS;",
+                    "timestamp": 1760545304856
+                },
+                {
+                    "id": "27ZCpdv1r",
+                    "origin": "Tenants",
+                    "query": "DEFINE USER OVERWRITE dbuser ON DATABASE PASSWORD '123456' ROLES VIEWER;",
+                    "timestamp": 1760545381478
+                },
+                {
+                    "id": "iVXIbVizr",
+                    "origin": "Tenants",
+                    "query": "INFO FOR DB;",
+                    "timestamp": 1760888232806
+                },
+                {
+                    "id": "lX9Y5vcbs",
+                    "origin": "Tenants",
+                    "query": "SELECT * FROM user2;",
+                    "timestamp": 1760889810185
+                },
+                {
+                    "id": "VCd2IDufK",
+                    "origin": "Tenants",
+                    "query": "select * from users;",
+                    "timestamp": 1760990321482
+                },
+                {
+                    "id": "4YoSyf863",
+                    "origin": "Tenants",
+                    "query": "select * from users;",
+                    "timestamp": 1761058341098
+                },
+                {
+                    "id": "qW4F09cqP",
+                    "origin": "Tenants",
+                    "query": "select * from users;",
+                    "timestamp": 1761058346335
+                },
+                {
+                    "id": "XoOGliaMR",
+                    "origin": "Tenants",
+                    "query": "select * from users;",
+                    "timestamp": 1761058434204
+                },
+                {
+                    "id": "bK2zlmAgu",
+                    "origin": "Tenants",
+                    "query": "select * from users;",
+                    "timestamp": 1761071922307
+                },
+                {
+                    "id": "Im6BpW40D",
+                    "origin": "Tenants",
+                    "query": "SELECT * FROM user2;",
+                    "timestamp": 1767125275228
+                },
+                {
+                    "id": "ZdL2LKnhj",
+                    "origin": "Tenants",
+                    "query": "INFO FOR DB;\nINFO FOR TABLE tenant;\n\n--- IF REMOVE IS NECESSARY\nREMOVE TABLE tenant;\n\n-- CREATE TABLE\nDEFINE TABLE tenant SCHEMAFULL PERMISSIONS NONE;\n\nDEFINE FIELD created_at ON tenant TYPE DATETIME READONLY DEFAULT time::now();\nDEFINE FIELD domain ON tenant TYPE STRING ASSERT string::is::domain($value);\nDEFINE FIELD name ON tenant TYPE STRING;\nDEFINE FIELD namespace ON tenant TYPE STRING;\nDEFINE FIELD status ON tenant TYPE STRING DEFAULT \"new\";\nDEFINE FIELD updated_at ON tenant TYPE DATETIME VALUE time::now();\nDEFINE FIELD url ON tenant TYPE STRING ASSERT string::is::url($value);\n\nDEFINE INDEX domainIndex ON TABLE tenant COLUMNS domain UNIQUE;\n\nCREATE tenant SET\n    domain = 'example.com',\n    name = 'Simple Test',\n    namespace = 'example_com',\n    url = 'http://example.com';\n\nINSERT INTO tenant {\n    domain: 'www.valid-example.com',\n    name: 'My Test Site',\n    namespace: 'www_valid-example_com',\n    url: 'https://www.valid-example.com/path'\n};\n\nSELECT * from tenant;\n\n-- do i need a department or group to hold project\n\n-- projects = database and schema\n\n--- IF REMOVE IS NECESSARY\nREMOVE TABLE project;\n\ntype::thing(\"apple\", rand::ulid())\ntype::thing(\"banana\", information:{age:23,gender:'m'})\ntype::thing(information:{age:23,gender:'m'}, rand::ulid())\n\n\n-- CREATE TABLE\nDEFINE TABLE project SCHEMAFULL PERMISSIONS NONE;\n\nDEFINE FIELD database ON project TYPE STRING;\nDEFINE FIELD name ON project TYPE STRING;\nDEFINE FIELD description on project TYPE OPTION<STRING>;\n\nDEFINE FIELD created_at ON project TYPE DATETIME READONLY DEFAULT time::now();\nDEFINE FIELD updated_at ON project TYPE DATETIME VALUE time::now();\n\n-- DEFINE INDEX domainIndex ON TABLE project COLUMNS domain UNIQUE;\n\n-----------------------------------------------------------------------------------------------------------\n\n--- IF REMOVE IS NECESSARY\nREMOVE TABLE test_tenant;\n\n--- THIS BELOW WORKS BUT THE DOMAIN AND THE NAMESPACE ARE \"OPTION\"\n--- IT WILL BE BETTER TO VALIDATE AND COERSE THESE FEILDS WITHIN THE APPLICATION\n\n-- CREATE TABLE\nDEFINE TABLE test_tenant SCHEMAFULL PERMISSIONS NONE;\n\nDEFINE FIELD created_at ON test_tenant TYPE DATETIME READONLY DEFAULT time::now();\nDEFINE FIELD domain ON test_tenant TYPE OPTION<STRING> VALUE parse::url::domain(url);\nDEFINE FIELD name ON test_tenant TYPE STRING;\nDEFINE FIELD namespace ON test_tenant TYPE OPTION<STRING> VALUE parse::url::domain(url).replace(\".\", \"_\");\nDEFINE FIELD status ON test_tenant TYPE STRING DEFAULT \"NEW\";\nDEFINE FIELD updated_at ON test_tenant TYPE DATETIME VALUE time::now();\nDEFINE FIELD url ON test_tenant TYPE STRING ASSERT string::is::url($value);\n\nDEFINE INDEX domainIndex ON TABLE test_tenant COLUMNS domain UNIQUE;\n\nparse::url::domain(\"http://www.mercurysmith.com\").replace(\".\", \"_\")\n\n-- LET $url = \"https://www.valid-example.com/path\";\n-- string::is::url($url) AND (CREATE type::thing(\"tenant\", parse::url::domain($url)));\n\n\n--- ALL RECORD CREATION ATTEMPTS CAUSE SAME ERROR\nCREATE test_tenant SET\n    name = 'My Test Site',\n    url = 'https://www.valid-example.com/path';\n--- 'Found NONE for field `domain`, with record `test_tenant:e620goxqc4r32lej8txz`, but expected a string'\n\nINSERT INTO test_tenant {\n    name: 'My Test Site',\n    url: 'https://www.valid-example.com/path'\n};\n\n--- 'Found NONE for field `domain`, with record `test_tenant:e620goxqc4r32lej8txz`, but expected a string'\n\nCREATE test_tenant SET\n    name = 'Simple Test',\n    url = 'http://example.com';\n--- 'Found NONE for field `domain`, with record `test_tenant:e620goxqc4r32lej8txz`, but expected a string'\n\n\nSELECT * FROM test_tenant;\n\n-- select * from users;\n\nselect * from type::table(\"users\");\n# delete from users where id = users:na4q8saxp6ogpnodhpdu;\n\nupdate users \nset first_name = \"Michael\", last_name = \"Johnson\", middle_name = \"A\"\nwhere id = users:odk5nwr46r0ror9lk1s6;\n\nLET $table = \"users\";\nINFO FOR TABLE $table;\n\nINFO FOR ROOT;\nINFO FOR NS;\nINFO FOR DB;\nINFO FOR TABLE user_auth;\nINFO FOR TABLE user_profile;\nINFO FOR USER \"john.doe\";\nINFO FOR INDEX @index ON @table;\n\nSELECT * FROM user_auth;\nSELECT * FROM user_profile;\nUSE NS @ns; \nUSE DB @db;\nUSE NS @ns DB @db;\n\n\n-- Enable authentication directly against a SurrealDB record\nDEFINE ACCESS account ON DATABASE TYPE RECORD\n    SIGNUP ( CREATE user SET email = $email, pass = crypto::argon2::generate($pass) )\n    SIGNIN ( SELECT * FROM user WHERE email = $email AND crypto::argon2::compare(pass, $pass) )\n    DURATION FOR SESSION 24h\n;\n\nINFO FOR DB;\nREMOVE ACCESS account ON DATABASE;\n\n\nDEFINE ACCESS account ON DATABASE TYPE RECORD\n    SIGNIN (\n        SELECT * FROM account WHERE eamil = $email AND crypto::argon2::compare(password, $password)\n    )\n    SIGNUP (\n        CREATE account CONTENT {\n            name: $name,\n            email: $email,\n            password: crypto::argon2::generate($password)\n        }\n    );\n\nREMOVE ACCESS account ON DATABASE;\nREMOVE TABLE account;\n\nSElECT * FROM account;\nINFO FOR TABLE account;\n\nINFO FOR ROOT;\nINFO FOR NS;\nINFO FOR DB;\n\n---\nINFO FOR ROOT;\n-- Create the user with an owner role and some example durations\nDEFINE USER root2 ON ROOT PASSWORD '123456' ROLES OWNER DURATION FOR SESSION 15m, FOR TOKEN 5s;\nINFO FOR ROOT;\n\n---\nINFO FOR NS;\n-- Create the user with an editor role and some example durations\nDEFINE USER OVERWRITE nsuser ON NAMESPACE PASSWORD '123456' ROLES EDITOR;\nINFO FOR NS;\n\n---\nINFO FOR DB;\n-- Create the user with a viewer role and some example durations\nDEFINE USER OVERWRITE dbuserj  ON DATABASE PASSWORD '123456' ROLES VIEWER;\nINFO FOR DB;\n\nDEFINE USER mary ON DATABASE PASSWORD \"VerySecurePassword!\" ROLES EDITOR;\n---\nINFO FOR DB;\nDEFINE TABLE user2 SCHEMAFULL\n\tPERMISSIONS\n\t\tFOR select, update, delete WHERE id = $auth.id;\n\nDEFINE FIELD name ON user2 TYPE string;\nDEFINE FIELD email ON user2 TYPE string ASSERT string::is::email($value);\nDEFINE FIELD password ON user2 TYPE string;\n\nDEFINE INDEX email ON user2 FIELDS email UNIQUE;\n\nINFO FOR DB;\n\nDEFINE ACCESS user2 ON DATABASE TYPE RECORD\n\tSIGNIN (\n\t\tSELECT * FROM user2 WHERE email = $email AND crypto::argon2::compare(password, $password)\n\t)\n\tSIGNUP (\n\t\tCREATE user2 CONTENT {\n\t\t\tname: $name,\n\t\t\temail: $email,\n\t\t\tpassword: crypto::argon2::generate($password)\n\t\t}\n\t);\n\nINFO FOR DB;\n\nSELECT * FROM user2;\n\n---\n\nselect * from users;\n\nselect * from person;",
+                    "timestamp": 1767125367120
+                },
+                {
+                    "id": "9RMfDmJuQ",
+                    "origin": "Tenants",
+                    "query": "select * from users;",
+                    "timestamp": 1767125485153
+                },
+                {
+                    "id": "saqxWtxLQ",
+                    "origin": "Tenants",
+                    "query": "select * from person;",
+                    "timestamp": 1767136812530
+                },
+                {
+                    "id": "GFuSXNMH1",
+                    "origin": "Tenants",
+                    "query": "select * from person;",
+                    "timestamp": 1767136815622
+                },
+                {
+                    "id": "WFTJchToK",
+                    "origin": "Tenants",
+                    "query": "select * from person;",
+                    "timestamp": 1767136821476
+                },
+                {
+                    "id": "FP2KkKUHC",
+                    "origin": "Tenants",
+                    "query": "SELECT * FROM user2;",
+                    "timestamp": 1767136832346
+                },
+                {
+                    "id": "GA8NDy9E3",
+                    "origin": "Tenants",
+                    "query": "select * from person;",
+                    "timestamp": 1767136835489
+                },
+                {
+                    "id": "6C5fzVUns",
+                    "origin": "Tenants",
+                    "query": "select * from users;",
+                    "timestamp": 1767194024142
+                },
+                {
+                    "id": "fCCGtAJgp",
+                    "origin": "Tenants",
+                    "query": "SElECT * FROM account;",
+                    "timestamp": 1767194292013
+                },
+                {
+                    "id": "j4ogi0HwT",
+                    "origin": "Tenants",
+                    "query": "INFO FOR DB;",
+                    "timestamp": 1767194310299
+                }
+            ],
+            "queryTabList": true
+        },
+        {
+            "activeQuery": "jmVB0VCwZ",
+            "authentication": {
+                "access": "",
+                "accessFields": [],
+                "database": "test",
+                "hostname": "localhost:8000",
+                "mode": "database",
+                "namespace": "test",
+                "password": "root",
+                "protocol": "ws",
+                "token": "",
+                "username": "root"
+            },
+            "designerTableList": true,
+            "diagramAlgorithm": "default",
+            "diagramDirection": "default",
+            "diagramHoverFocus": "default",
+            "diagramLineStyle": "default",
+            "diagramLinkMode": "default",
+            "diagramMode": "default",
+            "diagramStrategy": "NETWORK_SIMPLEX",
+            "explorerTableList": true,
+            "graphqlQuery": "",
+            "graphqlShowVariables": false,
+            "graphqlVariables": "{}",
+            "icon": 0,
+            "id": "OiynfwszP",
+            "lastDatabase": "main",
+            "lastNamespace": "main",
+            "name": "new_localhost",
+            "pinnedTables": [],
+            "queries": [
+                {
+                    "id": "jmVB0VCwZ",
+                    "name": "New query",
+                    "noneResultMode": "show",
+                    "query": "-- Declare a new table0\nDEFINE TABLE person;\n\n-- Fetch table records\nSELECT * FROM person;",
+                    "resultFormat": "sql",
+                    "resultMode": "combined",
+                    "showVariables": false,
+                    "type": "config",
+                    "valid": true,
+                    "variables": "{}"
+                }
+            ],
+            "queryHistory": [
+                {
+                    "id": "Au2HtT3L1",
+                    "origin": "New query",
+                    "query": "create person;",
+                    "timestamp": 1777226503335
+                },
+                {
+                    "id": "0PxAj8BZe",
+                    "origin": "New query",
+                    "query": "-- Declare a new table\nDEFINE TABLE person;\n\n-- Fetch table records\nSELECT * FROM person;",
+                    "timestamp": 1777226523822
+                },
+                {
+                    "id": "W9EQcqQMq",
+                    "origin": "New query",
+                    "query": "DEFINE TABLE person;",
+                    "timestamp": 1777226529448
+                },
+                {
+                    "id": "rfZRSE4dR",
+                    "origin": "New query",
+                    "query": "DEFINE TABLE person;",
+                    "timestamp": 1777226534386
+                },
+                {
+                    "id": "X3incqUKT",
+                    "origin": "New query",
+                    "query": "DEFINE TABLE person;",
+                    "timestamp": 1777233749860
+                },
+                {
+                    "id": "AkMvT2pIT",
+                    "origin": "New query",
+                    "query": "-- Fetch table records\nSELECT * FROM person;",
+                    "timestamp": 1777233756368
+                }
+            ],
+            "queryTabList": true
+        }
+    ],
+    "dismissedBanners": [],
+    "featureFlags": {},
+    "keybindings": {},
+    "lastPromptedVersion": "3.8.3",
+    "lastViewedNewsAt": 1760287780576,
+    "onboarding": [
+        "sandbox",
+        "policy",
+        "sidekick"
+    ],
+    "openDesignerPanels": [
+        "general",
+        "indexes",
+        "events",
+        "fields"
+    ],
+    "previousVersion": "3.5.7",
+    "sandbox": {
+        "activeQuery": "wKS0DZjDe",
+        "authentication": {
+            "access": "",
+            "accessFields": [],
+            "database": "",
+            "hostname": "",
+            "mode": "none",
+            "namespace": "",
+            "password": "",
+            "protocol": "mem",
+            "scope": "",
+            "token": "",
+            "username": ""
+        },
+        "designerTableList": true,
+        "diagramAlgorithm": "default",
+        "diagramDirection": "ltr",
+        "diagramHoverFocus": "default",
+        "diagramLineStyle": "default",
+        "diagramLinkMode": "default",
+        "diagramMode": "fields",
+        "diagramShowLinks": false,
+        "diagramStrategy": "NETWORK_SIMPLEX",
+        "explorerTableList": true,
+        "graphqlQuery": "",
+        "graphqlShowVariables": false,
+        "graphqlVariables": "{}",
+        "icon": 0,
+        "id": "sandbox",
+        "lastDatabase": "sandbox",
+        "lastNamespace": "sandbox",
+        "name": "Sandbox",
+        "pinnedTables": [],
+        "queries": [
+            {
+                "id": "wKS0DZjDe",
+                "name": "New query",
+                "query": "CREATE account SET\nname = 'ACME Inc',\ncreated_at = time::now()\n;",
+                "resultFormat": "sql",
+                "resultMode": "combined",
+                "showVariables": false,
+                "type": "config",
+                "valid": true,
+                "variables": "{}"
+            }
+        ],
+        "queryHistory": [],
+        "queryTabList": true
+    },
+    "savedQueries": [
+        {
+            "id": "ektfnbVQm",
+            "name": "create_user_schemafull",
+            "query": "DEFINE TABLE user SCHEMAFULL;\n\nDEFINE FIELD firstName ON TABLE user TYPE string;\nDEFINE FIELD lastName ON TABLE user TYPE string;\nDEFINE FIELD email ON TABLE user TYPE string\n    ASSERT string::is::email($value);\n\n\n",
+            "tags": [
+                "testing"
+            ]
+        },
+        {
+            "id": "qBZMHqAgH",
+            "name": "select_tests",
+            "query": "CREATE person:aeon;\n\nSELECT * FROM person;\n\nCREATE town:the_naimo SET\n    name = \"The Naimo\",\n    population = 7490,\n\tdata = {\n\t\tlocation: \"Northwest of Toria\",\n\t\tgeography: \"Coastal town\"\n\t};\n\n\nSELECT\n    population,\n    \"Weather for \" + name,\n    10.5,\n    \"Cloudy\"\n    FROM town:the_naimo;\n\nSELECT\n    population,\n    \"Weather for \" + name AS name,\n    10.5 AS temperature,\n    \"Cloudy\" AS conditions\n    FROM town:the_naimo;\n\nSELECT *,\n\t\"Name: \" + name + \". Population: \" + <string>population AS data\nFROM town:the_naimo;\n\nSELECT\n    *,\n    \"Name: \" + name + \". Population: \" + <string>population AS data,\n    data AS other_data\nFROM town:the_naimo;\n\nCREATE town:sukh SET name = \"Sukh\";\n\n// Whoops, forgot to add the population...\nUPDATE town:sukh SET population = 2955;\n\nselect * from town; \n\n\nUPDATE airplane SET name = \"Aeon's plane\";\nUPDATE airplane:aeons_plane SET name = \"Aeon's plane\";\n\nUPSERT airplane:aeons_plane SET name = \"Aeon's plane\";\nUPSERT airplane:aeons_plane SET seats = 20;\n\nSELECT * FROM airplane;\n\nCREATE town:{ name: 'Sukh' };\nSELECT id.name FROM town;\n\n\nCREATE town:{ name: 'Toria' }, town:{ name: 'Black Bay' };\n\n\n// Everything starting from 'S'\nSELECT * FROM town:{ name: 'S' }..;\n// Everything up to but not including 'Toria'\nSELECT * FROM town:..{ name: 'Toria' };\n// Everything up to and including 'Toria'\nSELECT * FROM town:..={ name: 'Toria' };\n// From 'Black Bay' and up to but not including 'Toria'\nSELECT * FROM town:{ name: 'Black Bay' }..{ name: 'Toria' };\n// From 'Black Bay' and up to and including 'Toria'\nSELECT * FROM town:{ name: 'Black Bay' }..={ name: 'Toria' };\n\n\n// Two bool checks\nRETURN 5 > 0 AND 5 < 10;\n// Or just use a range\nRETURN 5 IN 0..10;\n\n\n-- An array from 0 to 3, not including 4\nRETURN <array>0..4;\n-- Get the item at index 30 from this array\nRETURN (<array>50..1000)[30];\n\n\nSELECT name, id FROM town;\n\nRETURN null = null;\nRETURN [null, 1] = [null, 1];\nRETURN 1000 / 0;\n\nCREATE town:the_hill SET name = \"The Hill\";\n\nCREATE town:the_hill SET name = \"The Hill\";\nUPDATE town:the_hill SET population = 1125;\nUPDATE town:the_hill SET population = null;\nUPDATE town:the_hill SET population = NONE;\nSELECT * FROM town:the_hill;\nUPDATE town UNSET name, population;\n\n\nDELETE FROM town;\nSELECT * FROM town;\n\nCREATE town SET name = \"Toria\",     population = 20685;\nCREATE town SET name = \"Sukh\",      population = 2955;\nCREATE town SET name = \"Black Bay\", population = 4137;\n\nSELECT * from town where population  in 2000..9000;\n\nCREATE town:{ name: \"test\", population: \"8585\" };\n\nSELECT * from town:{name: \"M\"}..;\n\nselect * from town;\n",
+            "tags": [
+                "learning stuff",
+                "testing"
+            ]
+        },
+        {
+            "id": "Y5M8R4CBH",
+            "name": "create_db_up_tru_ch_7",
+            "query": "-- Chapter 5\nDEFINE TABLE person SCHEMAFULL;\nDEFINE TABLE building SCHEMAFULL;\nDEFINE FIELD name ON TABLE person \n    TYPE string \n    ASSERT $value.replace(\" \", \"\").replace(\"-\", \"\").is_alpha();\nDEFINE FIELD class ON table person TYPE option<string>;\nDEFINE FIELD money ON TABLE person \n    TYPE option<int>\n    ASSERT $value >= 0 OR $value IS NONE;\nDEFINE FIELD name ON TABLE building TYPE string;\nDEFINE FIELD kind ON TABLE building \n    TYPE string\n    ASSERT \n    [\"house\", \"castle\"] CONTAINS $value;\nDEFINE FIELD properties ON TABLE person TYPE option<array<record<building>>>;\nCREATE person:the_nobleman SET \n    name = \"The Nobleman\",\n    class = \"Count\",\n    money = 50;\nCREATE building:old_castle SET\n  name = \"Old castle\",\n  kind = \"castle\";\nUPDATE person:the_nobleman SET properties = [building:old_castle];\n\n-- Chapter 6\nCREATE person:the_noblewoman SET\n    name = \"The Noblewoman\",\n    properties = [building:old_castle];\nCREATE person:wulfield SET name = \"Wulfield\";\nCREATE person:adelaide SET name = \"Adelaide\";\nCREATE person:bertha SET name = \"Bertha\";\nRELATE person:the_nobleman->parent_of->person:wulfield;\nRELATE person:the_noblewoman->parent_of->person:wulfield;\nFOR $daughter in [person:adelaide, person:bertha] {\n    RELATE person:the_nobleman->parent_of->$daughter;\n    RELATE person:the_noblewoman->parent_of->$daughter;\n};\n\n-- Chapter 7\nINSERT INTO building [\n    { id: \"bear_castle\",  name: \"Bear castle\",  kind: \"castle\" },\n    { id: \"eagle_castle\", name: \"Eagle castle\", kind: \"castle\" },\n    { id: \"fish_castle\",  name: \"Fish castle\",  kind: \"castle\" },\n];\n\nINSERT INTO person [\n    { id: \"bear_knight\",  name: \"Bear knight\",  money: 100000, properties: [building:bear_castle ] },\n    { id: \"eagle_knight\", name: \"Eagle knight\", money: 200000, properties: [building:eagle_castle] },\n    { id: \"fish_knight\",  name: \"Fish knight\",  money: 500000, properties: [building:fish_castle]  },\n];\nRELATE person:eagle_knight->married->person:adelaide;\nRELATE person:wulfield->married->person:bear_knight;\nRELATE person:bertha->married->person:fish_knight;\nRELATE person:the_nobleman->married->person:the_noblewoman;",
+            "tags": []
+        }
+    ],
+    "settings": {
+        "appearance": {
+            "autoCollapseDepth": 0,
+            "colorScheme": "dark",
+            "defaultDiagramAlgorithm": "aligned",
+            "defaultDiagramDirection": "ltr",
+            "defaultDiagramHoverFocus": "none",
+            "defaultDiagramLineStyle": "metro",
+            "defaultDiagramLinkMode": "visible",
+            "defaultDiagramMode": "fields",
+            "defaultDiagramShowLinks": false,
+            "defaultDiagramStrategy": "NETWORK_SIMPLEX",
+            "defaultNoneResultMode": "show",
+            "defaultResultFormat": "sql",
+            "defaultResultMode": "combined",
+            "disableAnimations": false,
+            "editorScale": 90,
+            "formatIndentMode": "space",
+            "formatIndentSize": 4,
+            "formatMaxLineLength": 120,
+            "functionLineNumbers": true,
+            "inspectorLineNumbers": true,
+            "lineStyle": "metro",
+            "queryLineNumbers": true,
+            "queryOrientation": "vertical",
+            "resultWordWrap": true,
+            "sidebarMode": "expandable",
+            "sidebarViews": {},
+            "syntaxTheme": "default",
+            "valueMode": "sql",
+            "windowScale": 100
+        },
+        "behavior": {
+            "diagnosticsHistorySize": 300,
+            "docsLanguage": "cli",
+            "enterConfirms": false,
+            "queryErrorChecker": true,
+            "queryQuickClose": true,
+            "querySelectionExecution": true,
+            "querySelectionExecutionWarning": true,
+            "reconnectInterval": 3,
+            "recordDiagnostics": false,
+            "sidekickPanel": false,
+            "strictSandbox": false,
+            "tableSuggest": true,
+            "updateChecker": true,
+            "variableSuggest": true,
+            "versionCheckTimeout": 5,
+            "windowPinned": false
+        },
+        "cloud": {
+            "databaseListMode": "grid",
+            "urlApiBase": "",
+            "urlApiMgmtBase": "",
+            "urlApiTicketsBase": "",
+            "urlAuthBase": "",
+            "urlNewsfeedBase": "https://surrealdb.com",
+            "urlWebsiteBase": "https://surrealdb.com"
+        },
+        "gtm": {
+            "debug_mode": false,
+            "origin": "app.surrealdb.com",
+            "preview_header": ""
+        },
+        "serving": {
+            "driver": "surrealkv",
+            "executable": "/home/michael_intandem/.surrealdb/surreal",
+            "historySize": 250,
+            "logLevel": "info",
+            "password": "root",
+            "port": 8000,
+            "storage": "",
+            "username": "root"
+        },
+        "templates": {
+            "list": []
+        }
+    }
+}
