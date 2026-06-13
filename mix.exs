@@ -7,6 +7,7 @@ defmodule HgsSurrealdbSdk.MixProject do
       version: "0.1.0",
       elixir: "~> 1.19",
       start_permanent: Mix.env() == :prod,
+      aliases: aliases(),
       deps: deps()
     ]
   end
@@ -23,8 +24,18 @@ defmodule HgsSurrealdbSdk.MixProject do
   defp deps do
     [
       {:req, "~> 0.5"},
+      {:zoi, "~> 0.7"},
       {:jason, "~> 1.4"},
-      {:websockex, "~> 0.5.1"}
+      {:websockex, "~> 0.5.1"},
+      {:bandit, "~> 1.0", only: :dev},
+      {:tidewave, "~> 0.5", only: [:dev]}
+    ]
+  end
+
+  defp aliases do
+    [
+      tidewave:
+        "run --no-halt -e 'Agent.start(fn -> Bandit.start_link(plug: Tidewave, port: 4001) end)'"
     ]
   end
 end
