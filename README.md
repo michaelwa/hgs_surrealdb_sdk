@@ -33,6 +33,8 @@ Current support:
 
 ## Installation
 
+> Need a SurrealDB server first? See [Installing SurrealDB](docs/installing-surrealdb.md).
+
 This SDK is not published to Hex. Add it as a git dependency in `mix.exs`:
 
 ```elixir
@@ -52,6 +54,56 @@ mix deps.get
 ```
 
 > The OTP app is `:hgs_surrealdb_sdk`, but all modules live under the `SurrealDB.*` namespace.
+
+### Install with Igniter
+
+If your project uses [Igniter](https://hexdocs.pm/igniter), you can add the
+dependency and scaffold the required connection config in one step:
+
+```bash
+mix igniter.install hgs_surrealdb_sdk --namespace app --database app
+```
+
+This adds the dep and writes a `config :hgs_surrealdb_sdk, connection: [...]`
+block (see [Configuration](#configuration-required) below) to
+`config/config.exs`. Override `--endpoint`, `--namespace`, and `--database` as
+needed; credentials default to `root`/`root` for a local dev server — change
+them per environment in `config/runtime.exs`.
+
+> The installer task ships behind an optional `igniter` dependency. Reaching it
+> via `mix igniter.install` works out of the box. To run `mix hgs_surrealdb_sdk.install`
+> directly, your project must already depend on `igniter`.
+
+## Configuration (required)
+
+The OTP application reads connection config **at boot** and refuses to start
+without it — so a host app that adds this dependency must configure it, even if
+you intend to build clients at runtime with `SurrealDB.connect/1`. Add this to
+`config/config.exs` (override credentials per-environment in `config/runtime.exs`):
+
+```elixir
+config :hgs_surrealdb_sdk,
+  connection: [
+    endpoint: "http://localhost:8000",
+    namespace: "test",
+    database: "test",
+    # authentication — choose one:
+    username: "root",
+    password: "root"
+    # or a bearer token:  auth_token: "..."
+    # or opt out entirely: anonymous: true
+  ]
+```
+
+`endpoint`, `namespace`, and `database` are required. For auth, provide
+`username` **and** `password`, or `auth_token`, or `anonymous: true`. Without a
+valid `:connection` block the application fails to start with
+`%SurrealDB.Error{type: :invalid_config}`.
+
+> The target `namespace` and `database` must already exist on the SurrealDB
+> server. On a fresh server, define them once (e.g. as `root`):
+> `DEFINE NAMESPACE IF NOT EXISTS test;` then `DEFINE DATABASE IF NOT EXISTS test;`
+> (the latter scoped to the namespace). See [Installing SurrealDB](docs/installing-surrealdb.md).
 
 ## Usage
 

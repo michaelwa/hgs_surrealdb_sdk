@@ -27,6 +27,7 @@ defmodule HgsSurrealdbSdk.MixProject do
       {:zoi, "~> 0.7"},
       {:jason, "~> 1.4"},
       {:websockex, "~> 0.5.1"},
+      {:igniter, "~> 0.5", optional: true},
       {:bandit, "~> 1.0", only: :dev},
       {:tidewave, "~> 0.5", only: [:dev]}
     ]
