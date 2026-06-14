@@ -1,8 +1,22 @@
 defmodule SurrealDB.ConfigTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias SurrealDB.Client
   alias SurrealDB.Error
+
+  setup do
+    original = Application.get_env(:hgs_surrealdb_sdk, :connection)
+
+    on_exit(fn ->
+      if is_nil(original) do
+        Application.delete_env(:hgs_surrealdb_sdk, :connection)
+      else
+        Application.put_env(:hgs_surrealdb_sdk, :connection, original)
+      end
+    end)
+
+    :ok
+  end
 
   test "valid config creates a client" do
     assert {:ok, %Client{} = client} =
@@ -76,5 +90,30 @@ defmodule SurrealDB.ConfigTest do
                database: "app",
                anonymous: true
              )
+  end
+
+  test "zero arity connect uses application connection config" do
+    Application.put_env(:hgs_surrealdb_sdk, :connection,
+      endpoint: "http://configured:8000/",
+      namespace: "configured_ns",
+      database: "configured_db",
+      anonymous: true
+    )
+
+    assert {:ok, %Client{} = client} = SurrealDB.connect()
+    assert client.endpoint == "http://configured:8000"
+    assert client.namespace == "configured_ns"
+    assert client.database == "configured_db"
+    assert client.anonymous? == true
+  end
+
+  test "application connection config is required" do
+    Application.delete_env(:hgs_surrealdb_sdk, :connection)
+
+    assert {:error, %Error{type: :invalid_config, message: message, details: details}} =
+             SurrealDB.connect()
+
+    assert message == "missing application connection config"
+    assert details == %{app: :hgs_surrealdb_sdk, key: :connection}
   end
 end

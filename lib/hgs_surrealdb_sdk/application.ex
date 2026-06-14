@@ -7,14 +7,11 @@ defmodule HgsSurrealdbSdk.Application do
 
   @impl true
   def start(_type, _args) do
-    children = [
-      # Starts a worker by calling: HgsSurrealdbSdk.Worker.start_link(arg)
-      # {HgsSurrealdbSdk.Worker, arg}
-    ]
+    with {:ok, _client} <- SurrealDB.Config.build_application_client() do
+      children = []
 
-    # See https://hexdocs.pm/elixir/Supervisor.html
-    # for other strategies and supported options
-    opts = [strategy: :one_for_one, name: HgsSurrealdbSdk.Supervisor]
-    Supervisor.start_link(children, opts)
+      opts = [strategy: :one_for_one, name: HgsSurrealdbSdk.Supervisor]
+      Supervisor.start_link(children, opts)
+    end
   end
 end

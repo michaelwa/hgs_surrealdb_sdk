@@ -440,6 +440,7 @@ defmodule SurrealDB.WebSocketTest do
     send(pid, {:websocket_frame, "{bad-json"})
 
     assert_receive {:DOWN, ^ref, :process, _pid, reason}
+
     assert match?({:unexpected_response, %Error{type: :unexpected_response}}, reason) or
              match?({:setup_failed, %Error{type: :unexpected_response}}, reason)
   end

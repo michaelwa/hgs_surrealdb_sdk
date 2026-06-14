@@ -22,3 +22,12 @@ erl_crash.dump
 # Ignore package tarball (built via "mix hex.build").
 hgs_surrealdb_sdk-*.tar
 
+# Local editor/agent tooling config (machine-specific, not project state).
+/.claude/
+/.deepseek/
+/history.txt
+
+# Local SurrealDB data directories and scratch home dir (never commit a live DB).
+/home/
+*.db/
+

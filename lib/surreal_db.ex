@@ -26,20 +26,34 @@ defmodule SurrealDB do
   alias SurrealDB.RPC
   alias SurrealDB.WebSocket
 
+  @spec connect() :: {:ok, Client.t()} | {:error, SurrealDB.Error.t()}
+  def connect do
+    Config.build_application_client()
+  end
+
   @spec connect(keyword()) :: {:ok, Client.t()} | {:error, SurrealDB.Error.t()}
   def connect(options) when is_list(options) do
     Config.build_client(options)
   end
 
+  @spec connect_ws() :: {:ok, Client.t()} | {:error, Error.t()}
+  def connect_ws do
+    connect_ws([])
+  end
+
   @spec connect_ws(keyword()) :: {:ok, Client.t()} | {:error, Error.t()}
   def connect_ws(options) when is_list(options) do
-    with {:ok, %Client{} = client} <-
+    with {:ok, options} <- connection_options(options),
+         {:ok, %Client{} = client} <-
            Config.build_client(Keyword.put(options, :transport, :websocket)),
          {:ok, %Client{} = ws_client} <-
            WebSocket.connect(client, Keyword.get(options, :websocket_options, [])) do
       {:ok, ws_client}
     end
   end
+
+  defp connection_options([]), do: Config.application_options()
+  defp connection_options(options), do: {:ok, options}
 
   @spec query(Client.t(), iodata()) ::
           {:ok, SurrealDB.QueryResult.t()} | {:error, SurrealDB.Error.t()}
