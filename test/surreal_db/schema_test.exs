@@ -52,4 +52,8 @@ defmodule SurrealDB.SchemaTest do
     assert {:ok, dumped} = User.dump(user)
     assert dumped == %{name: "Jane", email: "jane@example.com"}
   end
+
+  test "dump/1 returns a ValidationError for a non-struct argument" do
+    assert {:error, %ValidationError{}} = User.dump(%{name: "Jane"})
+  end
 end
