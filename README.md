@@ -13,6 +13,10 @@ Current support:
 - `SurrealDB.connect_ws/1`
 - `SurrealDB.live/3`
 - `SurrealDB.kill/2`
+- `SurrealDB.Migrations.install_registry/2`
+- `SurrealDB.Migrations.install_registry!/2`
+- `SurrealDB.Migrations.run/2`
+- `SurrealDB.Migrations.run!/2`
 - `SurrealDB.select/2`
 - `SurrealDB.create/3`
 - `SurrealDB.update/3`
@@ -116,5 +120,26 @@ end
 ```
 
 Live queries use the message API. The query should be passed explicitly as `LIVE SELECT ...`; the SDK does not rewrite a normal `SELECT` into a live query automatically.
+
+## Migrations
+
+```elixir
+:ok = SurrealDB.Migrations.install_registry(client)
+
+{:ok, results} =
+  SurrealDB.Migrations.run(
+    client,
+    path: "priv/surrealdb_migrations/app",
+    target_ns: "app_ns",
+    target_db: "app_db",
+    sdk_version: "0.1.0"
+  )
+
+IO.inspect(results)
+```
+
+The migration runner scans `.surql` files, applies them in lexicographic filename order, and records state in the SDK registry table `sdk_migration`. The default registry location is namespace `sdk_meta` and database `migration_registry`; pass `registry_ns:` and `registry_db:` to override it.
+
+Feature 1 supports HTTP clients. WebSocket clients return a structured unsupported-client error because WebSocket namespace/database scope is established when the connection starts.
 
 For a runnable example, see [examples/basic_query.exs](/home/michael_intandem/src/elixir_src/prototypes/hgs_surrealdb_sdk/examples/basic_query.exs).

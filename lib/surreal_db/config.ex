@@ -4,7 +4,38 @@ defmodule SurrealDB.Config do
   alias SurrealDB.Client
   alias SurrealDB.Error
 
+  @app :hgs_surrealdb_sdk
   @required_fields [:endpoint, :namespace, :database]
+
+  @spec application_options() :: {:ok, keyword()} | {:error, Error.t()}
+  def application_options do
+    case Application.fetch_env(@app, :connection) do
+      {:ok, options} when is_list(options) ->
+        {:ok, options}
+
+      {:ok, options} ->
+        {:error,
+         Error.invalid_config("application connection config must be a keyword list", %{
+           app: @app,
+           key: :connection,
+           value: inspect(options)
+         })}
+
+      :error ->
+        {:error,
+         Error.invalid_config("missing application connection config", %{
+           app: @app,
+           key: :connection
+         })}
+    end
+  end
+
+  @spec build_application_client() :: {:ok, Client.t()} | {:error, Error.t()}
+  def build_application_client do
+    with {:ok, options} <- application_options() do
+      build_client(options)
+    end
+  end
 
   @spec build_client(keyword()) :: {:ok, Client.t()} | {:error, Error.t()}
   def build_client(options) when is_list(options) do
