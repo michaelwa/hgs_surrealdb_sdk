@@ -23,6 +23,8 @@ Current support:
 - `SurrealDB.merge/3`
 - `SurrealDB.patch/3`
 - `SurrealDB.delete/2`
+- `SurrealDB.Schema` — Zoi-backed, table-bound schemas that hydrate into structs
+- `SurrealDB.Repo.get/all/find/create/update/delete/query`
 - basic auth or bearer token auth
 - explicit anonymous mode with `anonymous: true`
 - identifier validation for CRUD helpers
@@ -31,15 +33,25 @@ Current support:
 
 ## Installation
 
-Add the dependency in `mix.exs`:
+This SDK is not published to Hex. Add it as a git dependency in `mix.exs`:
 
 ```elixir
 def deps do
   [
-    {:hgs_surrealdb_sdk, "~> 0.1.0"}
+    {:hgs_surrealdb_sdk, github: "michaelwa/hgs_surrealdb_sdk"}
+    # pin for reproducibility:
+    # {:hgs_surrealdb_sdk, github: "michaelwa/hgs_surrealdb_sdk", ref: "main"}
   ]
 end
 ```
+
+Then fetch it:
+
+```bash
+mix deps.get
+```
+
+> The OTP app is `:hgs_surrealdb_sdk`, but all modules live under the `SurrealDB.*` namespace.
 
 ## Usage
 
@@ -68,6 +80,54 @@ IO.inspect(result.results)
 
 IO.inspect(people.results)
 ```
+
+## Schema & Repo
+
+Define a table-backed schema with [Zoi](https://hexdocs.pm/zoi) and use `SurrealDB.Repo` for friendly, parameterized persistence that hydrates results into structs.
+
+```elixir
+defmodule MyApp.User do
+  use SurrealDB.Schema
+
+  table "user"
+
+  schema do
+    Zoi.object(%{
+      id: Zoi.string() |> Zoi.optional(),
+      name: Zoi.string(),
+      email: Zoi.string()
+    })
+  end
+end
+```
+
+```elixir
+{:ok, client} =
+  SurrealDB.connect(
+    endpoint: "http://localhost:8000",
+    namespace: "app",
+    database: "app",
+    username: "root",
+    password: "root"
+  )
+
+# create -> returns a hydrated struct
+{:ok, %MyApp.User{} = user} =
+  SurrealDB.Repo.create(client, MyApp.User, %{name: "Jane", email: "jane@example.com"})
+
+# fetch by record id
+{:ok, %MyApp.User{}} = SurrealDB.Repo.get(client, MyApp.User, "user:abc")
+
+# list, or filter by simple equality
+{:ok, users} = SurrealDB.Repo.all(client, MyApp.User)
+{:ok, %MyApp.User{}} = SurrealDB.Repo.find(client, MyApp.User, %{email: "jane@example.com"})
+
+# update / delete
+{:ok, _} = SurrealDB.Repo.update(client, MyApp.User, "user:abc", %{name: "Jane Doe"})
+{:ok, _} = SurrealDB.Repo.delete(client, MyApp.User, "user:abc")
+```
+
+Invalid data returns `{:error, %SurrealDB.Schema.ValidationError{}}`; connection or query failures return `{:error, %SurrealDB.Error{}}`.
 
 ## RPC
 
@@ -142,4 +202,4 @@ The migration runner scans `.surql` files, applies them in lexicographic filenam
 
 Feature 1 supports HTTP clients. WebSocket clients return a structured unsupported-client error because WebSocket namespace/database scope is established when the connection starts.
 
-For a runnable example, see [examples/basic_query.exs](/home/michael_intandem/src/elixir_src/prototypes/hgs_surrealdb_sdk/examples/basic_query.exs).
+For a runnable example, see [examples/basic_query.exs](examples/basic_query.exs).
