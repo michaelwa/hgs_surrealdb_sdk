@@ -445,6 +445,43 @@ defmodule SurrealDB.WebSocketTest do
              match?({:setup_failed, %Error{type: :unexpected_response}}, reason)
   end
 
+  test "reconnect: true keeps the process alive and reconnects after close" do
+    client = websocket_client(request_options: [test_pid: self(), auto_setup: true])
+
+    {:ok, pid} =
+      SurrealDB.WebSocket.Connection.start_link(client,
+        socket_module: FakeSocket,
+        timeout: 50,
+        reconnect: true,
+        reconnect_backoff: 10
+      )
+
+    wait_for_setup()
+
+    # Simulate the socket dropping.
+    send(pid, {:websocket_closed, :closed})
+
+    # The connection process survives and re-runs setup against a fresh socket.
+    assert Process.alive?(pid)
+    assert_receive {:fake_socket_started, ^pid, _url, _headers, _socket_pid}, 200
+    assert_receive {:socket_sent, ^pid, _payload}, 200
+  end
+
+  test "name: registers the process via a Registry via-tuple" do
+    {:ok, _} = Registry.start_link(keys: :unique, name: __MODULE__.Registry)
+    client = websocket_client(request_options: [test_pid: self(), auto_setup: true])
+    via = {:via, Registry, {__MODULE__.Registry, :conn}}
+
+    {:ok, pid} =
+      SurrealDB.WebSocket.Connection.start_link(client,
+        socket_module: FakeSocket,
+        timeout: 50,
+        name: via
+      )
+
+    assert [{^pid, _}] = Registry.lookup(__MODULE__.Registry, :conn)
+  end
+
   defp websocket_client(overrides) do
     %Client{
       endpoint: "ws://localhost:8000/rpc",

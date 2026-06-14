@@ -20,6 +20,8 @@ defmodule SurrealDB.WebSocket.Connection do
       :socket_module,
       :connect_timeout,
       :setup_complete?,
+      reconnect?: false,
+      reconnect_backoff: 500,
       pending: %{},
       subscriptions: %{}
     ]
@@ -27,7 +29,10 @@ defmodule SurrealDB.WebSocket.Connection do
 
   @spec start_link(Client.t(), keyword()) :: GenServer.on_start()
   def start_link(%Client{} = client, options \\ []) do
-    GenServer.start_link(__MODULE__, {client, options})
+    case Keyword.fetch(options, :name) do
+      {:ok, name} -> GenServer.start_link(__MODULE__, {client, options}, name: name)
+      :error -> GenServer.start_link(__MODULE__, {client, options})
+    end
   end
 
   @spec stop(pid()) :: :ok
@@ -71,7 +76,9 @@ defmodule SurrealDB.WebSocket.Connection do
       client: client,
       socket_module: socket_module,
       connect_timeout: connect_timeout,
-      setup_complete?: false
+      setup_complete?: false,
+      reconnect?: Keyword.get(options, :reconnect, false),
+      reconnect_backoff: Keyword.get(options, :reconnect_backoff, 500)
     }
 
     {:ok, state, {:continue, :connect}}
@@ -166,6 +173,20 @@ defmodule SurrealDB.WebSocket.Connection do
   end
 
   @impl true
+  def handle_info({:websocket_connected, _socket_pid}, %State{reconnect?: true} = state) do
+    case perform_setup(state) do
+      {:ok, %State{} = new_state} ->
+        {:noreply, %State{new_state | setup_complete?: true}}
+
+      {:error, {:setup_failed, %Error{type: :websocket_closed}}, new_state} ->
+        Process.send_after(self(), :reconnect, new_state.reconnect_backoff)
+        {:noreply, %State{new_state | pending: %{}, setup_complete?: false, socket_pid: nil}}
+
+      {:error, reason, new_state} ->
+        {:stop, reason, new_state}
+    end
+  end
+
   def handle_info({:websocket_connected, _socket_pid}, %State{} = state) do
     case perform_setup(state) do
       {:ok, %State{} = new_state} -> {:noreply, %State{new_state | setup_complete?: true}}
@@ -206,10 +227,21 @@ defmodule SurrealDB.WebSocket.Connection do
     end
   end
 
+  def handle_info({:websocket_closed, reason}, %State{reconnect?: true} = state) do
+    error = %Error{type: :websocket_closed, message: "websocket connection closed", raw: reason}
+    fail_all_pending(state.pending, error)
+    Process.send_after(self(), :reconnect, state.reconnect_backoff)
+    {:noreply, %State{state | pending: %{}, setup_complete?: false, socket_pid: nil}}
+  end
+
   def handle_info({:websocket_closed, reason}, %State{} = state) do
     error = %Error{type: :websocket_closed, message: "websocket connection closed", raw: reason}
     fail_all_pending(state.pending, error)
     {:stop, :normal, %State{state | pending: %{}}}
+  end
+
+  def handle_info(:reconnect, %State{} = state) do
+    {:noreply, state, {:continue, :connect}}
   end
 
   @impl true
