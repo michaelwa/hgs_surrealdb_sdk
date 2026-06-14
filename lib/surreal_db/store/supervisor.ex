@@ -40,11 +40,14 @@ defmodule SurrealDB.Store.Supervisor do
   defp connection_children(store, %Client{transport: :websocket} = client, resolved) do
     via = {:via, Registry, {SurrealDB.Store.Registry, store}}
 
+    # A supervised Store always self-heals: :name (the registry via-tuple) and
+    # :reconnect are forced here. For a one-shot, non-reconnecting WS connection,
+    # use SurrealDB.connect_ws/1 directly instead of a Store.
     connection_opts =
       resolved
       |> Keyword.get(:websocket_options, [])
       |> Keyword.put(:name, via)
-      |> Keyword.put_new(:reconnect, true)
+      |> Keyword.put(:reconnect, true)
 
     [
       %{

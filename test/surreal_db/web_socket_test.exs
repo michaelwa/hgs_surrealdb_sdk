@@ -437,8 +437,9 @@ defmodule SurrealDB.WebSocketTest do
   end
 
   test "reconnect: true retries after an initial connect failure instead of stopping" do
-    on_exit(fn -> :persistent_term.erase({FailThenSucceedSocket, self()}) end)
-    client = websocket_client(request_options: [test_pid: self(), auto_setup: true])
+    test_pid = self()
+    on_exit(fn -> :persistent_term.erase({FailThenSucceedSocket, test_pid}) end)
+    client = websocket_client(request_options: [test_pid: test_pid, auto_setup: true])
 
     {:ok, pid} =
       SurrealDB.WebSocket.Connection.start_link(client,
