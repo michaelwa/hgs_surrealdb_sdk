@@ -179,6 +179,7 @@ defmodule SurrealDB.WebSocket.Connection do
         {:noreply, %State{new_state | setup_complete?: true}}
 
       {:error, {:setup_failed, %Error{type: :websocket_closed}}, new_state} ->
+        if is_pid(new_state.socket_pid), do: new_state.socket_module.close(new_state.socket_pid)
         Process.send_after(self(), :reconnect, new_state.reconnect_backoff)
         {:noreply, %State{new_state | pending: %{}, setup_complete?: false, socket_pid: nil}}
 
