@@ -33,6 +33,19 @@ defmodule SurrealDB.StoreTest do
     assert {:error, %Error{type: :not_started}} = HttpStore.client()
   end
 
+  test "client/0 returns not_connected for a websocket store with no live connection" do
+    ws_client = %Client{
+      endpoint: "ws://localhost:8000/rpc",
+      namespace: "ns",
+      database: "db",
+      transport: :websocket
+    }
+
+    :persistent_term.put({SurrealDB.Store, HttpStore}, ws_client)
+
+    assert {:error, %Error{type: :not_connected}} = HttpStore.client()
+  end
+
   test "query/2 resolves the started client and delegates to SurrealDB.query/3" do
     put_config(fn request ->
       assert request.body == "SELECT * FROM person"

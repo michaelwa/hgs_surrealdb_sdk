@@ -111,4 +111,5 @@ defmodule SurrealDB.Store do
   end
 
   defp resolve_transport(_store, %Client{transport: :http} = client), do: {:ok, client}
+  defp resolve_transport(store, %Client{}), do: {:error, Error.not_connected(store)}
 end
