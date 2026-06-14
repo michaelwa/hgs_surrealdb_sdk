@@ -418,6 +418,43 @@ defmodule SurrealDB.WebSocketTest do
     assert_receive {:socket_sent, ^pid, _payload}, 200
   end
 
+  defmodule FailThenSucceedSocket do
+    # First start_link attempt fails; subsequent attempts delegate to FakeSocket.
+    def start_link(owner, url, headers, options) do
+      test_pid = Keyword.fetch!(options, :test_pid)
+
+      if :persistent_term.get({__MODULE__, test_pid}, false) do
+        SurrealDB.WebSocketTest.FakeSocket.start_link(owner, url, headers, options)
+      else
+        :persistent_term.put({__MODULE__, test_pid}, true)
+        send(test_pid, :first_connect_attempted)
+        {:error, :econnrefused}
+      end
+    end
+
+    defdelegate send_text(pid, payload), to: SurrealDB.WebSocketTest.FakeSocket
+    defdelegate close(pid), to: SurrealDB.WebSocketTest.FakeSocket
+  end
+
+  test "reconnect: true retries after an initial connect failure instead of stopping" do
+    on_exit(fn -> :persistent_term.erase({FailThenSucceedSocket, self()}) end)
+    client = websocket_client(request_options: [test_pid: self(), auto_setup: true])
+
+    {:ok, pid} =
+      SurrealDB.WebSocket.Connection.start_link(client,
+        socket_module: FailThenSucceedSocket,
+        timeout: 50,
+        reconnect: true,
+        reconnect_backoff: 10
+      )
+
+    assert_receive :first_connect_attempted, 200
+    assert Process.alive?(pid)
+    # After backoff it retries, this time succeeding -> setup traffic flows.
+    assert_receive {:fake_socket_started, ^pid, _url, _headers, _socket_pid}, 500
+    assert_receive {:socket_sent, ^pid, _payload}, 500
+  end
+
   test "name: registers the process via a Registry via-tuple" do
     {:ok, _} = Registry.start_link(keys: :unique, name: __MODULE__.Registry)
     client = websocket_client(request_options: [test_pid: self(), auto_setup: true])

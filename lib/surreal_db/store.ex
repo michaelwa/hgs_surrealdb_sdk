@@ -113,6 +113,8 @@ defmodule SurrealDB.Store do
   defp resolve_transport(_store, %Client{transport: :http} = client), do: {:ok, client}
 
   defp resolve_transport(store, %Client{transport: :websocket} = client) do
+    # A resolved pid may be mid-reconnect; RPCs can transiently return a
+    # websocket-not-ready error until setup completes.
     case Registry.lookup(SurrealDB.Store.Registry, store) do
       [{pid, _value}] -> {:ok, %Client{client | connection: pid}}
       [] -> {:error, Error.not_connected(store)}

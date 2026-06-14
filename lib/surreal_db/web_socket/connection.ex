@@ -98,7 +98,12 @@ defmodule SurrealDB.WebSocket.Connection do
         {:noreply, %State{state | socket_pid: socket_pid}}
 
       {:error, reason} ->
-        {:stop, {:websocket_connect_error, reason}, state}
+        if state.reconnect? do
+          Process.send_after(self(), :reconnect, state.reconnect_backoff)
+          {:noreply, %State{state | socket_pid: nil, setup_complete?: false}}
+        else
+          {:stop, {:websocket_connect_error, reason}, state}
+        end
     end
   end
 

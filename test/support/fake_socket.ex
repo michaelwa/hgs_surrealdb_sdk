@@ -46,6 +46,10 @@ defmodule SurrealDB.WebSocketTest.FakeSocket do
       :close ->
         send(owner, {:websocket_closed, :normal})
         :ok
+
+      other ->
+        send(test_pid, {:fake_socket_unexpected, other})
+        loop(owner, test_pid, auto_setup)
     end
   end
 end
