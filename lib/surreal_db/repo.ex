@@ -11,12 +11,13 @@ defmodule SurrealDB.Repo do
       SurrealDB.Repo.delete(client, MyApp.User, "user:abc")
 
   POC scope: simple equality filters only (see `SurrealDB.Repo.FilterBuilder`).
-  Record ids are passed as parameters (`$id`); under the HTTP transport these
-  are JSON-encoded (quoted). Use `query/5` for raw SurrealQL when you need
-  behavior outside this surface.
+  Record ids (`get`/`update`/`delete`) are validated with `SurrealDB.Identifier`
+  and interpolated as record identifiers so SurrealDB resolves the actual record;
+  an invalid id returns `{:error, %SurrealDB.Error{type: :invalid_identifier}}`.
+  Use `query/5` for raw SurrealQL when you need behavior outside this surface.
   """
 
-  alias SurrealDB.{Client, Error, QueryResult}
+  alias SurrealDB.{Client, Error, Identifier, QueryResult}
   alias SurrealDB.Repo.FilterBuilder
 
   @type client :: Client.t()
@@ -25,15 +26,17 @@ defmodule SurrealDB.Repo do
   @spec get(client(), schema(), String.t(), keyword()) ::
           {:ok, struct() | nil} | {:error, Error.t() | SurrealDB.Schema.ValidationError.t()}
   def get(%Client{} = client, schema, id, _opts \\ []) do
-    run_one(client, schema, "SELECT * FROM $id", %{id: id})
+    with {:ok, identifier} <- Identifier.validate(id) do
+      run_one(client, schema, "SELECT * FROM #{identifier}", %{})
+    end
   end
 
   @spec all(client(), schema(), map(), keyword()) ::
           {:ok, [struct()]} | {:error, Error.t() | SurrealDB.Schema.ValidationError.t()}
   def all(%Client{} = client, schema, filters \\ %{}, _opts \\ []) do
     with {:ok, {where, filter_vars}} <- FilterBuilder.build(filters) do
-      surql = "SELECT * FROM type::table($table)" <> where_suffix(where)
-      vars = Map.put(filter_vars, :table, schema.__table__())
+      surql = "SELECT * FROM type::table($__table__)" <> where_suffix(where)
+      vars = Map.put(filter_vars, :__table__, schema.__table__())
       run_many(client, schema, surql, vars)
     end
   end
@@ -42,8 +45,8 @@ defmodule SurrealDB.Repo do
           {:ok, struct() | nil} | {:error, Error.t() | SurrealDB.Schema.ValidationError.t()}
   def find(%Client{} = client, schema, filters, _opts \\ []) do
     with {:ok, {where, filter_vars}} <- FilterBuilder.build(filters) do
-      surql = "SELECT * FROM type::table($table)" <> where_suffix(where) <> " LIMIT 1"
-      vars = Map.put(filter_vars, :table, schema.__table__())
+      surql = "SELECT * FROM type::table($__table__)" <> where_suffix(where) <> " LIMIT 1"
+      vars = Map.put(filter_vars, :__table__, schema.__table__())
       run_one(client, schema, surql, vars)
     end
   end
@@ -53,8 +56,8 @@ defmodule SurrealDB.Repo do
   def create(%Client{} = client, schema, attrs, _opts \\ []) do
     with {:ok, validated} <- schema.validate(attrs) do
       content = validated |> Enum.reject(fn {_key, value} -> is_nil(value) end) |> Map.new()
-      surql = "CREATE type::table($table) CONTENT $attrs"
-      vars = %{table: schema.__table__(), attrs: content}
+      surql = "CREATE type::table($__table__) CONTENT $attrs"
+      vars = %{__table__: schema.__table__(), attrs: content}
       run_one(client, schema, surql, vars)
     end
   end
@@ -62,13 +65,17 @@ defmodule SurrealDB.Repo do
   @spec update(client(), schema(), String.t(), map(), keyword()) ::
           {:ok, struct() | nil} | {:error, Error.t() | SurrealDB.Schema.ValidationError.t()}
   def update(%Client{} = client, schema, id, attrs, _opts \\ []) do
-    run_one(client, schema, "UPDATE $id MERGE $attrs", %{id: id, attrs: attrs})
+    with {:ok, identifier} <- Identifier.validate(id) do
+      run_one(client, schema, "UPDATE #{identifier} MERGE $attrs", %{attrs: attrs})
+    end
   end
 
   @spec delete(client(), schema(), String.t(), keyword()) ::
           {:ok, struct() | nil} | {:error, Error.t() | SurrealDB.Schema.ValidationError.t()}
   def delete(%Client{} = client, schema, id, _opts \\ []) do
-    run_one(client, schema, "DELETE $id RETURN BEFORE", %{id: id})
+    with {:ok, identifier} <- Identifier.validate(id) do
+      run_one(client, schema, "DELETE #{identifier} RETURN BEFORE", %{})
+    end
   end
 
   @spec query(client(), schema(), iodata(), map(), keyword()) ::

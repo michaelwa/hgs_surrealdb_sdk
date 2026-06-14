@@ -45,7 +45,7 @@ defmodule SurrealDB.RepoTest do
   test "get/3 selects by id and hydrates a struct" do
     client =
       client_with_adapter(fn request ->
-        assert request.body == "SELECT * FROM \"user:abc\""
+        assert request.body == "SELECT * FROM user:abc"
         records_response(request, [@jane])
       end)
 
@@ -58,6 +58,14 @@ defmodule SurrealDB.RepoTest do
       client_with_adapter(fn request -> records_response(request, []) end)
 
     assert {:ok, nil} = Repo.get(client, User, "user:zzz")
+  end
+
+  test "get/3 rejects an invalid record id without touching the network" do
+    client =
+      client_with_adapter(fn _request -> raise "network must not be called" end)
+
+    assert {:error, %SurrealDB.Error{type: :invalid_identifier}} =
+             Repo.get(client, User, "user; DROP")
   end
 
   test "all/2 selects the whole table and hydrates a list" do
@@ -80,6 +88,16 @@ defmodule SurrealDB.RepoTest do
       end)
 
     assert {:ok, [%User{}]} = Repo.all(client, User, %{email: "jane@example.com"})
+  end
+
+  test "all/3 does not let a filter field named `table` clobber the table binding" do
+    client =
+      client_with_adapter(fn request ->
+        assert request.body == "SELECT * FROM type::table(\"user\") WHERE table = \"5\""
+        records_response(request, [@jane])
+      end)
+
+    assert {:ok, [%User{}]} = Repo.all(client, User, %{table: "5"})
   end
 
   test "find/3 adds LIMIT 1 and returns a single struct" do
@@ -122,8 +140,8 @@ defmodule SurrealDB.RepoTest do
   test "update/4 issues a parameterized MERGE" do
     client =
       client_with_adapter(fn request ->
-        assert String.starts_with?(request.body, "UPDATE \"user:abc\" MERGE ")
-        assert_json_tail(request.body, "UPDATE \"user:abc\" MERGE ", %{"age" => 42})
+        assert String.starts_with?(request.body, "UPDATE user:abc MERGE ")
+        assert_json_tail(request.body, "UPDATE user:abc MERGE ", %{"age" => 42})
         records_response(request, [Map.put(@jane, "age", 42)])
       end)
 
@@ -133,7 +151,7 @@ defmodule SurrealDB.RepoTest do
   test "delete/3 issues DELETE ... RETURN BEFORE and returns the prior struct" do
     client =
       client_with_adapter(fn request ->
-        assert request.body == "DELETE \"user:abc\" RETURN BEFORE"
+        assert request.body == "DELETE user:abc RETURN BEFORE"
         records_response(request, [@jane])
       end)
 
