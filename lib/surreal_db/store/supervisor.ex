@@ -7,6 +7,7 @@ defmodule SurrealDB.Store.Supervisor do
   alias SurrealDB.Config
   alias SurrealDB.Error
   alias SurrealDB.Store.Server
+  alias SurrealDB.WebSocket.Connection
 
   @spec start_link(module(), atom(), keyword()) ::
           {:ok, pid()} | {:error, SurrealDB.Error.t() | term()}
@@ -31,13 +32,29 @@ defmodule SurrealDB.Store.Supervisor do
   end
 
   @impl true
-  def init({store, %Client{} = client, _resolved}) do
-    children = [
-      {Server, {store, client}}
-    ]
-
+  def init({store, %Client{} = client, resolved}) do
+    children = [{Server, {store, client}}] ++ connection_children(store, client, resolved)
     Supervisor.init(children, strategy: :one_for_one)
   end
+
+  defp connection_children(store, %Client{transport: :websocket} = client, resolved) do
+    via = {:via, Registry, {SurrealDB.Store.Registry, store}}
+
+    connection_opts =
+      resolved
+      |> Keyword.get(:websocket_options, [])
+      |> Keyword.merge(name: via, reconnect: true)
+
+    [
+      %{
+        id: Connection,
+        start: {Connection, :start_link, [client, connection_opts]},
+        restart: :permanent
+      }
+    ]
+  end
+
+  defp connection_children(_store, %Client{}, _resolved), do: []
 
   defp resolve_config(otp_app, store, opts) do
     otp_app

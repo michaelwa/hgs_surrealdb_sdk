@@ -111,5 +111,13 @@ defmodule SurrealDB.Store do
   end
 
   defp resolve_transport(_store, %Client{transport: :http} = client), do: {:ok, client}
+
+  defp resolve_transport(store, %Client{transport: :websocket} = client) do
+    case Registry.lookup(SurrealDB.Store.Registry, store) do
+      [{pid, _value}] -> {:ok, %Client{client | connection: pid}}
+      [] -> {:error, Error.not_connected(store)}
+    end
+  end
+
   defp resolve_transport(store, %Client{}), do: {:error, Error.not_connected(store)}
 end
