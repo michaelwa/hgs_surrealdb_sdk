@@ -53,6 +53,25 @@ mix deps.get
 
 > The OTP app is `:hgs_surrealdb_sdk`, but all modules live under the `SurrealDB.*` namespace.
 
+### Install with Igniter
+
+If your project uses [Igniter](https://hexdocs.pm/igniter), you can add the
+dependency and scaffold the required connection config in one step:
+
+```bash
+mix igniter.install hgs_surrealdb_sdk --namespace app --database app
+```
+
+This adds the dep and writes a `config :hgs_surrealdb_sdk, connection: [...]`
+block (see [Configuration](#configuration-required) below) to
+`config/config.exs`. Override `--endpoint`, `--namespace`, and `--database` as
+needed; credentials default to `root`/`root` for a local dev server — change
+them per environment in `config/runtime.exs`.
+
+> The installer task ships behind an optional `igniter` dependency. Reaching it
+> via `mix igniter.install` works out of the box. To run `mix hgs_surrealdb_sdk.install`
+> directly, your project must already depend on `igniter`.
+
 ## Configuration (required)
 
 The OTP application reads connection config **at boot** and refuses to start
