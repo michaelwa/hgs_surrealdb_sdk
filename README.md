@@ -33,6 +33,8 @@ Current support:
 
 ## Installation
 
+> Need a SurrealDB server first? See [Installing SurrealDB](docs/installing-surrealdb.md).
+
 This SDK is not published to Hex. Add it as a git dependency in `mix.exs`:
 
 ```elixir
