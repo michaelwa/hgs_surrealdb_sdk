@@ -5,15 +5,28 @@ defmodule SurrealDB.Store.Supervisor do
 
   alias SurrealDB.Client
   alias SurrealDB.Config
+  alias SurrealDB.Error
   alias SurrealDB.Store.Server
 
   @spec start_link(module(), atom(), keyword()) ::
           {:ok, pid()} | {:error, SurrealDB.Error.t() | term()}
-  def start_link(store, otp_app, opts) when is_atom(store) and is_atom(otp_app) do
+  def start_link(store, otp_app, opts)
+      when is_atom(store) and is_atom(otp_app) and is_list(opts) do
     resolved = resolve_config(otp_app, store, opts)
 
-    with {:ok, %Client{} = client} <- Config.build_client(resolved) do
-      Supervisor.start_link(__MODULE__, {store, client, resolved}, name: supervisor_name(store))
+    with {:ok, %Client{} = client} <- Config.build_client(resolved),
+         {:ok, pid} <-
+           Supervisor.start_link(__MODULE__, {store, client, resolved},
+             name: supervisor_name(store)
+           ) do
+      {:ok, pid}
+    else
+      {:error, {:already_started, _pid}} ->
+        {:error,
+         Error.invalid_config("store #{inspect(store)} is already started", %{store: store})}
+
+      {:error, _reason} = error ->
+        error
     end
   end
 

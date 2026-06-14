@@ -10,6 +10,11 @@ defmodule SurrealDB.Store.SupervisorTest do
 
   setup do
     on_exit(fn ->
+      case Process.whereis(Module.concat(HttpStore, "Supervisor")) do
+        nil -> :ok
+        pid -> catch_exit(Supervisor.stop(pid))
+      end
+
       Application.delete_env(:store_sup_test, HttpStore)
       :persistent_term.erase({SurrealDB.Store, HttpStore})
     end)
@@ -31,8 +36,6 @@ defmodule SurrealDB.Store.SupervisorTest do
 
     client = :persistent_term.get({SurrealDB.Store, HttpStore})
     assert %Client{endpoint: "http://localhost:8000", namespace: "ns", transport: :http} = client
-
-    Supervisor.stop(pid)
   end
 
   test "inline opts override app env" do
@@ -44,12 +47,10 @@ defmodule SurrealDB.Store.SupervisorTest do
       password: "root"
     )
 
-    assert {:ok, pid} =
+    assert {:ok, _pid} =
              StoreSupervisor.start_link(HttpStore, :store_sup_test, namespace: "override")
 
     assert %Client{namespace: "override"} = :persistent_term.get({SurrealDB.Store, HttpStore})
-
-    Supervisor.stop(pid)
   end
 
   test "invalid config returns a structured error and does not start" do
@@ -59,5 +60,20 @@ defmodule SurrealDB.Store.SupervisorTest do
              StoreSupervisor.start_link(HttpStore, :store_sup_test, [])
 
     assert :persistent_term.get({SurrealDB.Store, HttpStore}, :missing) == :missing
+  end
+
+  test "starting the same store twice returns a structured already-started error" do
+    Application.put_env(:store_sup_test, HttpStore,
+      endpoint: "http://localhost:8000",
+      namespace: "ns",
+      database: "db",
+      username: "root",
+      password: "root"
+    )
+
+    assert {:ok, _pid} = StoreSupervisor.start_link(HttpStore, :store_sup_test, [])
+
+    assert {:error, %Error{type: :invalid_config}} =
+             StoreSupervisor.start_link(HttpStore, :store_sup_test, [])
   end
 end
