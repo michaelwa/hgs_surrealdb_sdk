@@ -50,6 +50,23 @@ Living backlog for the SurrealDB Elixir SDK. Design rationale lives in
   those live query IDs on the new socket — subscriptions are silently orphaned.
   A follow-up should re-issue `LIVE SELECT`s (or surface a reconnect signal to
   subscribers) so live queries resume automatically.
+- **Distinguish initial-connect retries from true reconnects in connection
+  telemetry.** F1 emits `[:surreal_db, :connection, :reconnecting]` whenever a
+  (re)connection attempt is scheduled via `schedule_reconnect/1` in
+  `SurrealDB.WebSocket.Connection`. That includes the *initial* connect-failure
+  path in `handle_continue(:connect, …)` — so if the server is unreachable at
+  startup, a consumer sees `:reconnecting` events before any `:connected` has
+  ever fired. This is intentional and documented in the `SurrealDB.Telemetry`
+  moduledoc, but it means a naive dashboard counting `:reconnecting` as
+  "connection instability" will over-report during a cold start (e.g. the DB
+  booting after the app). Two options for a follow-up: (a) suppress the event
+  when `connect_count == 0` so `:reconnecting` only signals loss of an
+  established connection; or (b) emit a distinct event (e.g.
+  `[:surreal_db, :connection, :connect_failed]`) for pre-first-connect retries
+  and reserve `:reconnecting` for true reconnects. Either is a metadata/event
+  contract change, so it should land before any consumers depend on the current
+  semantics. The `connect_count` field already on `State` makes (a) a one-line
+  guard.
 - Migration generator task (`mix surreal_db.gen.migration`) to stamp new `.surql`
   files, complementing the existing runner.
 - LiveView live-query helper: subscribe a LiveView to a `LIVE SELECT` and push
