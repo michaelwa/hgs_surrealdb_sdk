@@ -77,19 +77,18 @@ defmodule SurrealDB.Telemetry do
   They cover both the F2 supervised connection (`SurrealDB.Store`) and ad-hoc
   `SurrealDB.connect_ws/1` connections.
 
-  Measurement on all three: `%{system_time: integer}`.
+  Each event carries `%{system_time: integer}` as its measurement and the
+  following common metadata: `:namespace`, `:database`, `:endpoint` (same as
+  the execution-span fields), and `:store` — the store module (e.g.
+  `MyApp.SurrealStore`) when the connection is supervised via `SurrealDB.Store`,
+  or `nil` for ad-hoc connections.
 
-  Common metadata on all three:
-
-  - `:namespace`, `:database`, `:endpoint` — same as the execution-span fields.
-  - `:store` — the store module (e.g. `MyApp.SurrealStore`) when the connection
-    is supervised via `SurrealDB.Store`; `nil` for ad-hoc connections.
-
-  | Event | When | Extra metadata |
-  |-------|------|----------------|
-  | `[:surreal_db, :connection, :connected]` | Setup completes successfully | `:reconnect?` — `false` on the first successful connect; `true` on a later reconnect after a disconnect |
-  | `[:surreal_db, :connection, :disconnected]` | WebSocket closes | `:reason` — inspected string; `:will_reconnect?` — boolean |
-  | `[:surreal_db, :connection, :reconnecting]` | A (re)connection attempt is scheduled | `:backoff` — delay in milliseconds |
+  - `[:surreal_db, :connection, :connected]` — `:reconnect?` (`false` on the
+    first successful connect; `true` on a later reconnect after a disconnect)
+  - `[:surreal_db, :connection, :disconnected]` — `:reason` (inspected string);
+    `:will_reconnect?` (boolean)
+  - `[:surreal_db, :connection, :reconnecting]` — `:backoff` (delay in
+    milliseconds)
 
   > **Note on `:reconnecting`:** this event fires whenever a connection attempt
   > is scheduled — including after a failed *initial* connect. Consumers may
@@ -126,8 +125,8 @@ defmodule SurrealDB.Telemetry do
   :telemetry.attach(
     "my-app-surreal-logger",
     [:surreal_db, :query, :stop],
-    fn event, measurements, metadata, _config ->
-      IO.inspect({event, measurements.duration, metadata.method, metadata.result})
+    fn _event, measurements, metadata, _config ->
+      IO.inspect({measurements.duration, metadata.method, metadata.result})
     end,
     nil
   )

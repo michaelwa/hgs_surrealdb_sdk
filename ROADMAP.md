@@ -38,8 +38,6 @@ Living backlog for the SurrealDB Elixir SDK. Design rationale lives in
   (`attach_default_logger/1`). Design:
   `docs/superpowers/specs/2026-06-15-f1-telemetry-instrumentation-design.md`.
 
-## Backlog (nice-to-have)
-
 ## Deferred ideas
 
 - **Exponential backoff for WebSocket reconnect.** The `Connection` process
