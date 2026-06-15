@@ -4,13 +4,17 @@ defmodule SurrealDB.Live do
   alias SurrealDB.Client
   alias SurrealDB.Error
   alias SurrealDB.Live.Subscription
+  alias SurrealDB.Telemetry
   alias SurrealDB.WebSocket.Connection
 
   @spec start(Client.t(), String.t(), keyword()) :: {:ok, Subscription.t()} | {:error, Error.t()}
-  def start(%Client{transport: :websocket, connection: pid}, query, opts)
+  def start(%Client{transport: :websocket, connection: pid} = client, query, opts)
       when is_pid(pid) and is_binary(query) and is_list(opts) do
     target = Keyword.get(opts, :send_to, self())
-    Connection.start_live_query(pid, query, target)
+
+    Telemetry.span(client, "live", [query: query], fn ->
+      Connection.start_live_query(pid, query, target)
+    end)
   end
 
   def start(%Client{}, _query, _opts) do
@@ -22,9 +26,14 @@ defmodule SurrealDB.Live do
   end
 
   @spec kill(Client.t(), Subscription.t()) :: :ok | {:error, Error.t()}
-  def kill(%Client{transport: :websocket, connection: pid}, %Subscription{} = subscription)
+  def kill(
+        %Client{transport: :websocket, connection: pid} = client,
+        %Subscription{} = subscription
+      )
       when is_pid(pid) do
-    Connection.kill_live_query(pid, subscription)
+    Telemetry.span(client, "kill", [], fn ->
+      Connection.kill_live_query(pid, subscription)
+    end)
   end
 
   def kill(%Client{}, _subscription) do

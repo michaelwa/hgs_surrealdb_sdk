@@ -350,6 +350,51 @@ defmodule SurrealDB.WebSocketTest do
     refute_receive {:surrealdb_live, ^subscription_id, _}, 50
   end
 
+  test "live query start emits a [:surreal_db, :query] span with method \"live\"" do
+    {:ok, client} =
+      SurrealDB.connect_ws(
+        endpoint: "ws://localhost:8000/rpc",
+        namespace: "test",
+        database: "app",
+        username: "root",
+        password: "root",
+        request_options: [test_pid: self(), auto_setup: true],
+        websocket_options: [socket_module: FakeSocket, timeout: 50]
+      )
+
+    wait_for_setup()
+
+    handler_id = {:live, System.unique_integer()}
+    test_pid = self()
+
+    :telemetry.attach(
+      handler_id,
+      [:surreal_db, :query, :stop],
+      fn _e, _m, meta, _ -> send(test_pid, {:live_stop, meta}) end,
+      nil
+    )
+
+    on_exit(fn -> :telemetry.detach(handler_id) end)
+
+    task =
+      Task.async(fn -> SurrealDB.live(client, "LIVE SELECT * FROM person", send_to: self()) end)
+
+    assert_receive {:socket_sent, owner, payload}
+    decoded = Jason.decode!(payload)
+
+    send(
+      owner,
+      {:websocket_frame,
+       Jason.encode!(%{
+         id: decoded["id"],
+         result: [%{"status" => "OK", "result" => "live-person"}]
+       })}
+    )
+
+    assert {:ok, _subscription} = Task.await(task)
+    assert_receive {:live_stop, %{method: "live", result: :ok, transport: :websocket}}
+  end
+
   test "kill of missing subscription returns error" do
     {:ok, client} =
       SurrealDB.connect_ws(
