@@ -7,56 +7,7 @@ defmodule SurrealDB.WebSocketTest do
   alias SurrealDB.RPC.Request
   alias SurrealDB.RPC.Response
   alias SurrealDB.Transport.WebSocket
-
-  defmodule FakeSocket do
-    def start_link(owner, url, headers, options) do
-      test_pid = Keyword.fetch!(options, :test_pid)
-      auto_setup = Keyword.get(options, :auto_setup, false)
-
-      pid =
-        spawn_link(fn ->
-          send(test_pid, {:fake_socket_started, owner, url, headers, self()})
-          send(owner, {:websocket_connected, self()})
-          loop(owner, test_pid, auto_setup)
-        end)
-
-      {:ok, pid}
-    end
-
-    def send_text(pid, payload) do
-      send(pid, {:send_text, payload})
-      :ok
-    end
-
-    def close(pid) do
-      send(pid, :close)
-      :ok
-    end
-
-    defp loop(owner, test_pid, auto_setup) do
-      receive do
-        {:send_text, payload} ->
-          send(test_pid, {:socket_sent, owner, payload})
-
-          if auto_setup do
-            decoded = Jason.decode!(payload)
-
-            if decoded["method"] in ["signin", "authenticate", "use"] do
-              send(
-                owner,
-                {:websocket_frame, Jason.encode!(%{id: decoded["id"], result: %{"ok" => true}})}
-              )
-            end
-          end
-
-          loop(owner, test_pid, auto_setup)
-
-        :close ->
-          send(owner, {:websocket_closed, :normal})
-          :ok
-      end
-    end
-  end
+  alias SurrealDB.WebSocketTest.FakeSocket
 
   test "starting a websocket connection process and setup traffic" do
     client = websocket_client(request_options: [test_pid: self(), auto_setup: true])
@@ -443,6 +394,81 @@ defmodule SurrealDB.WebSocketTest do
 
     assert match?({:unexpected_response, %Error{type: :unexpected_response}}, reason) or
              match?({:setup_failed, %Error{type: :unexpected_response}}, reason)
+  end
+
+  test "reconnect: true keeps the process alive and reconnects after close" do
+    client = websocket_client(request_options: [test_pid: self(), auto_setup: true])
+
+    {:ok, pid} =
+      SurrealDB.WebSocket.Connection.start_link(client,
+        socket_module: FakeSocket,
+        timeout: 50,
+        reconnect: true,
+        reconnect_backoff: 10
+      )
+
+    wait_for_setup()
+
+    # Simulate the socket dropping.
+    send(pid, {:websocket_closed, :closed})
+
+    # The connection process survives and re-runs setup against a fresh socket.
+    assert Process.alive?(pid)
+    assert_receive {:fake_socket_started, ^pid, _url, _headers, _socket_pid}, 200
+    assert_receive {:socket_sent, ^pid, _payload}, 200
+  end
+
+  defmodule FailThenSucceedSocket do
+    # First start_link attempt fails; subsequent attempts delegate to FakeSocket.
+    def start_link(owner, url, headers, options) do
+      test_pid = Keyword.fetch!(options, :test_pid)
+
+      if :persistent_term.get({__MODULE__, test_pid}, false) do
+        SurrealDB.WebSocketTest.FakeSocket.start_link(owner, url, headers, options)
+      else
+        :persistent_term.put({__MODULE__, test_pid}, true)
+        send(test_pid, :first_connect_attempted)
+        {:error, :econnrefused}
+      end
+    end
+
+    defdelegate send_text(pid, payload), to: SurrealDB.WebSocketTest.FakeSocket
+    defdelegate close(pid), to: SurrealDB.WebSocketTest.FakeSocket
+  end
+
+  test "reconnect: true retries after an initial connect failure instead of stopping" do
+    test_pid = self()
+    on_exit(fn -> :persistent_term.erase({FailThenSucceedSocket, test_pid}) end)
+    client = websocket_client(request_options: [test_pid: test_pid, auto_setup: true])
+
+    {:ok, pid} =
+      SurrealDB.WebSocket.Connection.start_link(client,
+        socket_module: FailThenSucceedSocket,
+        timeout: 50,
+        reconnect: true,
+        reconnect_backoff: 10
+      )
+
+    assert_receive :first_connect_attempted, 200
+    assert Process.alive?(pid)
+    # After backoff it retries, this time succeeding -> setup traffic flows.
+    assert_receive {:fake_socket_started, ^pid, _url, _headers, _socket_pid}, 500
+    assert_receive {:socket_sent, ^pid, _payload}, 500
+  end
+
+  test "name: registers the process via a Registry via-tuple" do
+    {:ok, _} = Registry.start_link(keys: :unique, name: __MODULE__.Registry)
+    client = websocket_client(request_options: [test_pid: self(), auto_setup: true])
+    via = {:via, Registry, {__MODULE__.Registry, :conn}}
+
+    {:ok, pid} =
+      SurrealDB.WebSocket.Connection.start_link(client,
+        socket_module: FakeSocket,
+        timeout: 50,
+        name: via
+      )
+
+    assert [{^pid, _}] = Registry.lookup(__MODULE__.Registry, :conn)
   end
 
   defp websocket_client(overrides) do

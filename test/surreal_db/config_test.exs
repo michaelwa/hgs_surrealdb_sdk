@@ -107,6 +107,19 @@ defmodule SurrealDB.ConfigTest do
     assert client.anonymous? == true
   end
 
+  test "rejects an unknown transport" do
+    opts = [
+      endpoint: "http://localhost:8000",
+      namespace: "ns",
+      database: "db",
+      username: "root",
+      password: "root",
+      transport: :websockets
+    ]
+
+    assert {:error, %SurrealDB.Error{type: :invalid_config}} = SurrealDB.Config.build_client(opts)
+  end
+
   test "application connection config is required" do
     Application.delete_env(:hgs_surrealdb_sdk, :connection)
 

@@ -17,6 +17,24 @@ defmodule SurrealDB.Error do
     %__MODULE__{type: :invalid_config, message: message, details: details}
   end
 
+  @spec not_started(module()) :: t()
+  def not_started(store) do
+    %__MODULE__{
+      type: :not_started,
+      message: "store #{inspect(store)} is not started — add it to your supervision tree",
+      details: %{store: store}
+    }
+  end
+
+  @spec not_connected(module()) :: t()
+  def not_connected(store) do
+    %__MODULE__{
+      type: :not_connected,
+      message: "store #{inspect(store)} is not connected",
+      details: %{store: store}
+    }
+  end
+
   @spec http_error(Exception.t() | integer() | term(), map() | term()) :: t()
   def http_error(%{message: message} = error, details)
       when is_binary(message) and is_map(details) do

@@ -7,11 +7,11 @@ defmodule HgsSurrealdbSdk.Application do
 
   @impl true
   def start(_type, _args) do
-    with {:ok, _client} <- SurrealDB.Config.build_application_client() do
-      children = []
+    children = [
+      {Registry, keys: :unique, name: SurrealDB.Store.Registry}
+    ]
 
-      opts = [strategy: :one_for_one, name: HgsSurrealdbSdk.Supervisor]
-      Supervisor.start_link(children, opts)
-    end
+    opts = [strategy: :one_for_one, name: HgsSurrealdbSdk.Supervisor]
+    Supervisor.start_link(children, opts)
   end
 end

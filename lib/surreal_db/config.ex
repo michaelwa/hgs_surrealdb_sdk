@@ -40,7 +40,8 @@ defmodule SurrealDB.Config do
   @spec build_client(keyword()) :: {:ok, Client.t()} | {:error, Error.t()}
   def build_client(options) when is_list(options) do
     with :ok <- validate_required_fields(options),
-         {:ok, auth} <- build_auth(options) do
+         {:ok, auth} <- build_auth(options),
+         {:ok, transport} <- validate_transport(Keyword.get(options, :transport, :http)) do
       {:ok,
        %Client{
          endpoint: normalize_endpoint!(Keyword.fetch!(options, :endpoint)),
@@ -48,7 +49,7 @@ defmodule SurrealDB.Config do
          database: Keyword.fetch!(options, :database),
          auth: auth,
          anonymous?: Keyword.get(options, :anonymous, false),
-         transport: Keyword.get(options, :transport, :http),
+         transport: transport,
          request_options: Keyword.get(options, :request_options, [])
        }}
     end
@@ -69,6 +70,18 @@ defmodule SurrealDB.Config do
       _ ->
         {:error, Error.invalid_config("missing required options", %{missing: missing})}
     end
+  end
+
+  @allowed_transports [:http, :websocket]
+
+  defp validate_transport(transport) when transport in @allowed_transports, do: {:ok, transport}
+
+  defp validate_transport(transport) do
+    {:error,
+     Error.invalid_config("invalid transport", %{
+       transport: transport,
+       allowed: @allowed_transports
+     })}
   end
 
   defp build_auth(options) do
