@@ -1,46 +1,54 @@
 defmodule Mix.Tasks.HgsSurrealdbSdk.InstallTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
   import Igniter.Test
 
-  test "scaffolds default :connection config under :hgs_surrealdb_sdk" do
-    igniter =
-      test_project()
-      |> Igniter.compose_task("hgs_surrealdb_sdk.install", [])
-
-    source = config_source(igniter)
-
-    assert source =~ "config :hgs_surrealdb_sdk"
-    assert source =~ "connection:"
-    assert source =~ ~s(endpoint: "http://localhost:8000")
-    assert source =~ ~s(namespace: "test")
-    assert source =~ ~s(database: "test")
-    assert source =~ ~s(username: "root")
-    assert source =~ ~s(password: "root")
+  test "generates a store module" do
+    test_project()
+    |> Igniter.compose_task("hgs_surrealdb_sdk.install", [])
+    |> assert_creates("lib/test/surreal_store.ex", """
+    defmodule Test.SurrealStore do
+      use SurrealDB.Store, otp_app: :test
+    end
+    """)
   end
 
-  test "honors provided endpoint/namespace/database options" do
-    igniter =
-      test_project()
-      |> Igniter.compose_task("hgs_surrealdb_sdk.install", [
-        "--endpoint",
-        "http://db.internal:8000",
-        "--namespace",
-        "app",
-        "--database",
-        "app"
-      ])
+  test "writes per-app store config to config/config.exs" do
+    test_project()
+    |> Igniter.compose_task("hgs_surrealdb_sdk.install", [
+      "--namespace",
+      "app",
+      "--database",
+      "app"
+    ])
+    |> assert_creates("config/config.exs", """
+    import Config
 
-    source = config_source(igniter)
-
-    assert source =~ ~s(endpoint: "http://db.internal:8000")
-    assert source =~ ~s(namespace: "app")
-    assert source =~ ~s(database: "app")
+    config :test, Test.SurrealStore,
+      endpoint: "http://localhost:8000",
+      namespace: "app",
+      database: "app",
+      username: "root",
+      password: "root"
+    """)
   end
 
-  # Read the rendered config/config.exs from the igniter's in-memory file set.
-  defp config_source(igniter) do
-    igniter.rewrite
-    |> Rewrite.source!("config/config.exs")
-    |> Rewrite.Source.get(:content)
+  test "adds the store to the application supervision tree" do
+    test_project()
+    |> Igniter.compose_task("hgs_surrealdb_sdk.install", [])
+    |> assert_creates("lib/test/application.ex", """
+    defmodule Test.Application do
+      @moduledoc false
+
+      use Application
+
+      @impl true
+      def start(_type, _args) do
+        children = [Test.SurrealStore]
+
+        opts = [strategy: :one_for_one, name: Test.Supervisor]
+        Supervisor.start_link(children, opts)
+      end
+    end
+    """)
   end
 end
