@@ -558,6 +558,47 @@ defmodule SurrealDB.WebSocketTest do
     assert_receive {:socket_sent, ^pid, _payload}, 500
   end
 
+  test "emits connection lifecycle events on connect, close, and reconnect" do
+    client = websocket_client(request_options: [test_pid: self(), auto_setup: true])
+
+    handler_id = {:conn, System.unique_integer()}
+    test_pid = self()
+
+    :telemetry.attach_many(
+      handler_id,
+      [
+        [:surreal_db, :connection, :connected],
+        [:surreal_db, :connection, :disconnected],
+        [:surreal_db, :connection, :reconnecting]
+      ],
+      fn event, _m, meta, _ -> send(test_pid, {:conn_event, event, meta}) end,
+      nil
+    )
+
+    on_exit(fn -> :telemetry.detach(handler_id) end)
+
+    {:ok, pid} =
+      SurrealDB.WebSocket.Connection.start_link(client,
+        socket_module: FakeSocket,
+        timeout: 50,
+        reconnect: true,
+        reconnect_backoff: 10
+      )
+
+    wait_for_setup()
+
+    assert_receive {:conn_event, [:surreal_db, :connection, :connected],
+                    %{namespace: "test", database: "app", reconnect?: false, store: nil}}
+
+    send(pid, {:websocket_closed, :closed})
+
+    assert_receive {:conn_event, [:surreal_db, :connection, :disconnected],
+                    %{will_reconnect?: true}}
+
+    assert_receive {:conn_event, [:surreal_db, :connection, :reconnecting], %{backoff: 10}}
+    assert_receive {:conn_event, [:surreal_db, :connection, :connected], %{reconnect?: true}}, 500
+  end
+
   test "name: registers the process via a Registry via-tuple" do
     {:ok, _} = Registry.start_link(keys: :unique, name: __MODULE__.Registry)
     client = websocket_client(request_options: [test_pid: self(), auto_setup: true])

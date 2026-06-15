@@ -20,8 +20,10 @@ defmodule SurrealDB.WebSocket.Connection do
       :socket_module,
       :connect_timeout,
       :setup_complete?,
+      :store,
       reconnect?: false,
       reconnect_backoff: 500,
+      connect_count: 0,
       pending: %{},
       subscriptions: %{}
     ]
@@ -77,6 +79,7 @@ defmodule SurrealDB.WebSocket.Connection do
       socket_module: socket_module,
       connect_timeout: connect_timeout,
       setup_complete?: false,
+      store: Keyword.get(options, :store),
       reconnect?: Keyword.get(options, :reconnect, false),
       reconnect_backoff: Keyword.get(options, :reconnect_backoff, 500)
     }
@@ -99,7 +102,7 @@ defmodule SurrealDB.WebSocket.Connection do
 
       {:error, reason} ->
         if state.reconnect? do
-          Process.send_after(self(), :reconnect, state.reconnect_backoff)
+          state = schedule_reconnect(state)
           {:noreply, %State{state | socket_pid: nil, setup_complete?: false}}
         else
           {:stop, {:websocket_connect_error, reason}, state}
@@ -181,11 +184,11 @@ defmodule SurrealDB.WebSocket.Connection do
   def handle_info({:websocket_connected, _socket_pid}, %State{reconnect?: true} = state) do
     case perform_setup(state) do
       {:ok, %State{} = new_state} ->
-        {:noreply, %State{new_state | setup_complete?: true}}
+        {:noreply, on_connected(new_state)}
 
       {:error, {:setup_failed, %Error{type: :websocket_closed}}, new_state} ->
         if is_pid(new_state.socket_pid), do: new_state.socket_module.close(new_state.socket_pid)
-        Process.send_after(self(), :reconnect, new_state.reconnect_backoff)
+        new_state = schedule_reconnect(new_state)
         {:noreply, %State{new_state | pending: %{}, setup_complete?: false, socket_pid: nil}}
 
       {:error, reason, new_state} ->
@@ -195,7 +198,7 @@ defmodule SurrealDB.WebSocket.Connection do
 
   def handle_info({:websocket_connected, _socket_pid}, %State{} = state) do
     case perform_setup(state) do
-      {:ok, %State{} = new_state} -> {:noreply, %State{new_state | setup_complete?: true}}
+      {:ok, %State{} = new_state} -> {:noreply, on_connected(new_state)}
       {:error, reason, new_state} -> {:stop, reason, new_state}
     end
   end
@@ -236,13 +239,17 @@ defmodule SurrealDB.WebSocket.Connection do
   def handle_info({:websocket_closed, reason}, %State{reconnect?: true} = state) do
     error = %Error{type: :websocket_closed, message: "websocket connection closed", raw: reason}
     fail_all_pending(state.pending, error)
-    Process.send_after(self(), :reconnect, state.reconnect_backoff)
+    emit_connection_event(state, :disconnected, %{reason: inspect(reason), will_reconnect?: true})
+    state = schedule_reconnect(state)
     {:noreply, %State{state | pending: %{}, setup_complete?: false, socket_pid: nil}}
   end
 
   def handle_info({:websocket_closed, reason}, %State{} = state) do
     error = %Error{type: :websocket_closed, message: "websocket connection closed", raw: reason}
     fail_all_pending(state.pending, error)
+
+    emit_connection_event(state, :disconnected, %{reason: inspect(reason), will_reconnect?: false})
+
     {:stop, :normal, %State{state | pending: %{}}}
   end
 
@@ -465,4 +472,34 @@ defmodule SurrealDB.WebSocket.Connection do
     do: %Error{error | type: :live_event_decode_error}
 
   defp normalize_live_error(error), do: error
+
+  defp on_connected(%State{} = state) do
+    emit_connection_event(state, :connected, %{reconnect?: state.connect_count > 0})
+    %State{state | setup_complete?: true, connect_count: state.connect_count + 1}
+  end
+
+  defp schedule_reconnect(%State{} = state) do
+    emit_connection_event(state, :reconnecting, %{backoff: state.reconnect_backoff})
+    Process.send_after(self(), :reconnect, state.reconnect_backoff)
+    state
+  end
+
+  defp emit_connection_event(%State{client: client, store: store}, name, extra) do
+    metadata =
+      Map.merge(
+        %{
+          namespace: client.namespace,
+          database: client.database,
+          endpoint: client.endpoint,
+          store: store
+        },
+        extra
+      )
+
+    :telemetry.execute(
+      [:surreal_db, :connection, name],
+      %{system_time: System.system_time()},
+      metadata
+    )
+  end
 end
