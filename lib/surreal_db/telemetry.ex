@@ -5,6 +5,8 @@ defmodule SurrealDB.Telemetry do
   (Full event reference filled in Task 7.)
   """
 
+  require Logger
+
   alias SurrealDB.Client
   alias SurrealDB.Error
 
@@ -70,6 +72,62 @@ defmodule SurrealDB.Telemetry do
     |> Application.get_env(:telemetry, [])
     |> Keyword.get(:include_query_text, true)
   end
+
+  @default_logger_id {__MODULE__, :default_logger}
+
+  @doc """
+  Attaches a handler that logs each completed query. Opt-in.
+
+  Options:
+    * `:level` — log level (default `:debug`).
+  """
+  @spec attach_default_logger(keyword()) :: :ok | {:error, :already_exists}
+  def attach_default_logger(opts \\ []) do
+    level = Keyword.get(opts, :level, :debug)
+
+    :telemetry.attach_many(
+      @default_logger_id,
+      [[:surreal_db, :query, :stop], [:surreal_db, :query, :exception]],
+      &__MODULE__.handle_event/4,
+      %{level: level}
+    )
+  end
+
+  @doc "Detaches the handler attached by `attach_default_logger/1`."
+  @spec detach_default_logger() :: :ok | {:error, :not_found}
+  def detach_default_logger, do: :telemetry.detach(@default_logger_id)
+
+  @doc false
+  def handle_event([:surreal_db, :query, :stop], %{duration: duration}, meta, %{level: level}) do
+    Logger.log(level, fn ->
+      base =
+        "SurrealDB #{meta.method} ns=#{meta.namespace} db=#{meta.database} transport=#{meta.transport} (#{format_ms(duration)}ms)"
+
+      case meta.result do
+        :ok ->
+          base
+
+        :error ->
+          base <> " FAILED #{inspect(error_type(meta.error))}: #{error_message(meta.error)}"
+      end
+    end)
+  end
+
+  def handle_event([:surreal_db, :query, :exception], %{duration: duration}, meta, %{level: level}) do
+    Logger.log(level, fn ->
+      "SurrealDB #{meta.method} ns=#{meta.namespace} db=#{meta.database} RAISED #{inspect(meta.kind)}: #{inspect(meta.reason)} (#{format_ms(duration)}ms)"
+    end)
+  end
+
+  defp format_ms(duration) do
+    (System.convert_time_unit(duration, :native, :microsecond) / 1000) |> Float.round(2)
+  end
+
+  defp error_type(%Error{type: type}), do: type
+  defp error_type(other), do: other
+
+  defp error_message(%Error{message: message}), do: message
+  defp error_message(other), do: inspect(other)
 
   defp put_query(meta, nil), do: meta
 

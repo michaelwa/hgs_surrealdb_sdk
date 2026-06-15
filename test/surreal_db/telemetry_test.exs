@@ -1,6 +1,8 @@
 defmodule SurrealDB.TelemetryTest do
   use ExUnit.Case, async: false
 
+  import ExUnit.CaptureLog
+
   alias SurrealDB.Client
   alias SurrealDB.Error
   alias SurrealDB.Telemetry
@@ -152,6 +154,62 @@ defmodule SurrealDB.TelemetryTest do
 
       assert_receive {:telemetry, [:surreal_db, :query, :exception], %{duration: _},
                       %{kind: :error, reason: %RuntimeError{}}}
+    end
+  end
+
+  describe "attach_default_logger/1" do
+    setup do
+      on_exit(fn -> Telemetry.detach_default_logger() end)
+      :ok
+    end
+
+    test "logs a successful query at the configured level" do
+      :ok = Telemetry.attach_default_logger(level: :info)
+
+      log =
+        capture_log(fn ->
+          :telemetry.execute(
+            [:surreal_db, :query, :stop],
+            %{duration: System.convert_time_unit(3, :millisecond, :native)},
+            %{
+              method: "query",
+              namespace: "n",
+              database: "d",
+              transport: :http,
+              result: :ok,
+              error: nil
+            }
+          )
+        end)
+
+      assert log =~ "SurrealDB"
+      assert log =~ "query"
+      assert log =~ "[info]"
+    end
+
+    test "logs failures with the error type and message, never variable values" do
+      :ok = Telemetry.attach_default_logger(level: :info)
+      error = %Error{type: :transport_error, message: "unauthorized"}
+
+      log =
+        capture_log(fn ->
+          :telemetry.execute(
+            [:surreal_db, :query, :stop],
+            %{duration: 0},
+            %{
+              method: "query",
+              namespace: "n",
+              database: "d",
+              transport: :http,
+              variable_keys: [:password],
+              result: :error,
+              error: error
+            }
+          )
+        end)
+
+      assert log =~ "transport_error"
+      assert log =~ "unauthorized"
     end
   end
 
