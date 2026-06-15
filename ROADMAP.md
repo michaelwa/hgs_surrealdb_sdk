@@ -8,9 +8,10 @@ Living backlog for the SurrealDB Elixir SDK. Design rationale lives in
 - **R1 — Dogfood install + live round-trip.** Added the SDK to a fresh Phoenix
   app and ran live connect/query/CRUD and Schema/Repo round-trips against
   SurrealDB. The documented `github:` dep compiles cleanly against `main` (no
-  `ref:` needed). Key finding: the OTP application refuses to boot without
-  `config :hgs_surrealdb_sdk, connection: [...]`, which now has a dedicated
-  "Configuration (required)" section in the README.
+  `ref:` needed). Key finding at the time: the OTP application required
+  `config :hgs_surrealdb_sdk, connection: [...]` to boot — later superseded by
+  F2, after which the app boots without it and the README documents the
+  connection config under "Configuration (app-level client)".
 - **R2 — Igniter installer.** `mix igniter.install hgs_surrealdb_sdk` scaffolds
   the required `config :hgs_surrealdb_sdk, connection: [...]` block via
   `Mix.Tasks.HgsSurrealdbSdk.Install`. Tested with `Igniter.Test` and verified
