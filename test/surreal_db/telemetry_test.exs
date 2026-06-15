@@ -1,5 +1,5 @@
 defmodule SurrealDB.TelemetryTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias SurrealDB.Client
   alias SurrealDB.Error
@@ -58,7 +58,7 @@ defmodule SurrealDB.TelemetryTest do
           variables: %{data: %{password: "hunter2"}, id: 1}
         )
 
-      assert Enum.sort(meta.variable_keys) == [:data, :id]
+      assert meta.variable_keys == [:data, :id]
       assert meta.variable_count == 2
       refute meta |> inspect() |> String.contains?("hunter2")
     end
@@ -89,6 +89,13 @@ defmodule SurrealDB.TelemetryTest do
       stop = Telemetry.stop_metadata(start, {:error, error})
       assert stop.result == :error
       assert stop.error == error
+    end
+
+    test "captures a raw (non-Error) error term on failure" do
+      start = %{method: "query"}
+      stop = Telemetry.stop_metadata(start, {:error, :timeout})
+      assert stop.result == :error
+      assert stop.error == :timeout
     end
   end
 end

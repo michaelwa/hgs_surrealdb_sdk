@@ -71,7 +71,7 @@ defmodule SurrealDB.Telemetry do
 
   defp put_variables(meta, variables) when is_map(variables) do
     meta
-    |> Map.put(:variable_keys, Map.keys(variables))
+    |> Map.put(:variable_keys, variables |> Map.keys() |> Enum.sort())
     |> Map.put(:variable_count, map_size(variables))
   end
 
