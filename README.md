@@ -58,15 +58,17 @@ mix deps.get
 ### Install with Igniter
 
 If your project uses [Igniter](https://hexdocs.pm/igniter), you can add the
-dependency and scaffold the required connection config in one step:
+dependency and scaffold a `SurrealDB.Store` module, supervision-tree entry, and
+per-app config block in one step:
 
 ```bash
 mix igniter.install hgs_surrealdb_sdk --namespace app --database app
 ```
 
-This adds the dep and writes a `config :hgs_surrealdb_sdk, connection: [...]`
-block (see [Configuration](#configuration-required) below) to
-`config/config.exs`. Override `--endpoint`, `--namespace`, and `--database` as
+This adds the dep, generates a store module (see [Supervised
+connection](#supervised-connection-surrealdbstore) below), wires it into your
+supervision tree, and writes a per-store `config` block to
+`config/runtime.exs`. Override `--endpoint`, `--namespace`, and `--database` as
 needed; credentials default to `root`/`root` for a local dev server — change
 them per environment in `config/runtime.exs`.
 
@@ -74,12 +76,53 @@ them per environment in `config/runtime.exs`.
 > via `mix igniter.install` works out of the box. To run `mix hgs_surrealdb_sdk.install`
 > directly, your project must already depend on `igniter`.
 
-## Configuration (required)
+## Supervised connection (`SurrealDB.Store`)
 
-The OTP application reads connection config **at boot** and refuses to start
-without it — so a host app that adds this dependency must configure it, even if
-you intend to build clients at runtime with `SurrealDB.connect/1`. Add this to
-`config/config.exs` (override credentials per-environment in `config/runtime.exs`):
+Define a store and add it to your supervision tree to get a named, supervised,
+config-driven connection — no explicit client argument on calls:
+
+```elixir
+defmodule MyApp.SurrealStore do
+  use SurrealDB.Store, otp_app: :my_app
+end
+
+# config/runtime.exs
+config :my_app, MyApp.SurrealStore,
+  endpoint: "http://localhost:8000",
+  namespace: "app",
+  database: "app",
+  username: "root",
+  password: "root",
+  transport: :http   # or :websocket
+
+# lib/my_app/application.ex
+children = [MyApp.SurrealStore]
+```
+
+```elixir
+MyApp.SurrealStore.query("SELECT * FROM person")
+MyApp.SurrealStore.get(MyApp.User, "user:abc")
+MyApp.SurrealStore.create(MyApp.User, %{name: "Jane"})
+MyApp.SurrealStore.client()   # {:ok, %SurrealDB.Client{}} escape hatch
+```
+
+Config is read when the store starts (runtime), so `config/runtime.exs` and
+releases work naturally. With `transport: :websocket` the store supervises a
+self-reconnecting WebSocket connection. `mix igniter.install hgs_surrealdb_sdk`
+scaffolds the store module, the supervision-tree entry, and this config block
+for you.
+
+## Configuration (app-level client)
+
+The SDK application boots without any connection config — it starts only a
+Registry and waits for stores or explicit clients to be created. The block below
+is needed only if you use `SurrealDB.connect/0` (the legacy app-level client
+that reads a single shared connection from the SDK's own config). If you use
+`SurrealDB.Store` (recommended), skip this section and configure each store
+under your app's namespace instead (see above).
+
+Add the following to `config/config.exs` if you rely on `SurrealDB.connect/0`
+(override credentials per-environment in `config/runtime.exs`):
 
 ```elixir
 config :hgs_surrealdb_sdk,
@@ -97,8 +140,8 @@ config :hgs_surrealdb_sdk,
 
 `endpoint`, `namespace`, and `database` are required. For auth, provide
 `username` **and** `password`, or `auth_token`, or `anonymous: true`. Without a
-valid `:connection` block the application fails to start with
-`%SurrealDB.Error{type: :invalid_config}`.
+valid `:connection` block the call to `SurrealDB.connect/0` returns
+`{:error, %SurrealDB.Error{type: :invalid_config}}`.
 
 > The target `namespace` and `database` must already exist on the SurrealDB
 > server. On a fresh server, define them once (e.g. as `root`):

@@ -18,24 +18,33 @@ Living backlog for the SurrealDB Elixir SDK. Design rationale lives in
 - **R3 — Installing SurrealDB guide.** `docs/installing-surrealdb.md` covers the
   install-script, Docker, and build-from-source paths, plus the
   `DEFINE NAMESPACE/DATABASE` step a fresh server requires.
+- **F2 — Supervised connection (`SurrealDB.Store`).** `use SurrealDB.Store,
+  otp_app: :my_app` starts a named, supervised, config-driven connection under
+  the host's supervision tree (HTTP and reconnecting WebSocket). Calls drop the
+  explicit client. The SDK application now boots gracefully without
+  `config :hgs_surrealdb_sdk, connection: [...]` (starting only a Registry), and
+  connection config is resolved at store start (runtime) — resolving the
+  deferred boot-vs-runtime tension. The installer scaffolds the store module,
+  supervision child, and per-app config.
 
 ## Backlog (nice-to-have)
 
 - **F1 — Telemetry instrumentation.** Emit `:telemetry` start/stop/exception
   spans around query and RPC execution (duration measurement; query / namespace /
   database metadata). Enables LiveDashboard integration and structured logging.
-- **F2 — Supervised connection / config-driven repo.** Start a named SurrealDB
-  connection under the host app's supervision tree from `config.exs`
-  (Ecto.Repo-style) so calls no longer require passing a `client` explicitly.
-  Pairs with the R2 installer, which already scaffolds the connection config.
-  Note: the OTP application already validates `:connection` at boot today — this
-  feature would build on that to expose a started, reusable client.
 
 ## Deferred ideas
 
-- Make the OTP application boot gracefully when `:connection` is absent (treat
-  the application-level client as opt-in). Considered during R1; deferred in
-  favor of documenting the required config. Worth revisiting alongside F2.
+- **Exponential backoff for WebSocket reconnect.** The `Connection` process
+  currently uses a fixed `reconnect_backoff` interval, so a sustained outage
+  retries at a constant rate. Replace with exponential backoff (with jitter and a
+  configurable cap) to reduce thundering-herd pressure during prolonged
+  disconnections.
+- **Re-establish live queries after WebSocket reconnect.** After a reconnect the
+  `Connection` keeps its old `subscriptions` map, but the server has no record of
+  those live query IDs on the new socket — subscriptions are silently orphaned.
+  A follow-up should re-issue `LIVE SELECT`s (or surface a reconnect signal to
+  subscribers) so live queries resume automatically.
 - Migration generator task (`mix surreal_db.gen.migration`) to stamp new `.surql`
   files, complementing the existing runner.
 - LiveView live-query helper: subscribe a LiveView to a `LIVE SELECT` and push
