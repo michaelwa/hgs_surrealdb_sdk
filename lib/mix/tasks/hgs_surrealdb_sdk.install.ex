@@ -51,8 +51,8 @@ defmodule Mix.Tasks.HgsSurrealdbSdk.Install do
     |> Igniter.add_notice("""
     SurrealDB store #{inspect(store)} generated and added to your supervision tree.
 
-    Connection config written to config/config.exs under `config #{inspect(app)},
-    #{inspect(store)}`. The default credentials are root/root for a local dev
+    Connection config written to config/config.exs (keyed by #{inspect(app)} /
+    #{inspect(store)}). The default credentials are root/root for a local dev
     server. Override them (and the endpoint) per environment in
     config/runtime.exs before deploying, and make sure the target
     namespace/database exist on the server.

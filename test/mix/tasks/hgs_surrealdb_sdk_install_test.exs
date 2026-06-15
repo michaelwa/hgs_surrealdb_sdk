@@ -32,6 +32,21 @@ defmodule Mix.Tasks.HgsSurrealdbSdk.InstallTest do
     """)
   end
 
+  test "honors a custom --endpoint" do
+    test_project()
+    |> Igniter.compose_task("hgs_surrealdb_sdk.install", ["--endpoint", "http://db.internal:8000"])
+    |> assert_creates("config/config.exs", """
+    import Config
+
+    config :test, Test.SurrealStore,
+      endpoint: "http://db.internal:8000",
+      namespace: "test",
+      database: "test",
+      username: "root",
+      password: "root"
+    """)
+  end
+
   test "adds the store to the application supervision tree" do
     test_project()
     |> Igniter.compose_task("hgs_surrealdb_sdk.install", [])
