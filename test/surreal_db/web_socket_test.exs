@@ -350,6 +350,108 @@ defmodule SurrealDB.WebSocketTest do
     refute_receive {:surrealdb_live, ^subscription_id, _}, 50
   end
 
+  test "live query start emits a [:surreal_db, :query] span with method \"live\"" do
+    {:ok, client} =
+      SurrealDB.connect_ws(
+        endpoint: "ws://localhost:8000/rpc",
+        namespace: "test",
+        database: "app",
+        username: "root",
+        password: "root",
+        request_options: [test_pid: self(), auto_setup: true],
+        websocket_options: [socket_module: FakeSocket, timeout: 50]
+      )
+
+    wait_for_setup()
+
+    handler_id = {:live, System.unique_integer()}
+    test_pid = self()
+
+    :telemetry.attach(
+      handler_id,
+      [:surreal_db, :query, :stop],
+      fn _e, _m, meta, _ -> send(test_pid, {:live_stop, meta}) end,
+      nil
+    )
+
+    on_exit(fn -> :telemetry.detach(handler_id) end)
+
+    task =
+      Task.async(fn -> SurrealDB.live(client, "LIVE SELECT * FROM person", send_to: self()) end)
+
+    assert_receive {:socket_sent, owner, payload}
+    decoded = Jason.decode!(payload)
+
+    send(
+      owner,
+      {:websocket_frame,
+       Jason.encode!(%{
+         id: decoded["id"],
+         result: [%{"status" => "OK", "result" => "live-person"}]
+       })}
+    )
+
+    assert {:ok, _subscription} = Task.await(task)
+    assert_receive {:live_stop, %{method: "live", result: :ok, transport: :websocket}}
+  end
+
+  test "kill live-query emits a [:surreal_db, :query, :stop] event with method \"kill\"" do
+    {:ok, client} =
+      SurrealDB.connect_ws(
+        endpoint: "ws://localhost:8000/rpc",
+        namespace: "test",
+        database: "app",
+        username: "root",
+        password: "root",
+        request_options: [test_pid: self(), auto_setup: true],
+        websocket_options: [socket_module: FakeSocket, timeout: 50]
+      )
+
+    wait_for_setup()
+
+    task =
+      Task.async(fn -> SurrealDB.live(client, "LIVE SELECT * FROM person", send_to: self()) end)
+
+    assert_receive {:socket_sent, owner, payload}
+    decoded = Jason.decode!(payload)
+    subscription_id = "live-person"
+
+    send(
+      owner,
+      {:websocket_frame,
+       Jason.encode!(%{
+         id: decoded["id"],
+         result: [%{"status" => "OK", "result" => subscription_id}]
+       })}
+    )
+
+    assert {:ok, subscription} = Task.await(task)
+
+    handler_id = {:kill_span, System.unique_integer()}
+    test_pid = self()
+
+    :telemetry.attach(
+      handler_id,
+      [:surreal_db, :query, :stop],
+      fn _e, _m, meta, _ -> send(test_pid, {:kill_stop, meta}) end,
+      nil
+    )
+
+    on_exit(fn -> :telemetry.detach(handler_id) end)
+
+    kill_task = Task.async(fn -> SurrealDB.kill(client, subscription) end)
+    assert_receive {:socket_sent, ^owner, kill_payload}
+    kill_decoded = Jason.decode!(kill_payload)
+
+    send(
+      owner,
+      {:websocket_frame, Jason.encode!(%{id: kill_decoded["id"], result: %{"ok" => true}})}
+    )
+
+    assert :ok = Task.await(kill_task)
+    assert_receive {:kill_stop, %{method: "kill", result: :ok}}
+  end
+
   test "kill of missing subscription returns error" do
     {:ok, client} =
       SurrealDB.connect_ws(
@@ -454,6 +556,47 @@ defmodule SurrealDB.WebSocketTest do
     # After backoff it retries, this time succeeding -> setup traffic flows.
     assert_receive {:fake_socket_started, ^pid, _url, _headers, _socket_pid}, 500
     assert_receive {:socket_sent, ^pid, _payload}, 500
+  end
+
+  test "emits connection lifecycle events on connect, close, and reconnect" do
+    client = websocket_client(request_options: [test_pid: self(), auto_setup: true])
+
+    handler_id = {:conn, System.unique_integer()}
+    test_pid = self()
+
+    :telemetry.attach_many(
+      handler_id,
+      [
+        [:surreal_db, :connection, :connected],
+        [:surreal_db, :connection, :disconnected],
+        [:surreal_db, :connection, :reconnecting]
+      ],
+      fn event, _m, meta, _ -> send(test_pid, {:conn_event, event, meta}) end,
+      nil
+    )
+
+    on_exit(fn -> :telemetry.detach(handler_id) end)
+
+    {:ok, pid} =
+      SurrealDB.WebSocket.Connection.start_link(client,
+        socket_module: FakeSocket,
+        timeout: 50,
+        reconnect: true,
+        reconnect_backoff: 10
+      )
+
+    wait_for_setup()
+
+    assert_receive {:conn_event, [:surreal_db, :connection, :connected],
+                    %{namespace: "test", database: "app", reconnect?: false, store: nil}}
+
+    send(pid, {:websocket_closed, :closed})
+
+    assert_receive {:conn_event, [:surreal_db, :connection, :disconnected],
+                    %{will_reconnect?: true}}
+
+    assert_receive {:conn_event, [:surreal_db, :connection, :reconnecting], %{backoff: 10}}
+    assert_receive {:conn_event, [:surreal_db, :connection, :connected], %{reconnect?: true}}, 500
   end
 
   test "name: registers the process via a Registry via-tuple" do

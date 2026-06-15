@@ -48,6 +48,7 @@ defmodule SurrealDB.Store.Supervisor do
       |> Keyword.get(:websocket_options, [])
       |> Keyword.put(:name, via)
       |> Keyword.put(:reconnect, true)
+      |> Keyword.put(:store, store)
 
     [
       %{

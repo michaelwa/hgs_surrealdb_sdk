@@ -28,6 +28,7 @@ defmodule HgsSurrealdbSdk.MixProject do
   defp deps do
     [
       {:req, "~> 0.5"},
+      {:telemetry, "~> 1.0"},
       {:zoi, "~> 0.7"},
       {:jason, "~> 1.4"},
       {:websockex, "~> 0.5.1"},

@@ -298,3 +298,62 @@ The migration runner scans `.surql` files, applies them in lexicographic filenam
 Feature 1 supports HTTP clients. WebSocket clients return a structured unsupported-client error because WebSocket namespace/database scope is established when the connection starts.
 
 For a runnable example, see [examples/basic_query.exs](examples/basic_query.exs).
+
+## Telemetry
+
+The SDK emits `:telemetry` events for all query/RPC execution and WebSocket
+connection lifecycle. See `SurrealDB.Telemetry` for the full event reference,
+metadata field descriptions, and the metadata safety contract.
+
+### Emitted events
+
+- `[:surreal_db, :query, :start | :stop | :exception]` — span around every
+  query, RPC, CRUD, Repo, and Store call, and around live-query start/kill.
+  Covers both HTTP and WebSocket transports.
+- `[:surreal_db, :connection, :connected | :disconnected | :reconnecting]` —
+  discrete events from the WebSocket connection process.
+
+### Attaching a handler
+
+```elixir
+:telemetry.attach(
+  "my-app-surreal-logger",
+  [:surreal_db, :query, :stop],
+  fn _event, measurements, metadata, _config ->
+    IO.inspect({metadata.method, metadata.result, measurements.duration})
+  end,
+  nil
+)
+```
+
+Or use the shipped opt-in logger, which logs each completed query (method,
+namespace/database, transport, duration, and on error: `error.type` and
+`error.message`):
+
+```elixir
+SurrealDB.Telemetry.attach_default_logger(level: :info)
+```
+
+### Query-text redaction
+
+Query text is included in event metadata by default. To disable:
+
+```elixir
+config :hgs_surrealdb_sdk, :telemetry, include_query_text: false
+```
+
+When disabled, the `:query` field is replaced with `:"[redacted]"`. Variable
+**values** are never emitted regardless of this setting — only keys and count.
+
+### LiveDashboard / Telemetry.Metrics
+
+`telemetry_metrics` is not a dependency of this SDK. In your own application's
+telemetry supervisor:
+
+```elixir
+[
+  Telemetry.Metrics.summary("surreal_db.query.stop.duration",
+    unit: {:native, :millisecond}, tags: [:method, :namespace, :result]),
+  Telemetry.Metrics.counter("surreal_db.connection.disconnected")
+]
+```
