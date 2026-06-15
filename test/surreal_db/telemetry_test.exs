@@ -201,7 +201,7 @@ defmodule SurrealDB.TelemetryTest do
               namespace: "n",
               database: "d",
               transport: :http,
-              variable_keys: [:password],
+              variable_keys: [:secret_field],
               result: :error,
               error: error
             }
@@ -210,6 +210,31 @@ defmodule SurrealDB.TelemetryTest do
 
       assert log =~ "transport_error"
       assert log =~ "unauthorized"
+      refute log =~ "secret_field"
+    end
+
+    test "logs raised exceptions with kind and reason" do
+      :ok = Telemetry.attach_default_logger(level: :info)
+
+      log =
+        capture_log(fn ->
+          :telemetry.execute(
+            [:surreal_db, :query, :exception],
+            %{duration: 0},
+            %{
+              method: "query",
+              namespace: "n",
+              database: "d",
+              transport: :http,
+              kind: :error,
+              reason: %RuntimeError{message: "kaboom"}
+            }
+          )
+        end)
+
+      assert log =~ "RAISED"
+      assert log =~ "kaboom"
+      assert log =~ "[info]"
     end
   end
 
