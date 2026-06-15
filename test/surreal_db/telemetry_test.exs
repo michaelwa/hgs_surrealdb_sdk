@@ -98,4 +98,116 @@ defmodule SurrealDB.TelemetryTest do
       assert stop.error == :timeout
     end
   end
+
+  describe "span/4" do
+    setup do
+      client = %Client{endpoint: "http://x", namespace: "n", database: "d", transport: :http}
+
+      events = [
+        [:surreal_db, :query, :start],
+        [:surreal_db, :query, :stop],
+        [:surreal_db, :query, :exception]
+      ]
+
+      test_pid = self()
+      handler_id = {:test, System.unique_integer()}
+
+      :telemetry.attach_many(
+        handler_id,
+        events,
+        fn event, measurements, meta, _ ->
+          send(test_pid, {:telemetry, event, measurements, meta})
+        end,
+        nil
+      )
+
+      on_exit(fn -> :telemetry.detach(handler_id) end)
+      %{client: client}
+    end
+
+    test "emits start then stop on success", %{client: client} do
+      result = Telemetry.span(client, "query", [query: "SELECT 1"], fn -> {:ok, :resp} end)
+
+      assert result == {:ok, :resp}
+
+      assert_receive {:telemetry, [:surreal_db, :query, :start], %{system_time: _},
+                      %{method: "query"}}
+
+      assert_receive {:telemetry, [:surreal_db, :query, :stop], %{duration: _},
+                      %{result: :ok, error: nil}}
+    end
+
+    test "stop carries the error on failure", %{client: client} do
+      error = %Error{type: :transport_error, message: "boom"}
+      assert Telemetry.span(client, "query", [], fn -> {:error, error} end) == {:error, error}
+
+      assert_receive {:telemetry, [:surreal_db, :query, :stop], _,
+                      %{result: :error, error: ^error}}
+    end
+
+    test "raises propagate and emit an exception event", %{client: client} do
+      assert_raise RuntimeError, "kaboom", fn ->
+        Telemetry.span(client, "query", [], fn -> raise "kaboom" end)
+      end
+
+      assert_receive {:telemetry, [:surreal_db, :query, :exception], %{duration: _},
+                      %{kind: :error, reason: %RuntimeError{}}}
+    end
+  end
+
+  describe "RPC.call instrumentation (HTTP)" do
+    setup do
+      handler_id = {:rpc, System.unique_integer()}
+      test_pid = self()
+
+      :telemetry.attach_many(
+        handler_id,
+        [[:surreal_db, :query, :start], [:surreal_db, :query, :stop]],
+        fn event, _m, meta, _ -> send(test_pid, {:telemetry, event, meta}) end,
+        nil
+      )
+
+      on_exit(fn -> :telemetry.detach(handler_id) end)
+      :ok
+    end
+
+    defp ok_client do
+      %Client{
+        endpoint: "http://localhost:8000",
+        namespace: "test",
+        database: "app",
+        auth: {:basic, %{username: "root", password: "root"}},
+        request_options: [
+          adapter: fn request ->
+            {request, Req.Response.new(status: 200, body: ~s([{"status":"OK","result":[]}]))}
+          end
+        ]
+      }
+    end
+
+    test "a successful query emits a stop with result :ok and the query text" do
+      assert {:ok, _} = SurrealDB.query(ok_client(), "SELECT * FROM person")
+
+      assert_receive {:telemetry, [:surreal_db, :query, :start],
+                      %{method: "query", query: "SELECT * FROM person", transport: :http}}
+
+      assert_receive {:telemetry, [:surreal_db, :query, :stop], %{result: :ok}}
+    end
+
+    test "a transport failure emits a stop with result :error" do
+      client = %Client{
+        ok_client()
+        | request_options: [
+            adapter: fn request ->
+              {request, Req.Response.new(status: 401, body: ~s({"error":"nope"}))}
+            end
+          ]
+      }
+
+      assert {:error, %Error{}} = SurrealDB.rpc(client, "query", ["SELECT 1"])
+
+      assert_receive {:telemetry, [:surreal_db, :query, :stop],
+                      %{result: :error, error: %Error{}}}
+    end
+  end
 end

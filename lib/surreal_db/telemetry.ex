@@ -53,6 +53,17 @@ defmodule SurrealDB.Telemetry do
     do: Map.merge(start_meta, %{result: :error, error: other})
 
   @doc false
+  @spec span(Client.t(), String.t(), keyword(), (-> result)) :: result when result: term()
+  def span(%Client{} = client, method, fields, fun) when is_function(fun, 0) do
+    start_meta = start_metadata(client, method, fields)
+
+    :telemetry.span(@query_event, start_meta, fn ->
+      result = fun.()
+      {result, stop_metadata(start_meta, result)}
+    end)
+  end
+
+  @doc false
   @spec include_query_text?() :: boolean()
   def include_query_text? do
     :hgs_surrealdb_sdk
