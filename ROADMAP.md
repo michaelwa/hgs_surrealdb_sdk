@@ -27,12 +27,18 @@ Living backlog for the SurrealDB Elixir SDK. Design rationale lives in
   connection config is resolved at store start (runtime) — resolving the
   deferred boot-vs-runtime tension. The installer scaffolds the store module,
   supervision child, and per-app config.
+- **F1 — Telemetry instrumentation.** Emits `:telemetry` start/stop/exception
+  spans under `[:surreal_db, :query, …]` around all query/RPC execution (both
+  HTTP and WebSocket, including the F2 supervised path) and live-query
+  start/kill, plus `[:surreal_db, :connection, …]` lifecycle events
+  (connected/disconnected/reconnecting). Query text is included by default
+  (redactable via `config :hgs_surrealdb_sdk, :telemetry,
+  include_query_text: false`); variable values are never emitted. Ships
+  `SurrealDB.Telemetry` with `events/0` and an opt-in default logger
+  (`attach_default_logger/1`). Design:
+  `docs/superpowers/specs/2026-06-15-f1-telemetry-instrumentation-design.md`.
 
 ## Backlog (nice-to-have)
-
-- **F1 — Telemetry instrumentation.** Emit `:telemetry` start/stop/exception
-  spans around query and RPC execution (duration measurement; query / namespace /
-  database metadata). Enables LiveDashboard integration and structured logging.
 
 ## Deferred ideas
 
@@ -53,5 +59,5 @@ Living backlog for the SurrealDB Elixir SDK. Design rationale lives in
 
 ## Publishing
 
-- Not yet on Hex; installed as a git dependency. A Hex release is a future
-  milestone once F1/F2 land and the public API stabilizes.
+- Not yet on Hex; installed as a git dependency. F1 and F2 have both landed.
+  A Hex release is a future milestone once the public API stabilizes further.
