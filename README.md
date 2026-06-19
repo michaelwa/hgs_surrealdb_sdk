@@ -139,6 +139,25 @@ mix igniter.install hgs_surrealdb_sdk@path:../hgs_surrealdb_sdk --namespace app 
 The installer adds the dependency, creates a `SurrealDB.Store` module, wires it
 into your supervision tree, and writes starter config.
 
+### Migrations
+
+Create `.surql` files under `priv/surrealdb_migrations`, then use the Mix tasks
+from your application:
+
+```bash
+mix surreal_db.gen.migration add_users
+mix surreal_db.create --store MyApp.SurrealStore
+mix surreal_db.setup --store MyApp.SurrealStore
+mix surreal_db.reset --store MyApp.SurrealStore --force
+mix surreal_db.migrate --store MyApp.SurrealStore
+mix surreal_db.migrations --store MyApp.SurrealStore
+mix surreal_db.rollback --store MyApp.SurrealStore --force
+mix surreal_db.drop --store MyApp.SurrealStore --force
+```
+
+See [Migrations](docs/migrations.md) for task options, registry behavior, and
+rollback notes.
+
 ## Guides
 
 - [Getting Started](docs/getting-started.md)
