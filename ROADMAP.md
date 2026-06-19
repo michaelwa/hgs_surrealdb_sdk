@@ -11,7 +11,7 @@ Living backlog for the SurrealDB Elixir SDK. Design rationale lives in
   `ref:` needed). Key finding at the time: the OTP application required
   `config :hgs_surrealdb_sdk, connection: [...]` to boot — later superseded by
   F2, after which the app boots without it and the README documents the
-  connection config under "Configuration (app-level client)".
+  connection config under "Getting started → App-level client (legacy)".
 - **R2 — Igniter installer.** `mix igniter.install hgs_surrealdb_sdk` scaffolds
   the required `config :hgs_surrealdb_sdk, connection: [...]` block via
   `Mix.Tasks.HgsSurrealdbSdk.Install`. Tested with `Igniter.Test` and verified

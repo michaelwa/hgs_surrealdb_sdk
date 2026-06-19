@@ -35,7 +35,17 @@ Current support:
 
 > Need a SurrealDB server first? See [Installing SurrealDB](docs/installing-surrealdb.md).
 
-This SDK is not published to Hex. Add it as a git dependency in `mix.exs`:
+This SDK is not published to Hex. There are three ways to install it:
+
+| Method | Use when |
+| --- | --- |
+| [Git dependency (GitHub)](#method-1--git-dependency-github) | Normal use — pull the SDK straight from the repo |
+| [Local path dependency](#method-2--local-path-dependency-filesystem) | Developing the SDK and a consuming app side by side |
+| [Igniter (automated)](#method-3--igniter-automated) | Your app uses Igniter and you want the dep *and* config scaffolded |
+
+### Method 1 — Git dependency (GitHub)
+
+Add it as a git dependency in `mix.exs`:
 
 ```elixir
 def deps do
@@ -47,36 +57,101 @@ def deps do
 end
 ```
 
-Then fetch it:
+### Method 2 — Local path dependency (filesystem)
+
+If you have the SDK checked out locally (e.g. to work on it and a consuming app
+at the same time), point at it by path instead:
+
+```elixir
+def deps do
+  [
+    {:hgs_surrealdb_sdk, path: "../hgs_surrealdb_sdk"}
+  ]
+end
+```
+
+### Fetch and compile (Methods 1 and 2)
 
 ```bash
 mix deps.get
+mix deps.compile
 ```
 
 > The OTP app is `:hgs_surrealdb_sdk`, but all modules live under the `SurrealDB.*` namespace.
 
-### Install with Igniter
+Installing the dependency only makes the SDK *available* — it starts no
+connection on its own. **Continue to [Getting started](#getting-started)** to
+configure how your app connects.
+
+### Method 3 — Igniter (automated)
+
+If your project uses [Igniter](https://hexdocs.pm/igniter), a single command
+adds the dependency *and* scaffolds the store module, supervision-tree entry,
+and config — no manual `mix.exs` or config edits. See [Set up with
+Igniter](#set-up-with-igniter-automated) under Getting started.
+
+> **Note:** this SDK lists `igniter` as an *optional* dependency, so installing
+> via Method 1 or 2 does **not** pull Igniter into your project.
+
+### Troubleshooting
+
+**Compile error mentioning `Igniter.Mix.Task.Info` and
+`Mix.Tasks.PhoenixLiveView.Upgrade`** (e.g. *"expected Igniter.Mix.Task.Info to
+return struct metadata, but got none"*, with a *"Please report this bug at …
+elixir-lang/elixir"* footer):
+
+This is **not** from this SDK. It is your own app's `phoenix_live_view` +
+`igniter` versions hitting Elixir 1.20's type checker while compiling
+`phoenix_live_view`'s Igniter-based upgrade task. Running `mix deps.compile`
+recompiles those deps, which is what surfaces it. The SDK's own modules never
+appear in the trace. Update the offending deps to current versions:
+
+```bash
+mix deps.update igniter phoenix_live_view
+```
+
+## Getting started
+
+The SDK application boots without any connection config: it starts only a
+Registry and waits for you to create a connection. After installing, pick the
+style that fits your app:
+
+| Style | When to use | Setup |
+| --- | --- | --- |
+| **Supervised store** (recommended) | A long-lived, named, config-driven app connection | [Supervised store](#supervised-store-recommended) |
+| **App-level client** (legacy) | A single shared connection via `SurrealDB.connect/0` | [App-level client](#app-level-client-legacy) |
+| **Explicit client** | One-off scripts, tests, or multiple endpoints | Pass options straight to [`SurrealDB.connect/1`](#usage) — no config needed |
+
+> Whichever style you choose, the target `namespace` and `database` must already
+> exist on the SurrealDB server. On a fresh server, define them once (e.g. as
+> `root`): `DEFINE NAMESPACE IF NOT EXISTS test;` then
+> `DEFINE DATABASE IF NOT EXISTS test;` (the latter scoped to the namespace).
+> See [Installing SurrealDB](docs/installing-surrealdb.md).
+
+### Set up with Igniter (automated)
 
 If your project uses [Igniter](https://hexdocs.pm/igniter), you can add the
 dependency and scaffold a `SurrealDB.Store` module, supervision-tree entry, and
-per-app config block in one step:
+per-app config block in one step — no manual `mix.exs` or config edits needed:
 
 ```bash
 mix igniter.install hgs_surrealdb_sdk --namespace app --database app
 ```
 
 This adds the dep, generates a store module (see [Supervised
-connection](#supervised-connection-surrealdbstore) below), wires it into your
-supervision tree, and writes a per-store `config` block to
-`config/runtime.exs`. Override `--endpoint`, `--namespace`, and `--database` as
-needed; credentials default to `root`/`root` for a local dev server — change
-them per environment in `config/runtime.exs`.
+store](#supervised-store-recommended) below), wires it into your supervision
+tree, and writes a per-store `config` block to `config/runtime.exs`. Override
+`--endpoint`, `--namespace`, and `--database` as needed; credentials default to
+`root`/`root` for a local dev server — change them per environment in
+`config/runtime.exs`.
 
-> The installer task ships behind an optional `igniter` dependency. Reaching it
-> via `mix igniter.install` works out of the box. To run `mix hgs_surrealdb_sdk.install`
-> directly, your project must already depend on `igniter`.
+> The installer task ships behind an optional `igniter` dependency.
+> `mix igniter.install hgs_surrealdb_sdk` fetches igniter for you and works out
+> of the box. To run `mix hgs_surrealdb_sdk.install` directly instead, add
+> `{:igniter, "~> 0.5", only: [:dev]}` to your deps first — without it the task
+> prints installation instructions and exits.
 
-## Supervised connection (`SurrealDB.Store`)
+### Supervised store (recommended)
 
 Define a store and add it to your supervision tree to get a named, supervised,
 config-driven connection — no explicit client argument on calls:
@@ -108,21 +183,20 @@ MyApp.SurrealStore.client()   # {:ok, %SurrealDB.Client{}} escape hatch
 
 Config is read when the store starts (runtime), so `config/runtime.exs` and
 releases work naturally. With `transport: :websocket` the store supervises a
-self-reconnecting WebSocket connection. `mix igniter.install hgs_surrealdb_sdk`
-scaffolds the store module, the supervision-tree entry, and this config block
-for you.
+self-reconnecting WebSocket connection. [`mix igniter.install
+hgs_surrealdb_sdk`](#set-up-with-igniter-automated) scaffolds the store module,
+the supervision-tree entry, and this config block for you.
 
-## Configuration (app-level client)
+### App-level client (legacy)
 
-The SDK application boots without any connection config — it starts only a
-Registry and waits for stores or explicit clients to be created. The block below
-is needed only if you use `SurrealDB.connect/0` (the legacy app-level client
-that reads a single shared connection from the SDK's own config). If you use
-`SurrealDB.Store` (recommended), skip this section and configure each store
-under your app's namespace instead (see above).
+This style is needed only if you use `SurrealDB.connect/0` — the legacy
+app-level client that reads a single shared connection from the SDK's own
+config. If you use a [supervised store](#supervised-store-recommended)
+(recommended), skip this section and configure each store under your app's
+namespace instead.
 
-Add the following to `config/config.exs` if you rely on `SurrealDB.connect/0`
-(override credentials per-environment in `config/runtime.exs`):
+Add the following to `config/config.exs` (override credentials per-environment
+in `config/runtime.exs`):
 
 ```elixir
 config :hgs_surrealdb_sdk,
@@ -142,11 +216,6 @@ config :hgs_surrealdb_sdk,
 `username` **and** `password`, or `auth_token`, or `anonymous: true`. Without a
 valid `:connection` block the call to `SurrealDB.connect/0` returns
 `{:error, %SurrealDB.Error{type: :invalid_config}}`.
-
-> The target `namespace` and `database` must already exist on the SurrealDB
-> server. On a fresh server, define them once (e.g. as `root`):
-> `DEFINE NAMESPACE IF NOT EXISTS test;` then `DEFINE DATABASE IF NOT EXISTS test;`
-> (the latter scoped to the namespace). See [Installing SurrealDB](docs/installing-surrealdb.md).
 
 ## Usage
 
