@@ -1,8 +1,9 @@
 # Installing SurrealDB
 
-This SDK talks to a running SurrealDB server; it does not bundle one. Choose
-whichever install method fits your environment. All three result in a server you
-can reach over HTTP (`http://localhost:8000`) or WebSocket (`ws://localhost:8000/rpc`).
+This SDK talks to a running [SurrealDB](https://surrealdb.com/docs/surrealdb)
+server; it does not bundle one. Choose whichever install method fits your
+environment. All three result in a server you can reach over HTTP
+(`http://localhost:8000`) or WebSocket (`ws://localhost:8000/rpc`).
 
 ## Option 1: Install script (direct install)
 
@@ -56,7 +57,7 @@ curl -s -X POST http://localhost:8000/sql -u root:root \
   -d "DEFINE DATABASE IF NOT EXISTS test;"
 ```
 
-Use whatever names match your `config :hgs_surrealdb_sdk, connection: [...]`
-(`namespace`/`database`) — `test`/`test` above are the local defaults.
+Use whatever names match your store or client config. `test`/`test` above are
+simple local defaults.
 
-Then connect from Elixir per the [README](../README.md#usage).
+Then connect from Elixir per the [Getting Started guide](getting-started.md).
