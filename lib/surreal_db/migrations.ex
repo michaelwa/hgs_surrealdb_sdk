@@ -17,6 +17,8 @@ defmodule SurrealDB.Migrations do
           status: :applied | :skipped
         }
 
+  @type registry_row :: map()
+
   @spec install_registry(Client.t(), keyword()) :: :ok | {:error, Error.t()}
   def install_registry(%Client{} = client, opts \\ []) when is_list(opts) do
     with :ok <- ensure_http_client(client),
@@ -54,6 +56,75 @@ defmodule SurrealDB.Migrations do
     end
   end
 
+  @spec status(Client.t(), keyword()) :: {:ok, [registry_row()]} | {:error, Error.t()}
+  def status(%Client{} = client, opts) when is_list(opts) do
+    with :ok <- ensure_http_client(client),
+         {:ok, config} <- build_target_config(opts) do
+      query = """
+      SELECT migration_key, target_ns, target_db, filename, checksum, sdk_version, status, applied_at, started_at, finished_at, duration_ms, error_message, attempt_count
+      FROM sdk_migration
+      WHERE target_ns = $target_ns
+        AND target_db = $target_db
+      ORDER BY filename ASC;
+      """
+
+      with {:ok, %QueryResult{} = result} <-
+             SurrealDB.query(registry_client(client, opts), query, target_variables(config)),
+           {:ok, rows} <- first_statement_rows(result) do
+        {:ok, rows}
+      end
+    end
+  end
+
+  @spec status!(Client.t(), keyword()) :: [registry_row()]
+  def status!(%Client{} = client, opts) when is_list(opts) do
+    case status(client, opts) do
+      {:ok, rows} -> rows
+      {:error, %Error{} = error} -> raise error
+    end
+  end
+
+  @spec reset(Client.t(), keyword()) :: {:ok, QueryResult.t()} | {:error, Error.t()}
+  def reset(%Client{} = client, opts) when is_list(opts) do
+    with :ok <- ensure_http_client(client),
+         {:ok, config} <- build_target_config(opts) do
+      query = """
+      DELETE sdk_migration
+      WHERE target_ns = $target_ns
+        AND target_db = $target_db;
+      """
+
+      SurrealDB.query(registry_client(client, opts), query, target_variables(config))
+    end
+  end
+
+  @spec reset!(Client.t(), keyword()) :: QueryResult.t()
+  def reset!(%Client{} = client, opts) when is_list(opts) do
+    case reset(client, opts) do
+      {:ok, result} -> result
+      {:error, %Error{} = error} -> raise error
+    end
+  end
+
+  @spec rollback(Client.t(), keyword()) :: {:ok, [registry_row()]} | {:error, Error.t()}
+  def rollback(%Client{} = client, opts) when is_list(opts) do
+    with :ok <- ensure_http_client(client),
+         {:ok, config} <- build_rollback_config(opts),
+         {:ok, rows} <- applied_rows_for_rollback(registry_client(client, opts), config),
+         :ok <- execute_down_files(client, config, rows),
+         {:ok, _result} <- delete_rolled_back_rows(registry_client(client, opts), config, rows) do
+      {:ok, rows}
+    end
+  end
+
+  @spec rollback!(Client.t(), keyword()) :: [registry_row()]
+  def rollback!(%Client{} = client, opts) when is_list(opts) do
+    case rollback(client, opts) do
+      {:ok, rows} -> rows
+      {:error, %Error{} = error} -> raise error
+    end
+  end
+
   defp build_run_config(opts) do
     missing =
       [:path, :target_ns, :target_db, :sdk_version]
@@ -67,7 +138,10 @@ defmodule SurrealDB.Migrations do
            target_ns: Keyword.fetch!(opts, :target_ns),
            target_db: Keyword.fetch!(opts, :target_db),
            sdk_version: Keyword.fetch!(opts, :sdk_version),
-           allow_failed_rerun?: Keyword.get(opts, :allow_failed_rerun?, false)
+           allow_failed_rerun?: Keyword.get(opts, :allow_failed_rerun?, false),
+           step: Keyword.get(opts, :step),
+           to: Keyword.get(opts, :to),
+           to_exclusive: Keyword.get(opts, :to_exclusive)
          }}
 
       _ ->
@@ -76,6 +150,148 @@ defmodule SurrealDB.Migrations do
            type: :invalid_migration_options,
            details: %{missing: missing}
          )}
+    end
+  end
+
+  defp build_target_config(opts) do
+    missing =
+      [:target_ns, :target_db]
+      |> Enum.filter(&blank?(Keyword.get(opts, &1)))
+
+    case missing do
+      [] ->
+        {:ok,
+         %{
+           target_ns: Keyword.fetch!(opts, :target_ns),
+           target_db: Keyword.fetch!(opts, :target_db)
+         }}
+
+      _ ->
+        {:error,
+         migration_error("missing required migration options",
+           type: :invalid_migration_options,
+           details: %{missing: missing}
+         )}
+    end
+  end
+
+  defp build_rollback_config(opts) do
+    with {:ok, config} <- build_target_config(opts),
+         {:ok, steps} <- validate_rollback_steps(Keyword.get(opts, :steps, 1)) do
+      {:ok,
+       Map.merge(config, %{
+         steps: steps,
+         down_path: Keyword.get(opts, :down_path),
+         to: Keyword.get(opts, :to),
+         to_exclusive: Keyword.get(opts, :to_exclusive)
+       })}
+    end
+  end
+
+  defp validate_rollback_steps(steps) when is_integer(steps) and steps > 0, do: {:ok, steps}
+
+  defp validate_rollback_steps(steps) do
+    {:error,
+     migration_error("rollback steps must be a positive integer",
+       type: :invalid_migration_options,
+       details: %{steps: steps}
+     )}
+  end
+
+  defp applied_rows_for_rollback(registry, config) do
+    query = """
+    SELECT migration_key, target_ns, target_db, filename, checksum, sdk_version, status, applied_at, attempt_count
+    FROM sdk_migration
+    WHERE target_ns = $target_ns
+      AND target_db = $target_db
+      AND status = 'applied'
+      #{rollback_version_filter(config)}
+    ORDER BY filename DESC
+    LIMIT #{config.steps};
+    """
+
+    with {:ok, %QueryResult{} = result} <-
+           SurrealDB.query(registry, query, target_variables(config)),
+         {:ok, rows} <- first_statement_rows(result) do
+      {:ok, rows}
+    end
+  end
+
+  defp execute_down_files(_client, %{down_path: nil}, _rows), do: :ok
+  defp execute_down_files(_client, %{down_path: ""}, _rows), do: :ok
+
+  defp execute_down_files(client, config, rows) do
+    target = target_client(client, config)
+
+    Enum.reduce_while(rows, :ok, fn row, :ok ->
+      path = Path.join(config.down_path, Map.fetch!(row, "filename"))
+
+      with {:ok, contents} <- read_down_file(path),
+           {:ok, _result} <- SurrealDB.query(target, contents) do
+        {:cont, :ok}
+      else
+        {:error, %Error{} = error} -> {:halt, {:error, error}}
+      end
+    end)
+  end
+
+  defp read_down_file(path) do
+    case File.read(path) do
+      {:ok, contents} ->
+        {:ok, contents}
+
+      {:error, reason} ->
+        {:error,
+         migration_error("failed to read rollback migration file",
+           type: :migration_file_error,
+           details: %{path: path, reason: reason}
+         )}
+    end
+  end
+
+  defp delete_rolled_back_rows(_registry, _config, []), do: {:ok, %QueryResult{results: []}}
+
+  defp delete_rolled_back_rows(registry, config, rows) do
+    filenames = Enum.map(rows, &Map.fetch!(&1, "filename"))
+
+    query = """
+    DELETE sdk_migration
+    WHERE target_ns = $target_ns
+      AND target_db = $target_db
+      AND filename IN $filenames
+      AND status = 'applied';
+    """
+
+    variables =
+      config
+      |> target_variables()
+      |> Map.put(:filenames, filenames)
+
+    SurrealDB.query(registry, query, variables)
+  end
+
+  defp rollback_version_filter(%{to: to}) when is_binary(to) and to != "" do
+    "AND filename >= #{Jason.encode!(to)}"
+  end
+
+  defp rollback_version_filter(%{to_exclusive: to_exclusive})
+       when is_binary(to_exclusive) and to_exclusive != "" do
+    "AND filename > #{Jason.encode!(to_exclusive)}"
+  end
+
+  defp rollback_version_filter(_config), do: ""
+
+  defp load_migrations(paths) when is_list(paths) do
+    paths
+    |> Enum.reduce_while({:ok, []}, fn path, {:ok, acc} ->
+      case load_migrations(path) do
+        {:ok, migrations} -> {:cont, {:ok, acc ++ migrations}}
+        {:error, %Error{} = error} -> {:halt, {:error, error}}
+      end
+    end)
+    |> case do
+      {:ok, migrations} -> {:ok, Enum.sort_by(migrations, & &1.filename)}
+      other -> other
     end
   end
 
@@ -143,12 +359,51 @@ defmodule SurrealDB.Migrations do
     "sha256:" <> hash
   end
 
-  defp run_migrations([], _registry, _target, _config, acc), do: {:ok, Enum.reverse(acc)}
+  defp run_migrations(migrations, registry, target, config, acc) do
+    migrations
+    |> filter_migrations(config)
+    |> do_run_migrations(registry, target, config, acc)
+  end
 
-  defp run_migrations([migration | rest], registry, target, config, acc) do
+  defp filter_migrations(migrations, config) do
+    migrations
+    |> filter_to(config)
+    |> filter_to_exclusive(config)
+    |> filter_step(config)
+  end
+
+  defp filter_to(migrations, %{to: to}) when is_binary(to) and to != "" do
+    Enum.filter(migrations, &(migration_version(&1.filename) <= to))
+  end
+
+  defp filter_to(migrations, _config), do: migrations
+
+  defp filter_to_exclusive(migrations, %{to_exclusive: to_exclusive})
+       when is_binary(to_exclusive) and to_exclusive != "" do
+    Enum.filter(migrations, &(migration_version(&1.filename) < to_exclusive))
+  end
+
+  defp filter_to_exclusive(migrations, _config), do: migrations
+
+  defp filter_step(migrations, %{step: step}) when is_integer(step) and step > 0 do
+    Enum.take(migrations, step)
+  end
+
+  defp filter_step(migrations, _config), do: migrations
+
+  defp migration_version(filename) do
+    case Regex.run(~r/\A(\d+)/, filename) do
+      [_, version] -> version
+      _ -> filename
+    end
+  end
+
+  defp do_run_migrations([], _registry, _target, _config, acc), do: {:ok, Enum.reverse(acc)}
+
+  defp do_run_migrations([migration | rest], registry, target, config, acc) do
     with {:ok, decision} <- preflight(registry, migration, config),
          {:ok, result} <- execute_decision(decision, registry, target, migration, config) do
-      run_migrations(rest, registry, target, config, [result | acc])
+      do_run_migrations(rest, registry, target, config, [result | acc])
     end
   end
 
@@ -442,6 +697,13 @@ defmodule SurrealDB.Migrations do
 
   defp target_client(%Client{} = client, config) do
     %Client{client | namespace: config.target_ns, database: config.target_db}
+  end
+
+  defp target_variables(config) do
+    %{
+      target_ns: config.target_ns,
+      target_db: config.target_db
+    }
   end
 
   defp registry_variables(migration, config) do

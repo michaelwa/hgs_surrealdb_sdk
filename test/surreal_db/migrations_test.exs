@@ -118,6 +118,51 @@ defmodule SurrealDB.MigrationsTest do
     assert_no_remaining_calls(calls)
   end
 
+  test "run honors step and version filters" do
+    path =
+      tmp_migrations(%{
+        "20260619000100_first.surql" => "RETURN 1;",
+        "20260619000200_second.surql" => "RETURN 2;",
+        "20260619000300_third.surql" => "RETURN 3;"
+      })
+
+    calls =
+      scripted_calls([
+        fn request ->
+          assert_registry_request(request)
+          assert request.body =~ ~s(filename = "20260619000100_first.surql")
+          ok_response(request, [])
+        end,
+        fn request ->
+          assert_registry_request(request)
+          ok_response(request, [%{"status" => "running"}])
+        end,
+        fn request ->
+          assert_target_request(request)
+          assert request.body == "RETURN 1;"
+          ok_response(request, [%{"ok" => true}])
+        end,
+        fn request ->
+          assert_registry_request(request)
+          ok_response(request, [%{"status" => "applied"}])
+        end
+      ])
+
+    assert {:ok, [%{filename: "20260619000100_first.surql"}]} =
+             calls
+             |> client_with_adapter()
+             |> Migrations.run(
+               path: path,
+               target_ns: "app_ns",
+               target_db: "app_db",
+               sdk_version: "0.1.0",
+               step: 1,
+               to: "20260619000200"
+             )
+
+    assert_no_remaining_calls(calls)
+  end
+
   test "run rejects checksum drift" do
     path = tmp_migrations(%{"001_changed.surql" => "RETURN 2;"})
 
@@ -302,6 +347,114 @@ defmodule SurrealDB.MigrationsTest do
                target_db: "app_db",
                sdk_version: "0.1.0"
              )
+  end
+
+  test "status lists registry rows for the target scope" do
+    calls =
+      scripted_calls([
+        fn request ->
+          assert_registry_request(request)
+          assert request.body =~ "FROM sdk_migration"
+          assert request.body =~ ~s(target_ns = "app_ns")
+          assert request.body =~ ~s(target_db = "app_db")
+          assert request.body =~ "ORDER BY filename ASC"
+
+          ok_response(request, [
+            %{"filename" => "001_first.surql", "status" => "applied"}
+          ])
+        end
+      ])
+
+    assert {:ok, [%{"filename" => "001_first.surql", "status" => "applied"}]} =
+             calls
+             |> client_with_adapter()
+             |> Migrations.status(target_ns: "app_ns", target_db: "app_db")
+
+    assert_no_remaining_calls(calls)
+  end
+
+  test "reset deletes registry rows for the target scope only" do
+    calls =
+      scripted_calls([
+        fn request ->
+          assert_registry_request(request)
+          assert request.body =~ "DELETE sdk_migration"
+          assert request.body =~ ~s(target_ns = "app_ns")
+          assert request.body =~ ~s(target_db = "app_db")
+          ok_response(request, [%{"deleted" => true}])
+        end
+      ])
+
+    assert {:ok, _result} =
+             calls
+             |> client_with_adapter()
+             |> Migrations.reset(target_ns: "app_ns", target_db: "app_db")
+
+    assert_no_remaining_calls(calls)
+  end
+
+  test "rollback removes the latest applied registry rows" do
+    calls =
+      scripted_calls([
+        fn request ->
+          assert_registry_request(request)
+          assert request.body =~ "status = 'applied'"
+          assert request.body =~ "ORDER BY filename DESC"
+          assert request.body =~ "LIMIT 2"
+
+          ok_response(request, [
+            %{"filename" => "002_second.surql", "status" => "applied"},
+            %{"filename" => "001_first.surql", "status" => "applied"}
+          ])
+        end,
+        fn request ->
+          assert_registry_request(request)
+          assert request.body =~ "DELETE sdk_migration"
+          assert request.body =~ ~s(filename IN ["002_second.surql","001_first.surql"])
+          ok_response(request, [%{"deleted" => true}])
+        end
+      ])
+
+    assert {:ok, rows} =
+             calls
+             |> client_with_adapter()
+             |> Migrations.rollback(target_ns: "app_ns", target_db: "app_db", steps: 2)
+
+    assert Enum.map(rows, & &1["filename"]) == ["002_second.surql", "001_first.surql"]
+    assert_no_remaining_calls(calls)
+  end
+
+  test "rollback runs matching down files before deleting registry rows" do
+    down_path = tmp_migrations(%{"001_first.surql" => "REMOVE TABLE first;"})
+
+    calls =
+      scripted_calls([
+        fn request ->
+          assert_registry_request(request)
+          ok_response(request, [%{"filename" => "001_first.surql", "status" => "applied"}])
+        end,
+        fn request ->
+          assert_target_request(request)
+          assert request.body == "REMOVE TABLE first;"
+          ok_response(request, [%{"removed" => true}])
+        end,
+        fn request ->
+          assert_registry_request(request)
+          assert request.body =~ "DELETE sdk_migration"
+          ok_response(request, [%{"deleted" => true}])
+        end
+      ])
+
+    assert {:ok, [%{"filename" => "001_first.surql"}]} =
+             calls
+             |> client_with_adapter()
+             |> Migrations.rollback(
+               target_ns: "app_ns",
+               target_db: "app_db",
+               down_path: down_path
+             )
+
+    assert_no_remaining_calls(calls)
   end
 
   test "bang variants raise structured errors" do
