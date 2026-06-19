@@ -246,6 +246,51 @@ self-reconnecting WebSocket connection. [`mix igniter.install
 hgs_surrealdb_sdk`](#set-up-with-igniter-automated) scaffolds the store module,
 the supervision-tree entry, and this config block for you.
 
+#### Verify your setup
+
+With a SurrealDB server running and the `namespace`/`database` already defined
+(see the note under [Getting started](#getting-started)), start an IEx session
+and run this smoke test. Replace `MyApp.SurrealStore` with your store module.
+
+```bash
+iex -S mix phx.server   # or: iex -S mix
+```
+
+```elixir
+store = MyApp.SurrealStore
+
+# 1. Config is loaded (confirms the runtime.exs placement is correct)
+store.config()
+#=> [endpoint: "http://localhost:8000", namespace: "app", database: "app", ...]
+
+# 2. Client resolves (confirms the store booted and is supervised)
+store.client()
+#=> {:ok, %SurrealDB.Client{endpoint: "http://localhost:8000", transport: :http, ...}}
+
+# 3. Connectivity + auth against the server
+store.query("RETURN 1 + 1")
+#=> {:ok, %SurrealDB.QueryResult{results: [2], statuses: ["OK"]}}
+
+# 4. CRUD roundtrip
+store.query("CREATE person:alice SET name = 'Alice', age = 30")
+store.query("SELECT * FROM person")
+store.query("UPDATE person:alice SET age = 31")
+store.query("DELETE person:alice")
+store.query("SELECT * FROM person:alice")   #=> results: [[]] (gone)
+
+# 5. Parameterized query (variable binding)
+store.query("CREATE person:bob SET name = $name", %{name: "Bob"})
+store.query("SELECT * FROM person WHERE name = $n", %{n: "Bob"})
+store.query("DELETE person:bob")
+```
+
+Each step proves: **(1)** config placement, **(2)** supervised boot,
+**(3)** auth/transport to the live server, **(4)** the full read/write path,
+**(5)** variable binding. If step 4 fails with `The namespace '...' does not
+exist`, define the namespace and database first (see
+[Getting started](#getting-started)) — a fresh SurrealDB container without a
+persistent volume loses them on restart.
+
 ### App-level client (legacy)
 
 This style is needed only if you use `SurrealDB.connect/0` — the legacy
