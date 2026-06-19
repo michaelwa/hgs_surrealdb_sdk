@@ -110,6 +110,27 @@ appear in the trace. Update the offending deps to current versions:
 mix deps.update igniter phoenix_live_view
 ```
 
+**App fails to boot with `missing required options` (or `missing required:
+[:endpoint, :namespace, :database]`):**
+
+A supervised store validates its config in `start_link`, so a missing or
+misconfigured store **fails the application at boot** — it does not lazily error
+on the first query. Two common causes:
+
+1. The config is trapped inside the `if config_env() == :prod do ... end` block
+   in `config/runtime.exs`, so it is never applied in `:dev`/`:test`. Move it
+   outside that block (see [Supervised store](#supervised-store-recommended)).
+2. The app atom in `config :my_app, MyApp.SurrealStore` does not match the
+   `otp_app:` passed to `use SurrealDB.Store`. They must be identical.
+
+**Git dependency does not pick up new commits:** `mix deps.get` honors the SHA
+locked in `mix.lock` and will not advance on its own — even after you delete the
+dep from `deps/`. To move to the latest commit on the ref, run:
+
+```bash
+mix deps.update hgs_surrealdb_sdk
+```
+
 ## Getting started
 
 The SDK application boots without any connection config: it starts only a
@@ -154,14 +175,27 @@ tree, and writes a per-store `config` block to `config/runtime.exs`. Override
 ### Supervised store (recommended)
 
 Define a store and add it to your supervision tree to get a named, supervised,
-config-driven connection — no explicit client argument on calls:
+config-driven connection — no explicit client argument on calls.
+
+> Replace `:my_app` with your application's OTP name (the `app:` value in your
+> `mix.exs`) and `MyApp` with your module prefix throughout. The app atom in
+> `config :my_app, ...` **must match** the `otp_app:` you pass to
+> `use SurrealDB.Store` — if they differ, the store starts with empty config and
+> the application fails to boot (see [Troubleshooting](#troubleshooting)).
+
+**1. Define the store module** (`lib/my_app/surreal_store.ex`):
 
 ```elixir
 defmodule MyApp.SurrealStore do
   use SurrealDB.Store, otp_app: :my_app
 end
+```
 
-# config/runtime.exs
+**2. Add the connection config.** For static values, `config/config.exs` is the
+simplest home. To drive it from environment variables (releases), use
+`config/runtime.exs` — but see the warning below.
+
+```elixir
 config :my_app, MyApp.SurrealStore,
   endpoint: "http://localhost:8000",
   namespace: "app",
@@ -169,9 +203,34 @@ config :my_app, MyApp.SurrealStore,
   username: "root",
   password: "root",
   transport: :http   # or :websocket
+```
 
-# lib/my_app/application.ex
-children = [MyApp.SurrealStore]
+> ⚠️ **Placement in `config/runtime.exs`:** a Phoenix-generated `runtime.exs`
+> wraps its real configuration in an `if config_env() == :prod do ... end`
+> block. This config must live **outside** that block (e.g. at the very bottom
+> of the file, at the top level) — otherwise it is only applied in `:prod` and
+> your app will crash at boot in `:dev`/`:test` with a `missing required
+> options` error. Example using env vars:
+>
+> ```elixir
+> # config/runtime.exs — at top level, NOT inside `if config_env() == :prod`
+> config :my_app, MyApp.SurrealStore,
+>   endpoint: System.get_env("SURREALDB_ENDPOINT") || "http://localhost:8000",
+>   namespace: System.get_env("SURREALDB_NS") || "app",
+>   database: System.get_env("SURREALDB_DB") || "app",
+>   username: System.get_env("SURREALDB_USER") || "root",
+>   password: System.get_env("SURREALDB_PASS") || "root",
+>   transport: :http
+> ```
+
+**3. Add the store to your supervision tree** (`lib/my_app/application.ex`) —
+append it to your existing `children` list, do not replace it:
+
+```elixir
+children = [
+  # ... your existing children ...
+  MyApp.SurrealStore
+]
 ```
 
 ```elixir
