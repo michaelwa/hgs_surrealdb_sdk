@@ -86,9 +86,9 @@ configure how your app connects.
 ### Method 3 — Igniter (automated)
 
 If your project uses [Igniter](https://hexdocs.pm/igniter), a single command
-adds the dependency *and* scaffolds the store module, supervision-tree entry,
-and config — no manual `mix.exs` or config edits. See [Set up with
-Igniter](#set-up-with-igniter-automated) under Getting started.
+can add the GitHub or local path dependency *and* scaffold the store module,
+supervision-tree entry, and config — no manual `mix.exs` or config edits. See
+[Set up with Igniter](#set-up-with-igniter-automated) under Getting started.
 
 > **Note:** this SDK lists `igniter` as an *optional* dependency, so installing
 > via Method 1 or 2 does **not** pull Igniter into your project.
@@ -153,10 +153,18 @@ style that fits your app:
 
 If your project uses [Igniter](https://hexdocs.pm/igniter), you can add the
 dependency and scaffold a `SurrealDB.Store` module, supervision-tree entry, and
-per-app config block in one step — no manual `mix.exs` or config edits needed:
+per-app config block in one step — no manual `mix.exs` or config edits needed.
+Because this SDK is not published to Hex, include the dependency source in the
+Igniter package spec:
 
 ```bash
-mix igniter.install hgs_surrealdb_sdk --namespace app --database app
+mix igniter.install hgs_surrealdb_sdk@github:michaelwa/hgs_surrealdb_sdk --namespace app --database app
+```
+
+For side-by-side local development, use a path dependency instead:
+
+```bash
+mix igniter.install hgs_surrealdb_sdk@path:../hgs_surrealdb_sdk --namespace app --database app
 ```
 
 This adds the dep, generates a store module (see [Supervised
@@ -167,10 +175,11 @@ tree, and writes a per-store `config` block to `config/runtime.exs`. Override
 `config/runtime.exs`.
 
 > The installer task ships behind an optional `igniter` dependency.
-> `mix igniter.install hgs_surrealdb_sdk` fetches igniter for you and works out
-> of the box. To run `mix hgs_surrealdb_sdk.install` directly instead, add
-> `{:igniter, "~> 0.5", only: [:dev]}` to your deps first — without it the task
-> prints installation instructions and exits.
+> `mix igniter.install hgs_surrealdb_sdk@github:michaelwa/hgs_surrealdb_sdk`
+> fetches igniter for you and works out of the box. To run
+> `mix hgs_surrealdb_sdk.install` directly instead, add this SDK and
+> `{:igniter, "~> 0.5", only: [:dev]}` to your deps first — without Igniter the
+> task prints installation instructions and exits.
 
 ### Supervised store (recommended)
 
