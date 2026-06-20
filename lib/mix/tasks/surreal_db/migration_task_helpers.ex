@@ -233,17 +233,49 @@ defmodule Mix.Tasks.SurrealDb.MigrationTaskHelpers do
   defp store_options(opts) do
     case Keyword.get(opts, :store) || Keyword.get(opts, :repo) do
       nil ->
-        []
+        auto_detect_store_options(opts)
 
       store_name ->
-        store = module_from_string!(store_name)
-
-        unless Code.ensure_loaded?(store) and function_exported?(store, :config, 0) do
-          Mix.raise("#{inspect(store)} is not loaded or does not expose config/0")
-        end
-
-        store.config()
+        store_name
+        |> module_from_string!()
+        |> store_config!()
     end
+  end
+
+  defp auto_detect_store_options(opts) do
+    case registered_stores() do
+      [store] ->
+        store_config!(store)
+
+      [] ->
+        []
+
+      stores ->
+        if manual_scope?(opts) do
+          []
+        else
+          Mix.raise("""
+          Multiple SurrealDB stores are registered under :surrealdb_stores \
+          (#{Enum.map_join(stores, ", ", &inspect/1)}). Pass --store <Module> to choose one.
+          """)
+        end
+    end
+  end
+
+  defp store_config!(store) do
+    unless Code.ensure_loaded?(store) and function_exported?(store, :config, 0) do
+      Mix.raise("#{inspect(store)} is not loaded or does not expose config/0")
+    end
+
+    store.config()
+  end
+
+  defp registered_stores do
+    Application.get_env(Mix.Project.config()[:app], :surrealdb_stores, [])
+  end
+
+  defp manual_scope?(opts) do
+    present?(Keyword.get(opts, :namespace)) and present?(Keyword.get(opts, :database))
   end
 
   defp module_from_string!(store_name) do

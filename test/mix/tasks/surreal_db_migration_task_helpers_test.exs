@@ -1,5 +1,5 @@
 defmodule Mix.Tasks.SurrealDb.MigrationTaskHelpersTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias Mix.Tasks.SurrealDb.MigrationTaskHelpers, as: Helpers
   alias SurrealDB.Client
@@ -12,6 +12,18 @@ defmodule Mix.Tasks.SurrealDb.MigrationTaskHelpersTest do
         database: "store_db",
         username: "store_user",
         password: "store_pass"
+      ]
+    end
+  end
+
+  defmodule OtherStore do
+    def config do
+      [
+        endpoint: "http://other.example:8000",
+        namespace: "other_ns",
+        database: "other_db",
+        username: "other_user",
+        password: "other_pass"
       ]
     end
   end
@@ -39,6 +51,63 @@ defmodule Mix.Tasks.SurrealDb.MigrationTaskHelpersTest do
 
     assert_raise Mix.Error, ~r/Could not determine a target namespace\/database/, fn ->
       Helpers.build_client!(opts)
+    end
+  end
+
+  describe "store auto-detection via :surrealdb_stores" do
+    setup do
+      app = Mix.Project.config()[:app]
+      previous = Application.get_env(app, :surrealdb_stores)
+
+      on_exit(fn ->
+        if previous do
+          Application.put_env(app, :surrealdb_stores, previous)
+        else
+          Application.delete_env(app, :surrealdb_stores)
+        end
+      end)
+
+      %{app: app}
+    end
+
+    test "auto-detects the single registered store when --store is omitted", %{app: app} do
+      Application.put_env(app, :surrealdb_stores, [__MODULE__.ExampleStore])
+
+      opts = Helpers.parse!([])
+      client = Helpers.build_client!(opts)
+
+      assert client.namespace == "store_ns"
+      assert client.database == "store_db"
+    end
+
+    test "raises when no store is registered and no scope is given", %{app: app} do
+      Application.put_env(app, :surrealdb_stores, [])
+
+      opts = Helpers.parse!([])
+
+      assert_raise Mix.Error, ~r/Could not determine a target namespace\/database/, fn ->
+        Helpers.build_client!(opts)
+      end
+    end
+
+    test "raises on ambiguous multiple stores without --store", %{app: app} do
+      Application.put_env(app, :surrealdb_stores, [__MODULE__.ExampleStore, __MODULE__.OtherStore])
+
+      opts = Helpers.parse!([])
+
+      assert_raise Mix.Error, ~r/Multiple SurrealDB stores are registered/, fn ->
+        Helpers.build_client!(opts)
+      end
+    end
+
+    test "explicit --namespace/--database bypasses ambiguous multiple stores", %{app: app} do
+      Application.put_env(app, :surrealdb_stores, [__MODULE__.ExampleStore, __MODULE__.OtherStore])
+
+      opts = Helpers.parse!(["--namespace", "manual_ns", "--database", "manual_db"])
+      client = Helpers.build_client!(opts)
+
+      assert client.namespace == "manual_ns"
+      assert client.database == "manual_db"
     end
   end
 
