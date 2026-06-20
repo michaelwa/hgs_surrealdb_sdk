@@ -34,6 +34,14 @@ defmodule Mix.Tasks.SurrealDb.MigrationTaskHelpersTest do
     assert client.transport == :http
   end
 
+  test "build_client! raises a clear error when no store or scope is given" do
+    opts = Helpers.parse!([])
+
+    assert_raise Mix.Error, ~r/Could not determine a target namespace\/database/, fn ->
+      Helpers.build_client!(opts)
+    end
+  end
+
   test "migration_opts defaults path and target to the client scope" do
     opts = Helpers.parse!(["--namespace", "app_ns", "--database", "app_db"])
     client = Helpers.build_client!(opts)
@@ -49,6 +57,10 @@ defmodule Mix.Tasks.SurrealDb.MigrationTaskHelpersTest do
   test "migration_opts accepts ecto-style migration flags" do
     opts =
       Helpers.parse!([
+        "--namespace",
+        "app_ns",
+        "--database",
+        "app_db",
         "--migrations-path",
         "priv/a",
         "--migrations-path",
@@ -68,7 +80,7 @@ defmodule Mix.Tasks.SurrealDb.MigrationTaskHelpersTest do
   end
 
   test "target_opts maps rollback --all to a large step count" do
-    opts = Helpers.parse!(["--all"])
+    opts = Helpers.parse!(["--namespace", "app_ns", "--database", "app_db", "--all"])
     client = Helpers.build_client!(opts)
 
     assert Helpers.target_opts(client, opts)[:steps] == 9_223_372_036_854_775_807

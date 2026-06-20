@@ -212,9 +212,22 @@ defmodule Mix.Tasks.SurrealDb.MigrationTaskHelpers do
     |> store_options()
     |> Keyword.merge(cli_connection_overrides(opts))
     |> put_default(:endpoint, "http://localhost:8000")
-    |> put_default(:namespace, "test")
-    |> put_default(:database, "test")
+    |> ensure_scope!()
     |> put_default_auth()
+  end
+
+  defp ensure_scope!(opts) do
+    if present?(Keyword.get(opts, :namespace)) and present?(Keyword.get(opts, :database)) do
+      opts
+    else
+      Mix.raise("""
+      Could not determine a target namespace/database.
+
+      Pass --store <Module>, or --namespace/--database explicitly, or run
+      `mix igniter.install hgs_surrealdb_sdk` to generate and register a
+      SurrealDB store.
+      """)
+    end
   end
 
   defp store_options(opts) do
