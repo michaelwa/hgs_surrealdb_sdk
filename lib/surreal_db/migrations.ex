@@ -40,7 +40,8 @@ defmodule SurrealDB.Migrations do
   def run(%Client{} = client, opts) when is_list(opts) do
     with :ok <- ensure_http_client(client),
          {:ok, config} <- build_run_config(opts),
-         {:ok, migrations} <- load_migrations(config.path) do
+         {:ok, migrations} <- load_migrations(config.path),
+         :ok <- install_registry(client, opts) do
       registry = registry_client(client, opts)
       target = target_client(client, config)
 
@@ -531,7 +532,7 @@ defmodule SurrealDB.Migrations do
 
   defp mark_running(registry, migration, config, :new) do
     query = """
-    INSERT INTO sdk_migration CONTENT {
+    INSERT INTO sdk_migration {
       migration_key: $migration_key,
       target_ns: $target_ns,
       target_db: $target_db,

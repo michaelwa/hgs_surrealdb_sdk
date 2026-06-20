@@ -28,6 +28,7 @@ defmodule SurrealDB.MigrationsTest do
 
     calls =
       scripted_calls([
+        install_registry_call(),
         fn request ->
           assert_registry_request(request)
           assert request.body =~ ~s(filename = "001_first.surql")
@@ -35,7 +36,8 @@ defmodule SurrealDB.MigrationsTest do
         end,
         fn request ->
           assert_registry_request(request)
-          assert request.body =~ "INSERT INTO sdk_migration"
+          assert request.body =~ "INSERT INTO sdk_migration {"
+          refute request.body =~ "INSERT INTO sdk_migration CONTENT"
           assert request.body =~ ~s(filename: "001_first.surql")
           ok_response(request, [%{"status" => "running"}])
         end,
@@ -96,6 +98,7 @@ defmodule SurrealDB.MigrationsTest do
 
     calls =
       scripted_calls([
+        install_registry_call(),
         fn request ->
           assert_registry_request(request)
 
@@ -128,6 +131,7 @@ defmodule SurrealDB.MigrationsTest do
 
     calls =
       scripted_calls([
+        install_registry_call(),
         fn request ->
           assert_registry_request(request)
           assert request.body =~ ~s(filename = "20260619000100_first.surql")
@@ -168,6 +172,7 @@ defmodule SurrealDB.MigrationsTest do
 
     calls =
       scripted_calls([
+        install_registry_call(),
         fn request ->
           assert_registry_request(request)
 
@@ -199,6 +204,7 @@ defmodule SurrealDB.MigrationsTest do
 
     calls =
       scripted_calls([
+        install_registry_call(),
         fn request ->
           assert_registry_request(request)
           ok_response(request, [%{"status" => "running", "checksum" => checksum("RETURN 1;")}])
@@ -223,6 +229,7 @@ defmodule SurrealDB.MigrationsTest do
 
     calls =
       scripted_calls([
+        install_registry_call(),
         fn request ->
           assert_registry_request(request)
           ok_response(request, [%{"status" => "failed", "error_message" => "bad"}])
@@ -247,6 +254,7 @@ defmodule SurrealDB.MigrationsTest do
 
     calls =
       scripted_calls([
+        install_registry_call(),
         fn request ->
           assert_registry_request(request)
           ok_response(request, [%{"status" => "failed", "error_message" => "bad"}])
@@ -289,13 +297,15 @@ defmodule SurrealDB.MigrationsTest do
 
     calls =
       scripted_calls([
+        install_registry_call(),
         fn request ->
           assert_registry_request(request)
           ok_response(request, [])
         end,
         fn request ->
           assert_registry_request(request)
-          assert request.body =~ "INSERT INTO sdk_migration"
+          assert request.body =~ "INSERT INTO sdk_migration {"
+          refute request.body =~ "INSERT INTO sdk_migration CONTENT"
           ok_response(request, [%{"status" => "running"}])
         end,
         fn request ->
@@ -522,6 +532,16 @@ defmodule SurrealDB.MigrationsTest do
   defp assert_registry_request(request) do
     assert Req.Request.get_header(request, "ns") == ["sdk_meta"]
     assert Req.Request.get_header(request, "db") == ["migration_registry"]
+  end
+
+  # run/2 installs the registry schema (idempotently) before touching
+  # sdk_migration, so every scripted run sequence starts with this call.
+  defp install_registry_call do
+    fn request ->
+      assert_registry_request(request)
+      assert request.body =~ "DEFINE TABLE IF NOT EXISTS sdk_migration SCHEMAFULL"
+      ok_response(request, [])
+    end
   end
 
   defp assert_target_request(request) do

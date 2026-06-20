@@ -22,10 +22,8 @@ defmodule Mix.Tasks.SurrealDb.Setup do
     {namespace, database} = Helpers.create_database!(client, opts)
     Mix.shell().info("Created SurrealDB namespace/database #{namespace}/#{database}.")
 
-    client
-    |> Migrations.install_registry(Helpers.target_opts(client, opts))
-    |> Helpers.unwrap!()
-
+    # Migrations.run/2 installs the registry idempotently before running, so
+    # there is no separate install_registry step here.
     results =
       client
       |> Migrations.run(Helpers.migration_opts(client, opts))
