@@ -137,7 +137,15 @@ mix igniter.install hgs_surrealdb_sdk@path:../hgs_surrealdb_sdk --namespace app 
 ```
 
 The installer adds the dependency, creates a `SurrealDB.Store` module, wires it
-into your supervision tree, and writes starter config.
+into your supervision tree, writes starter config, and registers the store
+under `config :my_app, :surrealdb_stores, [...]`. Once you confirm the
+generated changes, it also runs `mix surreal_db.create --store
+MyApp.SurrealStore` automatically to create the target namespace/database — if
+the server isn't reachable yet, just run that command yourself once it is up.
+
+Because the store is registered, any `surreal_db.*` task run later from the
+same app auto-detects it, so `--store` can be omitted as long as it's the only
+registered store.
 
 ### Migrations
 
@@ -154,6 +162,10 @@ mix surreal_db.migrations --store MyApp.SurrealStore
 mix surreal_db.rollback --store MyApp.SurrealStore --force
 mix surreal_db.drop --store MyApp.SurrealStore --force
 ```
+
+`--store` can be omitted from any of the commands above once a single
+`SurrealDB.Store` is registered under `:surrealdb_stores` (e.g. via the
+Igniter installer above) — the task auto-detects it.
 
 See [Migrations](docs/migrations.md) for task options, registry behavior, and
 rollback notes.
