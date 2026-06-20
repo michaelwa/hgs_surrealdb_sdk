@@ -23,6 +23,8 @@ defmodule Mix.Tasks.HgsSurrealdbSdk.InstallTest do
     |> assert_creates("config/config.exs", """
     import Config
 
+    config :test, surrealdb_stores: [Test.SurrealStore]
+
     config :test, Test.SurrealStore,
       endpoint: "http://localhost:8000",
       namespace: "app",
@@ -37,6 +39,8 @@ defmodule Mix.Tasks.HgsSurrealdbSdk.InstallTest do
     |> Igniter.compose_task("hgs_surrealdb_sdk.install", ["--endpoint", "http://db.internal:8000"])
     |> assert_creates("config/config.exs", """
     import Config
+
+    config :test, surrealdb_stores: [Test.SurrealStore]
 
     config :test, Test.SurrealStore,
       endpoint: "http://db.internal:8000",
@@ -65,5 +69,25 @@ defmodule Mix.Tasks.HgsSurrealdbSdk.InstallTest do
       end
     end
     """)
+  end
+
+  test "queues mix surreal_db.create with the generated store" do
+    test_project()
+    |> Igniter.compose_task("hgs_surrealdb_sdk.install", [])
+    |> assert_has_task("surreal_db.create", ["--store", "Test.SurrealStore"])
+  end
+
+  test "notice explains the automatic namespace/database provisioning" do
+    test_project()
+    |> Igniter.compose_task("hgs_surrealdb_sdk.install", [
+      "--namespace",
+      "app2",
+      "--database",
+      "app2"
+    ])
+    |> assert_has_notice(fn notice ->
+      notice =~ "mix surreal_db.create --store Test.SurrealStore" and
+        notice =~ ~s("app2/app2" namespace/database)
+    end)
   end
 end

@@ -48,15 +48,27 @@ if Code.ensure_loaded?(Igniter) do
       |> Igniter.Project.Config.configure("config.exs", app, [store, :database], database)
       |> Igniter.Project.Config.configure("config.exs", app, [store, :username], "root")
       |> Igniter.Project.Config.configure("config.exs", app, [store, :password], "root")
+      |> Igniter.Project.Config.configure(
+        "config.exs",
+        app,
+        [:surrealdb_stores],
+        [store],
+        updater: fn zipper -> Igniter.Code.List.prepend_new_to_list(zipper, store) end
+      )
       |> Igniter.Project.Application.add_new_child(store)
+      |> Igniter.add_task("surreal_db.create", ["--store", inspect(store)])
       |> Igniter.add_notice("""
       SurrealDB store #{inspect(store)} generated and added to your supervision tree.
 
       Connection config written to config/config.exs (keyed by #{inspect(app)} /
       #{inspect(store)}). The default credentials are root/root for a local dev
       server. Override them (and the endpoint) per environment in
-      config/runtime.exs before deploying, and make sure the target
-      namespace/database exist on the server.
+      config/runtime.exs before deploying.
+
+      Confirming these changes will also run `mix surreal_db.create --store #{inspect(store)}`
+      to create the "#{namespace}/#{database}" namespace/database on the target
+      server. If the server isn't reachable yet, just run that command yourself
+      once it is up.
 
       Call it without an explicit client, e.g. `#{inspect(store)}.query("INFO FOR DB")`.
       """)
