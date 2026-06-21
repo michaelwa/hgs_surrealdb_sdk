@@ -1,4 +1,4 @@
-defmodule Mix.Tasks.SurrealDb.Rollback do
+defmodule Mix.Tasks.Surreal.Rollback do
   @shortdoc "Rolls back recorded SurrealDB migrations"
   @moduledoc """
   Rolls back the latest recorded migrations.
@@ -6,13 +6,13 @@ defmodule Mix.Tasks.SurrealDb.Rollback do
   Without `--down-path`, this only removes registry rows. With `--down-path`, the
   task runs matching `.surql` files from that directory before removing rows.
 
-      $ mix surreal_db.rollback --store MyApp.SurrealStore --force
-      $ mix surreal_db.rollback --store MyApp.SurrealStore --steps 2 --down-path priv/surrealdb_migrations_down --force
+      $ mix surreal.rollback --store MyApp.SurrealStore --force
+      $ mix surreal.rollback --store MyApp.SurrealStore --steps 2 --down-path priv/surrealdb_migrations_down --force
   """
 
   use Mix.Task
 
-  alias Mix.Tasks.SurrealDb.MigrationTaskHelpers, as: Helpers
+  alias Mix.Tasks.Surreal.MigrationTaskHelpers, as: Helpers
   alias SurrealDB.Migrations
 
   @impl Mix.Task
@@ -22,7 +22,7 @@ defmodule Mix.Tasks.SurrealDb.Rollback do
     opts = Helpers.parse!(argv)
 
     unless Keyword.get(opts, :force, false) do
-      Mix.raise("surreal_db.rollback requires --force")
+      Mix.raise("surreal.rollback requires --force")
     end
 
     client = Helpers.build_client!(opts)

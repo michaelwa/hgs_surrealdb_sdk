@@ -1,15 +1,15 @@
-defmodule Mix.Tasks.SurrealDb.Setup do
+defmodule Mix.Tasks.Surreal.Setup do
   @shortdoc "Installs the SurrealDB migration registry and runs migrations"
   @moduledoc """
   Installs the SDK migration registry and runs pending `.surql` migrations.
 
-      $ mix surreal_db.setup --store MyApp.SurrealStore
-      $ mix surreal_db.setup --namespace app --database app --path priv/surrealdb_migrations
+      $ mix surreal.setup --store MyApp.SurrealStore
+      $ mix surreal.setup --namespace app --database app --path priv/surrealdb_migrations
   """
 
   use Mix.Task
 
-  alias Mix.Tasks.SurrealDb.MigrationTaskHelpers, as: Helpers
+  alias Mix.Tasks.Surreal.MigrationTaskHelpers, as: Helpers
   alias SurrealDB.Migrations
 
   @impl Mix.Task

@@ -1,15 +1,15 @@
-defmodule Mix.Tasks.SurrealDb.Gen.Migration do
+defmodule Mix.Tasks.Surreal.Gen.Migration do
   @shortdoc "Generates a SurrealDB migration"
   @moduledoc """
   Generates a timestamped `.surql` migration file.
 
-      $ mix surreal_db.gen.migration add_users
-      $ mix surreal_db.gen.migration add_users --migrations-path priv/surrealdb_migrations
+      $ mix surreal.gen.migration add_users
+      $ mix surreal.gen.migration add_users --migrations-path priv/surrealdb_migrations
   """
 
   use Mix.Task
 
-  alias Mix.Tasks.SurrealDb.MigrationTaskHelpers, as: Helpers
+  alias Mix.Tasks.Surreal.MigrationTaskHelpers, as: Helpers
 
   @impl Mix.Task
   def run(argv) do

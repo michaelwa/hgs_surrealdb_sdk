@@ -1,14 +1,14 @@
-defmodule Mix.Tasks.SurrealDb.Migrations do
+defmodule Mix.Tasks.Surreal.Migrations do
   @shortdoc "Lists recorded SurrealDB migrations"
   @moduledoc """
   Lists migration registry rows for the target namespace/database.
 
-      $ mix surreal_db.migrations --store MyApp.SurrealStore
+      $ mix surreal.migrations --store MyApp.SurrealStore
   """
 
   use Mix.Task
 
-  alias Mix.Tasks.SurrealDb.MigrationTaskHelpers, as: Helpers
+  alias Mix.Tasks.Surreal.MigrationTaskHelpers, as: Helpers
   alias SurrealDB.Migrations
 
   @impl Mix.Task

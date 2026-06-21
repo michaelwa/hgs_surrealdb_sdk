@@ -1,17 +1,17 @@
-defmodule Mix.Tasks.SurrealDb.Migrate do
+defmodule Mix.Tasks.Surreal.Migrate do
   @shortdoc "Runs pending SurrealDB migrations"
   @moduledoc """
   Runs pending `.surql` migrations.
 
-      $ mix surreal_db.migrate --store MyApp.SurrealStore
-      $ mix surreal_db.migrate --namespace app --database app --path priv/surrealdb_migrations
+      $ mix surreal.migrate --store MyApp.SurrealStore
+      $ mix surreal.migrate --namespace app --database app --path priv/surrealdb_migrations
 
   Use `--allow-failed-rerun` to retry a migration recorded as failed.
   """
 
   use Mix.Task
 
-  alias Mix.Tasks.SurrealDb.MigrationTaskHelpers, as: Helpers
+  alias Mix.Tasks.Surreal.MigrationTaskHelpers, as: Helpers
   alias SurrealDB.Migrations
 
   @impl Mix.Task

@@ -56,7 +56,7 @@ if Code.ensure_loaded?(Igniter) do
         updater: fn zipper -> Igniter.Code.List.prepend_new_to_list(zipper, store) end
       )
       |> Igniter.Project.Application.add_new_child(store)
-      |> Igniter.add_task("surreal_db.create", ["--store", inspect(store)])
+      |> Igniter.add_task("surreal.create", ["--store", inspect(store)])
       |> Igniter.add_notice("""
       SurrealDB store #{inspect(store)} generated and added to your supervision tree.
 
@@ -65,7 +65,7 @@ if Code.ensure_loaded?(Igniter) do
       server. Override them (and the endpoint) per environment in
       config/runtime.exs before deploying.
 
-      Confirming these changes will also run `mix surreal_db.create --store #{inspect(store)}`
+      Confirming these changes will also run `mix surreal.create --store #{inspect(store)}`
       to create the "#{namespace}/#{database}" namespace/database on the target
       server. If the server isn't reachable yet, just run that command yourself
       once it is up.

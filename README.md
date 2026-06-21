@@ -83,69 +83,10 @@ Connection and query failures return `{:error, %SurrealDB.Error{}}`.
 
 ## Getting Started
 
-This SDK is not published to Hex yet. Install it from GitHub or a local path.
-
-### GitHub Dependency
-
-```elixir
-def deps do
-  [
-    {:hgs_surrealdb_sdk, github: "michaelwa/hgs_surrealdb_sdk"}
-  ]
-end
-```
-
-Pin a branch, tag, or commit for reproducible builds:
-
-```elixir
-{:hgs_surrealdb_sdk, github: "michaelwa/hgs_surrealdb_sdk", ref: "main"}
-```
-
-Then fetch and compile:
-
-```bash
-mix deps.get
-mix deps.compile
-```
-
-### Local Path Dependency
-
-Use this while developing the SDK and a consuming app side by side:
-
-```elixir
-def deps do
-  [
-    {:hgs_surrealdb_sdk, path: "../hgs_surrealdb_sdk"}
-  ]
-end
-```
-
-### Igniter
-
-If your app uses [Igniter](https://hexdocs.pm/igniter), install and scaffold a
-store in one command. Because this SDK is not on Hex, include the source in the
-package spec:
-
-```bash
-mix igniter.install hgs_surrealdb_sdk@github:michaelwa/hgs_surrealdb_sdk --namespace app --database app
-```
-
-For local development:
-
-```bash
-mix igniter.install hgs_surrealdb_sdk@path:../hgs_surrealdb_sdk --namespace app --database app
-```
-
-The installer adds the dependency, creates a `SurrealDB.Store` module, wires it
-into your supervision tree, writes starter config, and registers the store
-under `config :my_app, :surrealdb_stores, [...]`. Once you confirm the
-generated changes, it also runs `mix surreal_db.create --store
-MyApp.SurrealStore` automatically to create the target namespace/database — if
-the server isn't reachable yet, just run that command yourself once it is up.
-
-Because the store is registered, any `surreal_db.*` task run later from the
-same app auto-detects it, so `--store` can be omitted as long as it's the only
-registered store.
+This SDK is not published to Hex yet. You can install it from GitHub, a local
+path, or with Igniter. See the
+[Getting Started guide](docs/getting-started.md#installation) for the full,
+step-by-step installation instructions.
 
 ### Migrations
 
@@ -153,14 +94,14 @@ Create `.surql` files under `priv/surrealdb_migrations`, then use the Mix tasks
 from your application:
 
 ```bash
-mix surreal_db.gen.migration add_users
-mix surreal_db.create --store MyApp.SurrealStore
-mix surreal_db.setup --store MyApp.SurrealStore
-mix surreal_db.reset --store MyApp.SurrealStore --force
-mix surreal_db.migrate --store MyApp.SurrealStore
-mix surreal_db.migrations --store MyApp.SurrealStore
-mix surreal_db.rollback --store MyApp.SurrealStore --force
-mix surreal_db.drop --store MyApp.SurrealStore --force
+mix surreal.gen.migration add_users
+mix surreal.create --store MyApp.SurrealStore
+mix surreal.setup --store MyApp.SurrealStore
+mix surreal.reset --store MyApp.SurrealStore --force
+mix surreal.migrate --store MyApp.SurrealStore
+mix surreal.migrations --store MyApp.SurrealStore
+mix surreal.rollback --store MyApp.SurrealStore --force
+mix surreal.drop --store MyApp.SurrealStore --force
 ```
 
 `--store` can be omitted from any of the commands above once a single

@@ -71,10 +71,10 @@ defmodule Mix.Tasks.HgsSurrealdbSdk.InstallTest do
     """)
   end
 
-  test "queues mix surreal_db.create with the generated store" do
+  test "queues mix surreal.create with the generated store" do
     test_project()
     |> Igniter.compose_task("hgs_surrealdb_sdk.install", [])
-    |> assert_has_task("surreal_db.create", ["--store", "Test.SurrealStore"])
+    |> assert_has_task("surreal.create", ["--store", "Test.SurrealStore"])
   end
 
   test "notice explains the automatic namespace/database provisioning" do
@@ -86,7 +86,7 @@ defmodule Mix.Tasks.HgsSurrealdbSdk.InstallTest do
       "app2"
     ])
     |> assert_has_notice(fn notice ->
-      notice =~ "mix surreal_db.create --store Test.SurrealStore" and
+      notice =~ "mix surreal.create --store Test.SurrealStore" and
         notice =~ ~s("app2/app2" namespace/database)
     end)
   end

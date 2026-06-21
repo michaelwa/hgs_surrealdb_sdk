@@ -81,6 +81,16 @@ defmodule SurrealDB do
     RPC.call(client, method, params)
   end
 
+  @doc """
+  Exports the target database as a SurrealQL dump.
+
+  Uses SurrealDB's HTTP `/export` endpoint and returns the dump as a binary.
+  """
+  @spec export(Client.t()) :: {:ok, binary()} | {:error, SurrealDB.Error.t()}
+  def export(%Client{} = client) do
+    SurrealDB.Transport.HTTP.export(client)
+  end
+
   @spec select(Client.t(), String.t()) ::
           {:ok, SurrealDB.QueryResult.t()} | {:error, SurrealDB.Error.t()}
   def select(%Client{} = client, thing) do
