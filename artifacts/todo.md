@@ -32,17 +32,13 @@ Created SurrealDB namespace/database app2/app2.
     (elixir 1.20.1) lib/code.ex:1639: Code.require_file/2
     ```
     
-
-
 seed the database 
-
 
 test mix surreal.load
 
-
 surreal_db.create works, but when run the --namespace --database version it should output the required configuration block with the instructions on where it should normally be put.
 
-create a mix command that reflects database structures and creates the zio schemas
+create a mix command that reflects database structures then creates the zio schemas
 
 remove "hgs" 
 
