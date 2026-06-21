@@ -22,8 +22,12 @@ defmodule Mix.Tasks.Surreal.Drop do
     end
 
     client = Helpers.build_client!(opts)
-    {namespace, database} = Helpers.drop_database!(client, opts)
+    {namespace, database, existed?} = Helpers.drop_database!(client, opts)
 
-    Mix.shell().info("Dropped SurrealDB database #{namespace}/#{database}.")
+    if existed? do
+      Mix.shell().info("Dropped SurrealDB database #{namespace}/#{database}.")
+    else
+      Mix.shell().info("SurrealDB database #{namespace}/#{database} did not exist; nothing to drop.")
+    end
   end
 end
