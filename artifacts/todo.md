@@ -1,96 +1,53 @@
-currently have duplicate efforts for installation in the readme and the getting-started
+task #5
+"mix surreal.drop --namespace app3 --database app3 --force" did not drop the namespace or the database but did reply with "Dropped SurrealDB database app3/app3."
+
+Also "mix surreal.drop --database app3 --force" did not drop the database but did reply with "Dropped SurrealDB database app3/app3."
+
+i use ns=app3 and db=app3 because was not cuurently connected to either of them.
+
+i stopped the application and stopped Surrealist to make sure there were no active connections then ran the following.
+
+"mix surreal.reset --force" produces an error: 
+
+```error
+Dropped SurrealDB database app2/app2.
+Created SurrealDB namespace/database app2/app2.
+** (FunctionClauseError) no function clause matching in Mix.Tasks.Surreal.MigrationTaskHelpers.unwrap!/1
+
+    The following arguments were given to Mix.Tasks.Surreal.MigrationTaskHelpers.unwrap!/1:
+
+        # 1
+        :ok
+
+    Attempted function clauses (showing 2 out of 2):
+
+        def unwrap!({:ok, value})
+        def unwrap!({:error, %SurrealDB.Error{} = error})
+
+    (hgs_surrealdb_sdk 0.1.0) lib/mix/tasks/surreal/migration_task_helpers.ex:183: Mix.Tasks.Surreal.MigrationTaskHelpers.unwrap!/1
+    (hgs_surrealdb_sdk 0.1.0) lib/mix/tasks/surreal.reset.ex:37: Mix.Tasks.Surreal.Reset.run/1
+    (mix 1.20.1) lib/mix/task.ex:502: anonymous fn/3 in Mix.Task.run_task/5
+    (mix 1.20.1) lib/mix/cli.ex:129: Mix.CLI.run_task/2
+    /home/michael_intandem/.local/share/mise/installs/elixir/1.20.1/bin/mix:7: (file)
+    (elixir 1.20.1) lib/code.ex:1639: Code.require_file/2
+    ```
+    
 
 
-you are in an elixir phoenix project. this project is not the goal, it is only being used for testing the documentation for adding my hgs_surrealdb_sdk library to applications. 
+seed the database 
 
-the sdk is located ../../prototypes/hgs_surrealdb_sdk/ 
 
-i am currently looking the README.md and i am testing the ingiter installation process for ease of use can clarity in the overall process.
+test mix surreal.load
 
----
-i ran the following:
 
-```
-mix igniter.install hgs_surrealdb_sdk@github:michaelwa/hgs_surrealdb_sdk --namespace app2 --database app2
-```
+surreal_db.create works, but when run the --namespace --database version it should output the required configuration block with the instructions on where it should normally be put.
 
-which produced this output:
+create a mix command that reflects database structures and creates the zio schemas
 
-```
-Notices:
+remove "hgs" 
 
-* SurrealDB store TestIgniter.SurrealStore generated and added to your supervision tree.
+test all "mix surreal.*" commands
 
-  Connection config written to config/config.exs (keyed by :test_igniter /
-  TestIgniter.SurrealStore). The default credentials are root/root for a local dev
-  server. Override them (and the endpoint) per environment in
-  config/runtime.exs before deploying, and make sure the target
-  namespace/database exist on the server.
-
-  Call it without an explicit client, e.g. `TestIgniter.SurrealStore.query("INFO FOR DB")`.
-```
-
-but when i ran the example from the output above i got and error:
-
-```
-iex(1)> TestIgniter.SurrealStore.query("INFO FOR DB")
-{:error,
- %SurrealDB.Error{
-   type: :surreal_error,
-   message: "The namespace 'app2' does not exist",
-   status: nil,
-   code: nil,
-   details: %{"status" => "ERR", "time" => "106.053µs"},
-   raw: %{
-     "details" => %{
-       "details" => %{"name" => "app2"},
-       "kind" => "Namespace"
-     },
-     "kind" => "NotFound",
-     "result" => "The namespace 'app2' does not exist",
-     "status" => "ERR",
-     "time" => "106.053µs",
-     "type" => nil
-   }
- }}
- ```
-why doesn't the install either create the database or indicate what mix command should be run directly after the dependency installation? 
-
-when i did call the following:
-
-```
-❯ mix surreal_db.create
-```
-
-it created test/test:
-```
-Created SurrealDB namespace/database test/test.
-```
-
-but the config/config.exs defines app2/app2
-
-my goal is to make this process seamless and easy for anyone to follow. if at the end of the igniter installation there are additional mix commands to be run then it should explicity say what they are, in a similar manner as when creating a new phoenix application, which tells the user to change directories, run mix ecto.create, etc.  
-
----
-when using the igniter installation
-  notify the user of the mix steps they need to do get the module working properly
-
-```
-We are almost there! The following steps are missing:
-    $ cd test_igniter
-Then configure your database in config/dev.exs and run:
-    $ mix ecto.create
-Start your Phoenix app with:
-    $ mix phx.server
-You can also run your app inside IEx (Interactive Elixir) as:
-    $ iex -S mix phx.server
-```
-
-  make sure migrations is wired up, the migration tables should be run when the 
-
-get the migrations locked down 
-  create a mix command that reflects database structures and creates the zio schemas
-get mix surreald_sdk commands locked down
 explore adding dashboards 
   full phoenix liveview or ??
   telemetry
