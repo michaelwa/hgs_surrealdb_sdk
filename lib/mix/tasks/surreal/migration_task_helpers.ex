@@ -154,6 +154,8 @@ defmodule Mix.Tasks.Surreal.MigrationTaskHelpers do
     namespace = quote_identifier!(namespace, "namespace")
     database = quote_identifier!(database, "database")
 
+    existed? = database_exists?(client, namespace, database)
+
     query = """
     USE NS #{namespace};
     REMOVE DATABASE IF EXISTS #{database};
@@ -163,7 +165,22 @@ defmodule Mix.Tasks.Surreal.MigrationTaskHelpers do
     |> SurrealDB.query(query)
     |> unwrap!()
 
-    {namespace, database}
+    {namespace, database, existed?}
+  end
+
+  defp database_exists?(%Client{} = client, namespace, database) do
+    result =
+      client
+      |> SurrealDB.query("USE NS #{namespace};\nINFO FOR NS;")
+      |> unwrap!()
+
+    databases =
+      case List.last(result.results) do
+        %{"databases" => dbs} when is_map(dbs) -> dbs
+        _ -> %{}
+      end
+
+    Map.has_key?(databases, database)
   end
 
   def quote_identifier!(value, kind) when is_binary(value) do

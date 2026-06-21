@@ -26,15 +26,13 @@ defmodule Mix.Tasks.Surreal.Reset do
 
     client = Helpers.build_client!(opts)
 
-    {namespace, database} = Helpers.drop_database!(client, opts)
+    {namespace, database, _existed?} = Helpers.drop_database!(client, opts)
     Mix.shell().info("Dropped SurrealDB database #{namespace}/#{database}.")
 
     {namespace, database} = Helpers.create_database!(client, opts)
     Mix.shell().info("Created SurrealDB namespace/database #{namespace}/#{database}.")
 
-    client
-    |> Migrations.install_registry(Helpers.target_opts(client, opts))
-    |> Helpers.unwrap!()
+    Migrations.install_registry!(client, Helpers.target_opts(client, opts))
 
     results =
       client

@@ -168,15 +168,59 @@ defmodule Mix.Tasks.Surreal.MigrationTaskHelpersTest do
              Helpers.create_database!(client, namespace: "app_ns", database: "app_db")
   end
 
-  test "drop_database! emits database removal DDL" do
+  test "drop_database! reports existing database as dropped" do
     client =
       client_with_adapter(fn request ->
-        assert request.body =~ "USE NS app_ns"
-        assert request.body =~ "REMOVE DATABASE IF EXISTS app_db"
-        ok_response(request, [])
+        cond do
+          request.body =~ "INFO FOR NS" ->
+            assert request.body =~ "USE NS app_ns"
+
+            {request,
+             Req.Response.new(
+               status: 200,
+               body: [
+                 %{"status" => "OK", "result" => nil},
+                 %{"status" => "OK",
+                   "result" => %{"databases" => %{"app_db" => "DEFINE DATABASE app_db"}}}
+               ]
+             )}
+
+          request.body =~ "REMOVE DATABASE IF EXISTS app_db" ->
+            assert request.body =~ "USE NS app_ns"
+            ok_response(request, [])
+
+          true ->
+            flunk("unexpected request body: #{request.body}")
+        end
       end)
 
-    assert {"app_ns", "app_db"} =
+    assert {"app_ns", "app_db", true} =
+             Helpers.drop_database!(client, namespace: "app_ns", database: "app_db")
+  end
+
+  test "drop_database! reports a missing database as not existing" do
+    client =
+      client_with_adapter(fn request ->
+        cond do
+          request.body =~ "INFO FOR NS" ->
+            {request,
+             Req.Response.new(
+               status: 200,
+               body: [
+                 %{"status" => "OK", "result" => nil},
+                 %{"status" => "OK", "result" => %{"databases" => %{}}}
+               ]
+             )}
+
+          request.body =~ "REMOVE DATABASE IF EXISTS app_db" ->
+            ok_response(request, [])
+
+          true ->
+            flunk("unexpected request body: #{request.body}")
+        end
+      end)
+
+    assert {"app_ns", "app_db", false} =
              Helpers.drop_database!(client, namespace: "app_ns", database: "app_db")
   end
 
