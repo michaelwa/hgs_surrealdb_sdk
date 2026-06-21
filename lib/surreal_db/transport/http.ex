@@ -25,6 +25,30 @@ defmodule SurrealDB.Transport.HTTP do
     end
   end
 
+  @doc """
+  Exports the target database via SurrealDB's HTTP `/export` endpoint.
+
+  Returns the raw SurrealQL dump as a binary. Unlike `call/2`, the response body
+  is plain text (not JSON), so it is returned verbatim.
+  """
+  @spec export(Client.t()) :: {:ok, binary()} | {:error, Error.t()}
+  def export(%Client{} = client) do
+    request =
+      [
+        method: :get,
+        url: client.endpoint <> "/export",
+        headers: headers(client)
+      ] ++ client.request_options
+
+    with {:ok, response} <- Req.request(request),
+         :ok <- ensure_http_success(response.status, response.body) do
+      {:ok, response.body}
+    else
+      {:error, %Error{} = error} -> {:error, error}
+      {:error, reason} -> {:error, transport_error(reason)}
+    end
+  end
+
   defp build_rpc_body(%Request{method: "query", params: [query]}) when is_binary(query) do
     {:ok, query}
   end

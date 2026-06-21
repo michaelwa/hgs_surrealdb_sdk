@@ -1,15 +1,15 @@
-defmodule Mix.Tasks.SurrealDb.Create do
+defmodule Mix.Tasks.Surreal.Create do
   @shortdoc "Creates the target SurrealDB namespace/database"
   @moduledoc """
   Creates the target namespace/database if they do not already exist.
 
-      $ mix surreal_db.create --store MyApp.SurrealStore
-      $ mix surreal_db.create --namespace app --database app
+      $ mix surreal.create --store MyApp.SurrealStore
+      $ mix surreal.create --namespace app --database app
   """
 
   use Mix.Task
 
-  alias Mix.Tasks.SurrealDb.MigrationTaskHelpers, as: Helpers
+  alias Mix.Tasks.Surreal.MigrationTaskHelpers, as: Helpers
 
   @impl Mix.Task
   def run(argv) do

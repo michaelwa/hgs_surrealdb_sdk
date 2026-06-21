@@ -8,31 +8,31 @@ records state in a SurrealDB registry table.
 Downstream projects get these tasks when the SDK is added as a dependency:
 
 ```bash
-mix surreal_db
-mix surreal_db.create --store MyApp.SurrealStore
-mix surreal_db.drop --store MyApp.SurrealStore --force
-mix surreal_db.setup --store MyApp.SurrealStore
-mix surreal_db.reset --store MyApp.SurrealStore --force
-mix surreal_db.migrate --store MyApp.SurrealStore
-mix surreal_db.migrations --store MyApp.SurrealStore
-mix surreal_db.rollback --store MyApp.SurrealStore --force
-mix surreal_db.gen.migration add_users
-mix surreal_db.dump --store MyApp.SurrealStore --output dump.surql
-mix surreal_db.load --store MyApp.SurrealStore --input dump.surql
+mix surreal
+mix surreal.create --store MyApp.SurrealStore
+mix surreal.drop --store MyApp.SurrealStore --force
+mix surreal.setup --store MyApp.SurrealStore
+mix surreal.reset --store MyApp.SurrealStore --force
+mix surreal.migrate --store MyApp.SurrealStore
+mix surreal.migrations --store MyApp.SurrealStore
+mix surreal.rollback --store MyApp.SurrealStore --force
+mix surreal.gen.migration add_users
+mix surreal.dump --store MyApp.SurrealStore --output dump.surql
+mix surreal.load --store MyApp.SurrealStore --input dump.surql
 ```
 
 The names intentionally mirror the common `mix ecto.*` task surface.
-`surreal_db.setup` creates the target namespace/database, installs the SDK
-registry, and runs pending migrations. `surreal_db.reset` drops the target
+`surreal.setup` creates the target namespace/database, installs the SDK
+registry, and runs pending migrations. `surreal.reset` drops the target
 database, recreates it, installs the registry, and reruns migrations.
-`surreal_db.migrate` only runs pending migrations. `surreal_db.migrations`
+`surreal.migrate` only runs pending migrations. `surreal.migrations`
 lists recorded registry rows for the target namespace/database.
 
 The tasks read connection settings from a generated `SurrealDB.Store` module
 when `--store` is provided. You can also pass connection options directly:
 
 ```bash
-mix surreal_db.setup \
+mix surreal.setup \
   --endpoint http://localhost:8000 \
   --namespace app_ns \
   --database app_db \
@@ -80,8 +80,8 @@ filename such as `20260619000000_add_users.surql`.
 Generate migration files with:
 
 ```bash
-mix surreal_db.gen.migration add_users
-mix surreal_db.gen.migration add_users --migrations-path priv/custom_migrations
+mix surreal.gen.migration add_users
+mix surreal.gen.migration add_users --migrations-path priv/custom_migrations
 ```
 
 Rollback support is explicit. Without `--down-path`, rollback only removes the
@@ -90,7 +90,7 @@ latest applied registry rows so those migrations can be re-run later. With
 directory before removing registry rows:
 
 ```bash
-mix surreal_db.rollback \
+mix surreal.rollback \
   --store MyApp.SurrealStore \
   --step 2 \
   --down-path priv/surrealdb_migrations_down \
@@ -99,8 +99,8 @@ mix surreal_db.rollback \
 
 `reset`, `drop`, and `rollback` require `--force`.
 
-`surreal_db.dump` runs `EXPORT DATABASE;` and writes the returned result to
-`--output`. `surreal_db.load` reads `--input` and executes it against the
+`surreal.dump` runs `EXPORT DATABASE;` and writes the returned result to
+`--output`. `surreal.load` reads `--input` and executes it against the
 target database. These depend on the connected SurrealDB server supporting the
 export/import SurrealQL you use.
 

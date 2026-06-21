@@ -1,7 +1,7 @@
-defmodule Mix.Tasks.SurrealDb.MigrationTaskHelpersTest do
+defmodule Mix.Tasks.Surreal.MigrationTaskHelpersTest do
   use ExUnit.Case, async: false
 
-  alias Mix.Tasks.SurrealDb.MigrationTaskHelpers, as: Helpers
+  alias Mix.Tasks.Surreal.MigrationTaskHelpers, as: Helpers
   alias SurrealDB.Client
 
   defmodule ExampleStore do

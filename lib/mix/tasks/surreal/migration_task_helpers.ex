@@ -1,4 +1,4 @@
-defmodule Mix.Tasks.SurrealDb.MigrationTaskHelpers do
+defmodule Mix.Tasks.Surreal.MigrationTaskHelpers do
   @moduledoc false
 
   alias SurrealDB.Client
