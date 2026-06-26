@@ -51,10 +51,23 @@ if Code.ensure_loaded?(Igniter) do
       |> Igniter.Project.Config.configure(
         "config.exs",
         app,
+        [store, :repo_path],
+        "priv/surreal_repo"
+      )
+      |> Igniter.Project.Config.configure(
+        "config.exs",
+        app,
         [:surrealdb_stores],
         [store],
         updater: fn zipper -> Igniter.Code.List.prepend_new_to_list(zipper, store) end
       )
+      |> Igniter.create_new_file("priv/surreal_repo/migrations/.gitkeep", "")
+      |> Igniter.create_new_file("priv/surreal_repo/seeds.exs", """
+      # Seed script for the SurrealDB store. Run with: mix surreal.seed
+      # The store API is available, e.g.:
+      #
+      #   #{inspect(store)}.create(MyApp.User, %{name: "Jane"})
+      """)
       |> Igniter.Project.Application.add_new_child(store)
       |> Igniter.add_task("surreal.create", ["--store", inspect(store)])
       |> Igniter.add_notice("""
@@ -71,6 +84,11 @@ if Code.ensure_loaded?(Igniter) do
       once it is up.
 
       Call it without an explicit client, e.g. `#{inspect(store)}.query("INFO FOR DB")`.
+
+      Migrations live in priv/surreal_repo/migrations (generate with
+      `mix surreal.gen.migration NAME`). Run them with `mix surreal.migrate`,
+      and seed data with `mix surreal.seed`. The migration registry table
+      (schema_migrations) is created inside your configured namespace/database.
       """)
     end
   end

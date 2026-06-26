@@ -7,9 +7,9 @@ defmodule SurrealDB.Migrations do
   alias SurrealDB.Error
   alias SurrealDB.QueryResult
 
-  @default_registry_ns "sdk_meta"
-  @default_registry_db "migration_registry"
-  @registry_schema_path "surrealdb_migrations/sdk_registry/001_define_migration_registry.surql"
+  @registry_schema_path "schema_migrations/001_define_schema_migrations.surql"
+  @up_marker ~r/^\s*-{2,}\s*migrate:up\s*$/i
+  @down_marker ~r/^\s*-{2,}\s*migrate:down\s*$/i
 
   @type run_result :: %{
           filename: String.t(),
@@ -23,7 +23,7 @@ defmodule SurrealDB.Migrations do
   def install_registry(%Client{} = client, opts \\ []) when is_list(opts) do
     with :ok <- ensure_http_client(client),
          {:ok, schema} <- load_registry_schema(),
-         {:ok, _result} <- SurrealDB.query(registry_client(client, opts), schema) do
+         {:ok, _result} <- SurrealDB.query(client, schema) do
       :ok
     end
   end
@@ -42,10 +42,7 @@ defmodule SurrealDB.Migrations do
          {:ok, config} <- build_run_config(opts),
          {:ok, migrations} <- load_migrations(config.path),
          :ok <- install_registry(client, opts) do
-      registry = registry_client(client, opts)
-      target = target_client(client, config)
-
-      run_migrations(migrations, registry, target, config, [])
+      run_migrations(migrations, client, client, config, [])
     end
   end
 
@@ -59,18 +56,14 @@ defmodule SurrealDB.Migrations do
 
   @spec status(Client.t(), keyword()) :: {:ok, [registry_row()]} | {:error, Error.t()}
   def status(%Client{} = client, opts) when is_list(opts) do
-    with :ok <- ensure_http_client(client),
-         {:ok, config} <- build_target_config(opts) do
+    with :ok <- ensure_http_client(client) do
       query = """
-      SELECT migration_key, target_ns, target_db, filename, checksum, sdk_version, status, applied_at, started_at, finished_at, duration_ms, error_message, attempt_count
-      FROM sdk_migration
-      WHERE target_ns = $target_ns
-        AND target_db = $target_db
+      SELECT filename, checksum, sdk_version, status, applied_at, started_at, finished_at, duration_ms, error_message, attempt_count
+      FROM schema_migrations
       ORDER BY filename ASC;
       """
 
-      with {:ok, %QueryResult{} = result} <-
-             SurrealDB.query(registry_client(client, opts), query, target_variables(config)),
+      with {:ok, %QueryResult{} = result} <- SurrealDB.query(client, query),
            {:ok, rows} <- first_statement_rows(result) do
         {:ok, rows}
       end
@@ -87,15 +80,8 @@ defmodule SurrealDB.Migrations do
 
   @spec reset(Client.t(), keyword()) :: {:ok, QueryResult.t()} | {:error, Error.t()}
   def reset(%Client{} = client, opts) when is_list(opts) do
-    with :ok <- ensure_http_client(client),
-         {:ok, config} <- build_target_config(opts) do
-      query = """
-      DELETE sdk_migration
-      WHERE target_ns = $target_ns
-        AND target_db = $target_db;
-      """
-
-      SurrealDB.query(registry_client(client, opts), query, target_variables(config))
+    with :ok <- ensure_http_client(client) do
+      SurrealDB.query(client, "DELETE schema_migrations;")
     end
   end
 
@@ -107,18 +93,20 @@ defmodule SurrealDB.Migrations do
     end
   end
 
-  @spec rollback(Client.t(), keyword()) :: {:ok, [registry_row()]} | {:error, Error.t()}
+  @spec rollback(Client.t(), keyword()) ::
+          {:ok, [%{filename: String.t(), reverted?: boolean()}]} | {:error, Error.t()}
   def rollback(%Client{} = client, opts) when is_list(opts) do
     with :ok <- ensure_http_client(client),
          {:ok, config} <- build_rollback_config(opts),
-         {:ok, rows} <- applied_rows_for_rollback(registry_client(client, opts), config),
-         :ok <- execute_down_files(client, config, rows),
-         {:ok, _result} <- delete_rolled_back_rows(registry_client(client, opts), config, rows) do
-      {:ok, rows}
+         {:ok, migrations} <- load_migrations(config.path),
+         {:ok, rows} <- applied_rows_for_rollback(client, config),
+         {:ok, results} <- run_downs(client, migrations, rows),
+         {:ok, _result} <- delete_rolled_back_rows(client, rows) do
+      {:ok, results}
     end
   end
 
-  @spec rollback!(Client.t(), keyword()) :: [registry_row()]
+  @spec rollback!(Client.t(), keyword()) :: [%{filename: String.t(), reverted?: boolean()}]
   def rollback!(%Client{} = client, opts) when is_list(opts) do
     case rollback(client, opts) do
       {:ok, rows} -> rows
@@ -128,7 +116,7 @@ defmodule SurrealDB.Migrations do
 
   defp build_run_config(opts) do
     missing =
-      [:path, :target_ns, :target_db, :sdk_version]
+      [:path, :sdk_version]
       |> Enum.filter(&blank?(Keyword.get(opts, &1)))
 
     case missing do
@@ -136,8 +124,6 @@ defmodule SurrealDB.Migrations do
         {:ok,
          %{
            path: Keyword.fetch!(opts, :path),
-           target_ns: Keyword.fetch!(opts, :target_ns),
-           target_db: Keyword.fetch!(opts, :target_db),
            sdk_version: Keyword.fetch!(opts, :sdk_version),
            allow_failed_rerun?: Keyword.get(opts, :allow_failed_rerun?, false),
            step: Keyword.get(opts, :step),
@@ -154,18 +140,22 @@ defmodule SurrealDB.Migrations do
     end
   end
 
-  defp build_target_config(opts) do
+  defp build_rollback_config(opts) do
     missing =
-      [:target_ns, :target_db]
+      [:path]
       |> Enum.filter(&blank?(Keyword.get(opts, &1)))
 
     case missing do
       [] ->
-        {:ok,
-         %{
-           target_ns: Keyword.fetch!(opts, :target_ns),
-           target_db: Keyword.fetch!(opts, :target_db)
-         }}
+        with {:ok, steps} <- validate_rollback_steps(Keyword.get(opts, :steps, 1)) do
+          {:ok,
+           %{
+             path: Keyword.fetch!(opts, :path),
+             steps: steps,
+             to: Keyword.get(opts, :to),
+             to_exclusive: Keyword.get(opts, :to_exclusive)
+           }}
+        end
 
       _ ->
         {:error,
@@ -173,19 +163,6 @@ defmodule SurrealDB.Migrations do
            type: :invalid_migration_options,
            details: %{missing: missing}
          )}
-    end
-  end
-
-  defp build_rollback_config(opts) do
-    with {:ok, config} <- build_target_config(opts),
-         {:ok, steps} <- validate_rollback_steps(Keyword.get(opts, :steps, 1)) do
-      {:ok,
-       Map.merge(config, %{
-         steps: steps,
-         down_path: Keyword.get(opts, :down_path),
-         to: Keyword.get(opts, :to),
-         to_exclusive: Keyword.get(opts, :to_exclusive)
-       })}
     end
   end
 
@@ -201,74 +178,59 @@ defmodule SurrealDB.Migrations do
 
   defp applied_rows_for_rollback(registry, config) do
     query = """
-    SELECT migration_key, target_ns, target_db, filename, checksum, sdk_version, status, applied_at, attempt_count
-    FROM sdk_migration
-    WHERE target_ns = $target_ns
-      AND target_db = $target_db
-      AND status = 'applied'
+    SELECT filename, checksum, status, applied_at
+    FROM schema_migrations
+    WHERE status = 'applied'
       #{rollback_version_filter(config)}
     ORDER BY filename DESC
     LIMIT #{config.steps};
     """
 
-    with {:ok, %QueryResult{} = result} <-
-           SurrealDB.query(registry, query, target_variables(config)),
+    with {:ok, %QueryResult{} = result} <- SurrealDB.query(registry, query),
          {:ok, rows} <- first_statement_rows(result) do
       {:ok, rows}
     end
   end
 
-  defp execute_down_files(_client, %{down_path: nil}, _rows), do: :ok
-  defp execute_down_files(_client, %{down_path: ""}, _rows), do: :ok
+  defp run_downs(client, migrations, rows) do
+    by_filename = Map.new(migrations, &{&1.filename, &1})
 
-  defp execute_down_files(client, config, rows) do
-    target = target_client(client, config)
+    rows
+    |> Enum.reduce_while({:ok, []}, fn row, {:ok, acc} ->
+      filename = Map.fetch!(row, "filename")
 
-    Enum.reduce_while(rows, :ok, fn row, :ok ->
-      path = Path.join(config.down_path, Map.fetch!(row, "filename"))
+      case Map.get(by_filename, filename) do
+        %{down: nil} ->
+          {:cont, {:ok, [%{filename: filename, reverted?: false} | acc]}}
 
-      with {:ok, contents} <- read_down_file(path),
-           {:ok, _result} <- SurrealDB.query(target, contents) do
-        {:cont, :ok}
-      else
-        {:error, %Error{} = error} -> {:halt, {:error, error}}
+        %{down: down} when is_binary(down) ->
+          case SurrealDB.query(client, down) do
+            {:ok, _result} -> {:cont, {:ok, [%{filename: filename, reverted?: true} | acc]}}
+            {:error, %Error{} = error} -> {:halt, {:error, error}}
+          end
+
+        nil ->
+          {:cont, {:ok, [%{filename: filename, reverted?: false} | acc]}}
       end
     end)
-  end
-
-  defp read_down_file(path) do
-    case File.read(path) do
-      {:ok, contents} ->
-        {:ok, contents}
-
-      {:error, reason} ->
-        {:error,
-         migration_error("failed to read rollback migration file",
-           type: :migration_file_error,
-           details: %{path: path, reason: reason}
-         )}
+    |> case do
+      {:ok, acc} -> {:ok, Enum.reverse(acc)}
+      other -> other
     end
   end
 
-  defp delete_rolled_back_rows(_registry, _config, []), do: {:ok, %QueryResult{results: []}}
+  defp delete_rolled_back_rows(_registry, []), do: {:ok, %QueryResult{results: []}}
 
-  defp delete_rolled_back_rows(registry, config, rows) do
+  defp delete_rolled_back_rows(registry, rows) do
     filenames = Enum.map(rows, &Map.fetch!(&1, "filename"))
 
     query = """
-    DELETE sdk_migration
-    WHERE target_ns = $target_ns
-      AND target_db = $target_db
-      AND filename IN $filenames
+    DELETE schema_migrations
+    WHERE filename IN $filenames
       AND status = 'applied';
     """
 
-    variables =
-      config
-      |> target_variables()
-      |> Map.put(:filenames, filenames)
-
-    SurrealDB.query(registry, query, variables)
+    SurrealDB.query(registry, query, %{filenames: filenames})
   end
 
   defp rollback_version_filter(%{to: to}) when is_binary(to) and to != "" do
@@ -281,6 +243,50 @@ defmodule SurrealDB.Migrations do
   end
 
   defp rollback_version_filter(_config), do: ""
+
+  @doc """
+  Splits a migration file into its `:up` and `:down` SurrealQL sections.
+
+  The `-- migrate:up` marker is required; `-- migrate:down` is optional and
+  yields `down: nil` when absent. Markers are case-insensitive and tolerate
+  leading whitespace and two-or-more dashes.
+  """
+  @spec parse_migration(String.t(), String.t()) ::
+          {:ok, %{up: String.t(), down: String.t() | nil}} | {:error, Error.t()}
+  def parse_migration(contents, filename) when is_binary(contents) do
+    {sections, _current} =
+      contents
+      |> String.split(~r/\r?\n/)
+      |> Enum.reduce({%{}, nil}, fn line, {acc, current} ->
+        cond do
+          Regex.match?(@up_marker, line) -> {Map.put_new(acc, :up, []), :up}
+          Regex.match?(@down_marker, line) -> {Map.put_new(acc, :down, []), :down}
+          is_nil(current) -> {acc, current}
+          true -> {Map.update!(acc, current, &[line | &1]), current}
+        end
+      end)
+
+    if Map.has_key?(sections, :up) do
+      {:ok, %{up: join_section(sections, :up), down: nullify(join_section(sections, :down))}}
+    else
+      {:error,
+       migration_error("migration is missing a `-- migrate:up` section",
+         type: :migration_parse_error,
+         details: %{filename: filename}
+       )}
+    end
+  end
+
+  defp join_section(sections, key) do
+    sections
+    |> Map.get(key, [])
+    |> Enum.reverse()
+    |> Enum.join("\n")
+    |> String.trim()
+  end
+
+  defp nullify(""), do: nil
+  defp nullify(section), do: section
 
   defp load_migrations(paths) when is_list(paths) do
     paths
@@ -308,14 +314,21 @@ defmodule SurrealDB.Migrations do
 
             case File.read(full_path) do
               {:ok, contents} ->
-                migration = %{
-                  filename: filename,
-                  path: full_path,
-                  contents: contents,
-                  checksum: checksum(contents)
-                }
+                case parse_migration(contents, filename) do
+                  {:ok, %{up: up, down: down}} ->
+                    migration = %{
+                      filename: filename,
+                      path: full_path,
+                      up: up,
+                      down: down,
+                      checksum: checksum(contents)
+                    }
 
-                {:cont, {:ok, [migration | acc]}}
+                    {:cont, {:ok, [migration | acc]}}
+
+                  {:error, %Error{} = error} ->
+                    {:halt, {:error, error}}
+                end
 
               {:error, reason} ->
                 {:halt,
@@ -416,11 +429,9 @@ defmodule SurrealDB.Migrations do
 
   defp lookup_registry_row(registry, migration, config) do
     query = """
-    SELECT id, migration_key, target_ns, target_db, filename, checksum, status, applied_at, error_message, attempt_count
-    FROM sdk_migration
-    WHERE target_ns = $target_ns
-      AND target_db = $target_db
-      AND filename = $filename
+    SELECT id, filename, checksum, status, applied_at, error_message, attempt_count
+    FROM schema_migrations
+    WHERE filename = $filename
     LIMIT 1;
     """
 
@@ -502,7 +513,7 @@ defmodule SurrealDB.Migrations do
     with {:ok, _} <- mark_running(registry, migration, config, decision) do
       started = System.monotonic_time(:millisecond)
 
-      case SurrealDB.query(target, migration.contents) do
+      case SurrealDB.query(target, migration.up) do
         {:ok, migration_result} ->
           duration_ms = System.monotonic_time(:millisecond) - started
 
@@ -532,10 +543,7 @@ defmodule SurrealDB.Migrations do
 
   defp mark_running(registry, migration, config, :new) do
     query = """
-    INSERT INTO sdk_migration {
-      migration_key: $migration_key,
-      target_ns: $target_ns,
-      target_db: $target_db,
+    INSERT INTO schema_migrations {
       filename: $filename,
       checksum: $checksum,
       sdk_version: $sdk_version,
@@ -556,7 +564,7 @@ defmodule SurrealDB.Migrations do
 
   defp mark_running(registry, migration, config, {:rerun_failed, _row}) do
     query = """
-    UPDATE sdk_migration
+    UPDATE schema_migrations
     SET
       status = 'running',
       started_at = time::now(),
@@ -568,9 +576,7 @@ defmodule SurrealDB.Migrations do
       checksum = $checksum,
       attempt_count += 1,
       updated_at = time::now()
-    WHERE target_ns = $target_ns
-      AND target_db = $target_db
-      AND filename = $filename
+    WHERE filename = $filename
       AND status = 'failed';
     """
 
@@ -579,7 +585,7 @@ defmodule SurrealDB.Migrations do
 
   defp mark_applied(registry, migration, config, duration_ms) do
     query = """
-    UPDATE sdk_migration
+    UPDATE schema_migrations
     SET
       status = 'applied',
       applied_at = time::now(),
@@ -588,9 +594,7 @@ defmodule SurrealDB.Migrations do
       error_message = NONE,
       sdk_version = $sdk_version,
       updated_at = time::now()
-    WHERE target_ns = $target_ns
-      AND target_db = $target_db
-      AND filename = $filename
+    WHERE filename = $filename
       AND checksum = $checksum
       AND status = 'running';
     """
@@ -605,7 +609,7 @@ defmodule SurrealDB.Migrations do
 
   defp mark_failed(registry, migration, config, duration_ms, %Error{} = error) do
     query = """
-    UPDATE sdk_migration
+    UPDATE schema_migrations
     SET
       status = 'failed',
       finished_at = time::now(),
@@ -613,9 +617,7 @@ defmodule SurrealDB.Migrations do
       error_message = $error_message,
       sdk_version = $sdk_version,
       updated_at = time::now()
-    WHERE target_ns = $target_ns
-      AND target_db = $target_db
-      AND filename = $filename
+    WHERE filename = $filename
       AND checksum = $checksum
       AND status = 'running';
     """
@@ -688,40 +690,12 @@ defmodule SurrealDB.Migrations do
     end
   end
 
-  defp registry_client(%Client{} = client, opts) do
-    %Client{
-      client
-      | namespace: Keyword.get(opts, :registry_ns, @default_registry_ns),
-        database: Keyword.get(opts, :registry_db, @default_registry_db)
-    }
-  end
-
-  defp target_client(%Client{} = client, config) do
-    %Client{client | namespace: config.target_ns, database: config.target_db}
-  end
-
-  defp target_variables(config) do
-    %{
-      target_ns: config.target_ns,
-      target_db: config.target_db
-    }
-  end
-
   defp registry_variables(migration, config) do
     %{
-      migration_key: migration_key(config.target_ns, config.target_db, migration.filename),
-      target_ns: config.target_ns,
-      target_db: config.target_db,
       filename: migration.filename,
       checksum: migration.checksum,
       sdk_version: config.sdk_version
     }
-  end
-
-  defp migration_key(target_ns, target_db, filename) do
-    key = Enum.join([target_ns, target_db, filename], "\0")
-    hash = :crypto.hash(:sha256, key) |> Base.encode16(case: :lower)
-    "sdk_migration:" <> hash
   end
 
   defp ensure_http_client(%Client{transport: :http}), do: :ok

@@ -19,6 +19,7 @@ defmodule Mix.Tasks.Surreal do
       mix surreal.migrations          # Lists recorded SurrealDB migrations
       mix surreal.rollback            # Rolls back recorded SurrealDB migrations
       mix surreal.gen.migration NAME  # Generates a SurrealDB migration
+      mix surreal.seed                # Runs <repo_path>/seeds.exs
       mix surreal.dump --output FILE  # Dumps the target SurrealDB database
       mix surreal.load --input FILE   # Loads a SurrealDB dump file
     """)

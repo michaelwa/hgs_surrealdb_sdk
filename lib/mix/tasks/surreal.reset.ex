@@ -32,13 +32,6 @@ defmodule Mix.Tasks.Surreal.Reset do
     {namespace, database} = Helpers.create_database!(client, opts)
     Mix.shell().info("Created SurrealDB namespace/database #{namespace}/#{database}.")
 
-    # The registry lives in a separate namespace/database that the drop above did
-    # not touch, so its rows survive. Clear them (install_registry runs first, so
-    # this is idempotent) — otherwise Migrations.run would see matching checksums
-    # and skip every migration, leaving the recreated database empty.
-    Helpers.clear_registry!(client, opts)
-    Mix.shell().info("Cleared migration registry for #{namespace}/#{database}.")
-
     results =
       client
       |> Migrations.run(Helpers.migration_opts(client, opts))
