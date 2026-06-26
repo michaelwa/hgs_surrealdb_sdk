@@ -11,7 +11,8 @@ defmodule Mix.Tasks.Surreal.MigrationTaskHelpersTest do
         namespace: "store_ns",
         database: "store_db",
         username: "store_user",
-        password: "store_pass"
+        password: "store_pass",
+        repo_path: "priv/store_repo"
       ]
     end
   end
@@ -111,15 +112,41 @@ defmodule Mix.Tasks.Surreal.MigrationTaskHelpersTest do
     end
   end
 
-  test "migration_opts defaults path and target to the client scope" do
+  test "repo_path defaults to priv/surreal_repo" do
+    assert Helpers.repo_path([]) == "priv/surreal_repo"
+  end
+
+  test "repo_path honors --repo-path override" do
+    assert Helpers.repo_path(repo_path: "priv/custom") == "priv/custom"
+  end
+
+  test "repo_path reads store config" do
+    opts = Helpers.parse!(["--store", inspect(__MODULE__.ExampleStore)])
+
+    assert Helpers.repo_path(opts) == "priv/store_repo"
+  end
+
+  test "migration_paths derives repo migrations directory by default" do
+    assert Helpers.migration_paths([]) == "priv/surreal_repo/migrations"
+    assert Helpers.migration_paths(repo_path: "priv/custom") == "priv/custom/migrations"
+  end
+
+  test "explicit path overrides repo-derived migrations directory" do
+    assert Helpers.migration_paths(path: "priv/legacy") == "priv/legacy"
+  end
+
+  test "migration_opts defaults path to repo migrations directory" do
     opts = Helpers.parse!(["--namespace", "app_ns", "--database", "app_db"])
     client = Helpers.build_client!(opts)
 
     migration_opts = Helpers.migration_opts(client, opts)
 
-    assert migration_opts[:path] == "priv/surrealdb_migrations"
-    assert migration_opts[:target_ns] == "app_ns"
-    assert migration_opts[:target_db] == "app_db"
+    assert migration_opts[:path] == "priv/surreal_repo/migrations"
+    refute Keyword.has_key?(migration_opts, :target_ns)
+    refute Keyword.has_key?(migration_opts, :target_db)
+    refute Keyword.has_key?(migration_opts, :registry_ns)
+    refute Keyword.has_key?(migration_opts, :registry_db)
+    refute Keyword.has_key?(migration_opts, :down_path)
     assert is_binary(migration_opts[:sdk_version])
   end
 
@@ -152,7 +179,15 @@ defmodule Mix.Tasks.Surreal.MigrationTaskHelpersTest do
     opts = Helpers.parse!(["--namespace", "app_ns", "--database", "app_db", "--all"])
     client = Helpers.build_client!(opts)
 
-    assert Helpers.target_opts(client, opts)[:steps] == 9_223_372_036_854_775_807
+    target_opts = Helpers.target_opts(client, opts)
+
+    assert target_opts[:path] == "priv/surreal_repo/migrations"
+    assert target_opts[:steps] == 9_223_372_036_854_775_807
+    refute Keyword.has_key?(target_opts, :target_ns)
+    refute Keyword.has_key?(target_opts, :target_db)
+    refute Keyword.has_key?(target_opts, :registry_ns)
+    refute Keyword.has_key?(target_opts, :registry_db)
+    refute Keyword.has_key?(target_opts, :down_path)
   end
 
   test "create_database! emits namespace and database DDL" do
@@ -180,8 +215,10 @@ defmodule Mix.Tasks.Surreal.MigrationTaskHelpersTest do
                status: 200,
                body: [
                  %{"status" => "OK", "result" => nil},
-                 %{"status" => "OK",
-                   "result" => %{"databases" => %{"app_db" => "DEFINE DATABASE app_db"}}}
+                 %{
+                   "status" => "OK",
+                   "result" => %{"databases" => %{"app_db" => "DEFINE DATABASE app_db"}}
+                 }
                ]
              )}
 

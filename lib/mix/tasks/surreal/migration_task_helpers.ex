@@ -4,7 +4,8 @@ defmodule Mix.Tasks.Surreal.MigrationTaskHelpers do
   alias SurrealDB.Client
   alias SurrealDB.Config
   alias SurrealDB.Error
-  alias SurrealDB.Migrations
+
+  @default_repo_path "priv/surreal_repo"
 
   @switches [
     store: :string,
@@ -17,11 +18,9 @@ defmodule Mix.Tasks.Surreal.MigrationTaskHelpers do
     anonymous: :boolean,
     migrations_path: :keep,
     path: :string,
+    repo_path: :string,
     sdk_version: :string,
-    registry_namespace: :string,
-    registry_database: :string,
     allow_failed_rerun: :boolean,
-    down_path: :string,
     step: :integer,
     steps: :integer,
     to: :string,
@@ -68,42 +67,39 @@ defmodule Mix.Tasks.Surreal.MigrationTaskHelpers do
     |> unwrap!()
   end
 
-  def migration_opts(%Client{} = client, opts) do
+  def migration_opts(%Client{} = _client, opts) do
     [
       path: migration_paths(opts),
-      target_ns: Keyword.get(opts, :namespace, client.namespace),
-      target_db: Keyword.get(opts, :database, client.database),
       sdk_version: Keyword.get(opts, :sdk_version, project_version())
     ]
-    |> maybe_put(:registry_ns, Keyword.get(opts, :registry_namespace))
-    |> maybe_put(:registry_db, Keyword.get(opts, :registry_database))
     |> maybe_put(:allow_failed_rerun?, Keyword.get(opts, :allow_failed_rerun))
-    |> maybe_put(:down_path, Keyword.get(opts, :down_path))
     |> maybe_put(:step, Keyword.get(opts, :step))
     |> maybe_put(:to, Keyword.get(opts, :to))
     |> maybe_put(:to_exclusive, Keyword.get(opts, :to_exclusive))
   end
 
-  def target_opts(%Client{} = client, opts) do
-    [
-      target_ns: Keyword.get(opts, :namespace, client.namespace),
-      target_db: Keyword.get(opts, :database, client.database)
-    ]
-    |> maybe_put(:registry_ns, Keyword.get(opts, :registry_namespace))
-    |> maybe_put(:registry_db, Keyword.get(opts, :registry_database))
-    |> maybe_put(:down_path, Keyword.get(opts, :down_path))
+  def target_opts(%Client{} = _client, opts) do
+    [path: migration_paths(opts)]
     |> maybe_put(:steps, rollback_steps(opts))
     |> maybe_put(:to, Keyword.get(opts, :to))
     |> maybe_put(:to_exclusive, Keyword.get(opts, :to_exclusive))
   end
 
+  def repo_path(opts) do
+    cond do
+      present?(Keyword.get(opts, :repo_path)) -> Keyword.get(opts, :repo_path)
+      present?(repo_path_from_store(opts)) -> repo_path_from_store(opts)
+      true -> @default_repo_path
+    end
+  end
+
   def migration_paths(opts) do
-    paths =
+    explicit =
       Keyword.get_values(opts, :migrations_path) ++
         Keyword.get_values(opts, :path)
 
-    case paths do
-      [] -> "priv/surrealdb_migrations"
+    case explicit do
+      [] -> Path.join(repo_path(opts), "migrations")
       [path] -> path
       paths -> paths
     end
@@ -167,25 +163,6 @@ defmodule Mix.Tasks.Surreal.MigrationTaskHelpers do
     |> unwrap!()
 
     {namespace, database, existed?}
-  end
-
-  @doc """
-  Removes the migration registry rows for the target namespace/database.
-
-  The registry lives in a separate namespace/database from the target, so
-  `REMOVE DATABASE` on the target leaves its registry rows behind. Clearing them
-  keeps the registry in sync with the (now empty) target so a later
-  `mix surreal.migrate` re-applies migrations from a clean slate instead of
-  skipping them as already applied.
-
-  Idempotent: installs the registry first so this is safe even when no
-  migrations have ever run.
-  """
-  def clear_registry!(%Client{} = client, opts) do
-    target = target_opts(client, opts)
-    Migrations.install_registry!(client, target)
-    Migrations.reset!(client, target)
-    :ok
   end
 
   defp database_exists?(%Client{} = client, namespace, database) do
@@ -277,6 +254,14 @@ defmodule Mix.Tasks.Surreal.MigrationTaskHelpers do
         |> module_from_string!()
         |> store_config!()
     end
+  end
+
+  defp repo_path_from_store(opts) do
+    opts
+    |> store_options()
+    |> Keyword.get(:repo_path)
+  rescue
+    _ -> nil
   end
 
   defp auto_detect_store_options(opts) do
