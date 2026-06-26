@@ -5,11 +5,11 @@ defmodule SurrealDB.MigrationsTest do
   alias SurrealDB.Error
   alias SurrealDB.Migrations
 
-  test "install_registry loads schema from priv and uses registry scope" do
+  test "install_registry loads schema from priv and uses client scope" do
     client =
       client_with_adapter(fn request ->
-        assert Req.Request.get_header(request, "ns") == ["sdk_meta"]
-        assert Req.Request.get_header(request, "db") == ["migration_registry"]
+        assert Req.Request.get_header(request, "ns") == ["original_ns"]
+        assert Req.Request.get_header(request, "db") == ["original_db"]
         assert request.body =~ "DEFINE TABLE IF NOT EXISTS schema_migrations SCHEMAFULL"
 
         ok_response(request, [])
@@ -18,7 +18,7 @@ defmodule SurrealDB.MigrationsTest do
     assert :ok = Migrations.install_registry(client)
   end
 
-  test "run loads sorted surql files, ignores other files, and uses separate scopes" do
+  test "run loads sorted surql files, ignores other files, and uses client scope" do
     path =
       tmp_migrations(%{
         "002_second.surql" => "CREATE second;",
@@ -36,8 +36,8 @@ defmodule SurrealDB.MigrationsTest do
         end,
         fn request ->
           assert_registry_request(request)
-          assert request.body =~ "INSERT INTO sdk_migration {"
-          refute request.body =~ "INSERT INTO sdk_migration CONTENT"
+          assert request.body =~ "INSERT INTO schema_migrations {"
+          refute request.body =~ "INSERT INTO schema_migrations CONTENT"
           assert request.body =~ ~s(filename: "001_first.surql")
           ok_response(request, [%{"status" => "running"}])
         end,
@@ -59,7 +59,7 @@ defmodule SurrealDB.MigrationsTest do
         end,
         fn request ->
           assert_registry_request(request)
-          assert request.body =~ "INSERT INTO sdk_migration"
+          assert request.body =~ "INSERT INTO schema_migrations"
           assert request.body =~ ~s(filename: "002_second.surql")
           ok_response(request, [%{"status" => "running"}])
         end,
@@ -81,8 +81,6 @@ defmodule SurrealDB.MigrationsTest do
              |> client_with_adapter()
              |> Migrations.run(
                path: path,
-               target_ns: "app_ns",
-               target_db: "app_db",
                sdk_version: "0.1.0"
              )
 
@@ -113,8 +111,6 @@ defmodule SurrealDB.MigrationsTest do
              |> client_with_adapter()
              |> Migrations.run(
                path: path,
-               target_ns: "app_ns",
-               target_db: "app_db",
                sdk_version: "0.1.0"
              )
 
@@ -157,8 +153,6 @@ defmodule SurrealDB.MigrationsTest do
              |> client_with_adapter()
              |> Migrations.run(
                path: path,
-               target_ns: "app_ns",
-               target_db: "app_db",
                sdk_version: "0.1.0",
                step: 1,
                to: "20260619000200"
@@ -191,8 +185,6 @@ defmodule SurrealDB.MigrationsTest do
              |> client_with_adapter()
              |> Migrations.run(
                path: path,
-               target_ns: "app_ns",
-               target_db: "app_db",
                sdk_version: "0.1.0"
              )
 
@@ -216,8 +208,6 @@ defmodule SurrealDB.MigrationsTest do
              |> client_with_adapter()
              |> Migrations.run(
                path: path,
-               target_ns: "app_ns",
-               target_db: "app_db",
                sdk_version: "0.1.0"
              )
 
@@ -241,8 +231,6 @@ defmodule SurrealDB.MigrationsTest do
              |> client_with_adapter()
              |> Migrations.run(
                path: path,
-               target_ns: "app_ns",
-               target_db: "app_db",
                sdk_version: "0.1.0"
              )
 
@@ -261,9 +249,9 @@ defmodule SurrealDB.MigrationsTest do
         end,
         fn request ->
           assert_registry_request(request)
-          assert request.body =~ "UPDATE sdk_migration"
+          assert request.body =~ "UPDATE schema_migrations"
           assert request.body =~ "attempt_count += 1"
-          refute request.body =~ "INSERT INTO sdk_migration"
+          refute request.body =~ "INSERT INTO schema_migrations"
           ok_response(request, [%{"status" => "running"}])
         end,
         fn request ->
@@ -283,8 +271,6 @@ defmodule SurrealDB.MigrationsTest do
              |> client_with_adapter()
              |> Migrations.run(
                path: path,
-               target_ns: "app_ns",
-               target_db: "app_db",
                sdk_version: "0.1.0",
                allow_failed_rerun?: true
              )
@@ -304,8 +290,8 @@ defmodule SurrealDB.MigrationsTest do
         end,
         fn request ->
           assert_registry_request(request)
-          assert request.body =~ "INSERT INTO sdk_migration {"
-          refute request.body =~ "INSERT INTO sdk_migration CONTENT"
+          assert request.body =~ "INSERT INTO schema_migrations {"
+          refute request.body =~ "INSERT INTO schema_migrations CONTENT"
           ok_response(request, [%{"status" => "running"}])
         end,
         fn request ->
@@ -330,8 +316,6 @@ defmodule SurrealDB.MigrationsTest do
              |> client_with_adapter()
              |> Migrations.run(
                path: path,
-               target_ns: "app_ns",
-               target_db: "app_db",
                sdk_version: "0.1.0"
              )
 
@@ -342,10 +326,9 @@ defmodule SurrealDB.MigrationsTest do
     %Client{} = client = client_with_adapter(fn request -> ok_response(request, []) end)
 
     assert {:error, %Error{type: :invalid_migration_options, details: %{missing: missing}}} =
-             Migrations.run(client, target_ns: "app_ns")
+             Migrations.run(client, [])
 
     assert :path in missing
-    assert :target_db in missing
     assert :sdk_version in missing
 
     websocket = %Client{client | transport: :websocket, connection: self()}
@@ -353,20 +336,18 @@ defmodule SurrealDB.MigrationsTest do
     assert {:error, %Error{type: :unsupported_client_for_migrations}} =
              Migrations.run(websocket,
                path: "unused",
-               target_ns: "app_ns",
-               target_db: "app_db",
                sdk_version: "0.1.0"
              )
   end
 
-  test "status lists registry rows for the target scope" do
+  test "status lists registry rows from the client scope" do
     calls =
       scripted_calls([
         fn request ->
           assert_registry_request(request)
-          assert request.body =~ "FROM sdk_migration"
-          assert request.body =~ ~s(target_ns = "app_ns")
-          assert request.body =~ ~s(target_db = "app_db")
+          assert request.body =~ "FROM schema_migrations"
+          refute request.body =~ "target_ns"
+          refute request.body =~ "target_db"
           assert request.body =~ "ORDER BY filename ASC"
 
           ok_response(request, [
@@ -378,19 +359,19 @@ defmodule SurrealDB.MigrationsTest do
     assert {:ok, [%{"filename" => "001_first.surql", "status" => "applied"}]} =
              calls
              |> client_with_adapter()
-             |> Migrations.status(target_ns: "app_ns", target_db: "app_db")
+             |> Migrations.status([])
 
     assert_no_remaining_calls(calls)
   end
 
-  test "reset deletes registry rows for the target scope only" do
+  test "reset deletes registry rows from the client scope" do
     calls =
       scripted_calls([
         fn request ->
           assert_registry_request(request)
-          assert request.body =~ "DELETE sdk_migration"
-          assert request.body =~ ~s(target_ns = "app_ns")
-          assert request.body =~ ~s(target_db = "app_db")
+          assert request.body =~ "DELETE schema_migrations"
+          refute request.body =~ "target_ns"
+          refute request.body =~ "target_db"
           ok_response(request, [%{"deleted" => true}])
         end
       ])
@@ -398,7 +379,7 @@ defmodule SurrealDB.MigrationsTest do
     assert {:ok, _result} =
              calls
              |> client_with_adapter()
-             |> Migrations.reset(target_ns: "app_ns", target_db: "app_db")
+             |> Migrations.reset([])
 
     assert_no_remaining_calls(calls)
   end
@@ -419,7 +400,7 @@ defmodule SurrealDB.MigrationsTest do
         end,
         fn request ->
           assert_registry_request(request)
-          assert request.body =~ "DELETE sdk_migration"
+          assert request.body =~ "DELETE schema_migrations"
           assert request.body =~ ~s(filename IN ["002_second.surql","001_first.surql"])
           ok_response(request, [%{"deleted" => true}])
         end
@@ -428,7 +409,7 @@ defmodule SurrealDB.MigrationsTest do
     assert {:ok, rows} =
              calls
              |> client_with_adapter()
-             |> Migrations.rollback(target_ns: "app_ns", target_db: "app_db", steps: 2)
+             |> Migrations.rollback(steps: 2)
 
     assert Enum.map(rows, & &1["filename"]) == ["002_second.surql", "001_first.surql"]
     assert_no_remaining_calls(calls)
@@ -450,7 +431,7 @@ defmodule SurrealDB.MigrationsTest do
         end,
         fn request ->
           assert_registry_request(request)
-          assert request.body =~ "DELETE sdk_migration"
+          assert request.body =~ "DELETE schema_migrations"
           ok_response(request, [%{"deleted" => true}])
         end
       ])
@@ -458,11 +439,7 @@ defmodule SurrealDB.MigrationsTest do
     assert {:ok, [%{"filename" => "001_first.surql"}]} =
              calls
              |> client_with_adapter()
-             |> Migrations.rollback(
-               target_ns: "app_ns",
-               target_db: "app_db",
-               down_path: down_path
-             )
+             |> Migrations.rollback(down_path: down_path)
 
     assert_no_remaining_calls(calls)
   end
@@ -471,7 +448,7 @@ defmodule SurrealDB.MigrationsTest do
     client = client_with_adapter(fn request -> ok_response(request, []) end)
 
     assert_raise Error, fn ->
-      Migrations.run!(client, target_ns: "app_ns")
+      Migrations.run!(client, [])
     end
   end
 
@@ -530,23 +507,23 @@ defmodule SurrealDB.MigrationsTest do
   end
 
   defp assert_registry_request(request) do
-    assert Req.Request.get_header(request, "ns") == ["sdk_meta"]
-    assert Req.Request.get_header(request, "db") == ["migration_registry"]
+    assert Req.Request.get_header(request, "ns") == ["original_ns"]
+    assert Req.Request.get_header(request, "db") == ["original_db"]
   end
 
   # run/2 installs the registry schema (idempotently) before touching
-  # sdk_migration, so every scripted run sequence starts with this call.
+  # schema_migrations, so every scripted run sequence starts with this call.
   defp install_registry_call do
     fn request ->
       assert_registry_request(request)
-      assert request.body =~ "DEFINE TABLE IF NOT EXISTS sdk_migration SCHEMAFULL"
+      assert request.body =~ "DEFINE TABLE IF NOT EXISTS schema_migrations SCHEMAFULL"
       ok_response(request, [])
     end
   end
 
   defp assert_target_request(request) do
-    assert Req.Request.get_header(request, "ns") == ["app_ns"]
-    assert Req.Request.get_header(request, "db") == ["app_db"]
+    assert Req.Request.get_header(request, "ns") == ["original_ns"]
+    assert Req.Request.get_header(request, "db") == ["original_db"]
   end
 
   defp checksum(contents) do
