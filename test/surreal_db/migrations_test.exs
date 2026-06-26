@@ -18,11 +18,44 @@ defmodule SurrealDB.MigrationsTest do
     assert :ok = Migrations.install_registry(client)
   end
 
+  describe "parse_migration/2" do
+    test "splits up and down sections" do
+      contents = """
+      -- migrate:up
+      DEFINE TABLE t SCHEMAFULL;
+
+      -- migrate:down
+      REMOVE TABLE t;
+      """
+
+      assert {:ok, %{up: up, down: down}} = Migrations.parse_migration(contents, "x.surql")
+      assert up == "DEFINE TABLE t SCHEMAFULL;"
+      assert down == "REMOVE TABLE t;"
+    end
+
+    test "down is nil when omitted" do
+      assert {:ok, %{up: "CREATE a;", down: nil}} =
+               Migrations.parse_migration("-- migrate:up\nCREATE a;\n", "x.surql")
+    end
+
+    test "missing up marker is an error" do
+      assert {:error, %Error{type: :migration_parse_error}} =
+               Migrations.parse_migration("CREATE a;", "x.surql")
+    end
+
+    test "markers are case-insensitive and whitespace-tolerant" do
+      contents = "--   MIGRATE:UP \nCREATE a;\n--migrate:down\nDELETE a;"
+
+      assert {:ok, %{up: "CREATE a;", down: "DELETE a;"}} =
+               Migrations.parse_migration(contents, "x.surql")
+    end
+  end
+
   test "run loads sorted surql files, ignores other files, and uses client scope" do
     path =
       tmp_migrations(%{
-        "002_second.surql" => "CREATE second;",
-        "001_first.surql" => "CREATE first;",
+        "002_second.surql" => "-- migrate:up\nCREATE second;",
+        "001_first.surql" => "-- migrate:up\nCREATE first;",
         "notes.txt" => "ignore me"
       })
 
@@ -90,7 +123,7 @@ defmodule SurrealDB.MigrationsTest do
   end
 
   test "run skips applied migration when checksum matches" do
-    contents = "RETURN 1;"
+    contents = "-- migrate:up\nRETURN 1;"
     checksum = checksum(contents)
     path = tmp_migrations(%{"001_done.surql" => contents})
 
@@ -120,9 +153,9 @@ defmodule SurrealDB.MigrationsTest do
   test "run honors step and version filters" do
     path =
       tmp_migrations(%{
-        "20260619000100_first.surql" => "RETURN 1;",
-        "20260619000200_second.surql" => "RETURN 2;",
-        "20260619000300_third.surql" => "RETURN 3;"
+        "20260619000100_first.surql" => "-- migrate:up\nRETURN 1;",
+        "20260619000200_second.surql" => "-- migrate:up\nRETURN 2;",
+        "20260619000300_third.surql" => "-- migrate:up\nRETURN 3;"
       })
 
     calls =
@@ -162,7 +195,7 @@ defmodule SurrealDB.MigrationsTest do
   end
 
   test "run rejects checksum drift" do
-    path = tmp_migrations(%{"001_changed.surql" => "RETURN 2;"})
+    path = tmp_migrations(%{"001_changed.surql" => "-- migrate:up\nRETURN 2;"})
 
     calls =
       scripted_calls([
@@ -192,14 +225,15 @@ defmodule SurrealDB.MigrationsTest do
   end
 
   test "run rejects running migrations" do
-    path = tmp_migrations(%{"001_running.surql" => "RETURN 1;"})
+    path = tmp_migrations(%{"001_running.surql" => "-- migrate:up\nRETURN 1;"})
+    checksum = checksum("-- migrate:up\nRETURN 1;")
 
     calls =
       scripted_calls([
         install_registry_call(),
         fn request ->
           assert_registry_request(request)
-          ok_response(request, [%{"status" => "running", "checksum" => checksum("RETURN 1;")}])
+          ok_response(request, [%{"status" => "running", "checksum" => checksum}])
         end
       ])
 
@@ -215,7 +249,7 @@ defmodule SurrealDB.MigrationsTest do
   end
 
   test "run rejects failed migration by default" do
-    path = tmp_migrations(%{"001_failed.surql" => "RETURN 1;"})
+    path = tmp_migrations(%{"001_failed.surql" => "-- migrate:up\nRETURN 1;"})
 
     calls =
       scripted_calls([
@@ -238,7 +272,7 @@ defmodule SurrealDB.MigrationsTest do
   end
 
   test "failed migration rerun updates existing row instead of inserting duplicate" do
-    path = tmp_migrations(%{"001_retry.surql" => "RETURN 1;"})
+    path = tmp_migrations(%{"001_retry.surql" => "-- migrate:up\nRETURN 1;"})
 
     calls =
       scripted_calls([
@@ -279,7 +313,7 @@ defmodule SurrealDB.MigrationsTest do
   end
 
   test "run marks migration failed after execution error" do
-    path = tmp_migrations(%{"001_bad.surql" => "BAD QUERY;"})
+    path = tmp_migrations(%{"001_bad.surql" => "-- migrate:up\nBAD QUERY;"})
 
     calls =
       scripted_calls([

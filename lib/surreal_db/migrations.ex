@@ -8,6 +8,8 @@ defmodule SurrealDB.Migrations do
   alias SurrealDB.QueryResult
 
   @registry_schema_path "schema_migrations/001_define_schema_migrations.surql"
+  @up_marker ~r/^\s*-{2,}\s*migrate:up\s*$/i
+  @down_marker ~r/^\s*-{2,}\s*migrate:down\s*$/i
 
   @type run_result :: %{
           filename: String.t(),
@@ -229,6 +231,50 @@ defmodule SurrealDB.Migrations do
 
   defp rollback_version_filter(_config), do: ""
 
+  @doc """
+  Splits a migration file into its `:up` and `:down` SurrealQL sections.
+
+  The `-- migrate:up` marker is required; `-- migrate:down` is optional and
+  yields `down: nil` when absent. Markers are case-insensitive and tolerate
+  leading whitespace and two-or-more dashes.
+  """
+  @spec parse_migration(String.t(), String.t()) ::
+          {:ok, %{up: String.t(), down: String.t() | nil}} | {:error, Error.t()}
+  def parse_migration(contents, filename) when is_binary(contents) do
+    {sections, _current} =
+      contents
+      |> String.split(~r/\r?\n/)
+      |> Enum.reduce({%{}, nil}, fn line, {acc, current} ->
+        cond do
+          Regex.match?(@up_marker, line) -> {Map.put_new(acc, :up, []), :up}
+          Regex.match?(@down_marker, line) -> {Map.put_new(acc, :down, []), :down}
+          is_nil(current) -> {acc, current}
+          true -> {Map.update!(acc, current, &[line | &1]), current}
+        end
+      end)
+
+    if Map.has_key?(sections, :up) do
+      {:ok, %{up: join_section(sections, :up), down: nullify(join_section(sections, :down))}}
+    else
+      {:error,
+       migration_error("migration is missing a `-- migrate:up` section",
+         type: :migration_parse_error,
+         details: %{filename: filename}
+       )}
+    end
+  end
+
+  defp join_section(sections, key) do
+    sections
+    |> Map.get(key, [])
+    |> Enum.reverse()
+    |> Enum.join("\n")
+    |> String.trim()
+  end
+
+  defp nullify(""), do: nil
+  defp nullify(section), do: section
+
   defp load_migrations(paths) when is_list(paths) do
     paths
     |> Enum.reduce_while({:ok, []}, fn path, {:ok, acc} ->
@@ -255,14 +301,21 @@ defmodule SurrealDB.Migrations do
 
             case File.read(full_path) do
               {:ok, contents} ->
-                migration = %{
-                  filename: filename,
-                  path: full_path,
-                  contents: contents,
-                  checksum: checksum(contents)
-                }
+                case parse_migration(contents, filename) do
+                  {:ok, %{up: up, down: down}} ->
+                    migration = %{
+                      filename: filename,
+                      path: full_path,
+                      up: up,
+                      down: down,
+                      checksum: checksum(contents)
+                    }
 
-                {:cont, {:ok, [migration | acc]}}
+                    {:cont, {:ok, [migration | acc]}}
+
+                  {:error, %Error{} = error} ->
+                    {:halt, {:error, error}}
+                end
 
               {:error, reason} ->
                 {:halt,
@@ -447,7 +500,7 @@ defmodule SurrealDB.Migrations do
     with {:ok, _} <- mark_running(registry, migration, config, decision) do
       started = System.monotonic_time(:millisecond)
 
-      case SurrealDB.query(target, migration.contents) do
+      case SurrealDB.query(target, migration.up) do
         {:ok, migration_result} ->
           duration_ms = System.monotonic_time(:millisecond) - started
 
