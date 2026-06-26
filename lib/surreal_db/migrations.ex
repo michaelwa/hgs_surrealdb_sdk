@@ -93,18 +93,20 @@ defmodule SurrealDB.Migrations do
     end
   end
 
-  @spec rollback(Client.t(), keyword()) :: {:ok, [registry_row()]} | {:error, Error.t()}
+  @spec rollback(Client.t(), keyword()) ::
+          {:ok, [%{filename: String.t(), reverted?: boolean()}]} | {:error, Error.t()}
   def rollback(%Client{} = client, opts) when is_list(opts) do
     with :ok <- ensure_http_client(client),
          {:ok, config} <- build_rollback_config(opts),
+         {:ok, migrations} <- load_migrations(config.path),
          {:ok, rows} <- applied_rows_for_rollback(client, config),
-         :ok <- execute_down_files(client, config, rows),
-         {:ok, _result} <- delete_rolled_back_rows(client, config, rows) do
-      {:ok, rows}
+         {:ok, results} <- run_downs(client, migrations, rows),
+         {:ok, _result} <- delete_rolled_back_rows(client, rows) do
+      {:ok, results}
     end
   end
 
-  @spec rollback!(Client.t(), keyword()) :: [registry_row()]
+  @spec rollback!(Client.t(), keyword()) :: [%{filename: String.t(), reverted?: boolean()}]
   def rollback!(%Client{} = client, opts) when is_list(opts) do
     case rollback(client, opts) do
       {:ok, rows} -> rows
@@ -139,14 +141,28 @@ defmodule SurrealDB.Migrations do
   end
 
   defp build_rollback_config(opts) do
-    with {:ok, steps} <- validate_rollback_steps(Keyword.get(opts, :steps, 1)) do
-      {:ok,
-       %{
-         steps: steps,
-         down_path: Keyword.get(opts, :down_path),
-         to: Keyword.get(opts, :to),
-         to_exclusive: Keyword.get(opts, :to_exclusive)
-       }}
+    missing =
+      [:path]
+      |> Enum.filter(&blank?(Keyword.get(opts, &1)))
+
+    case missing do
+      [] ->
+        with {:ok, steps} <- validate_rollback_steps(Keyword.get(opts, :steps, 1)) do
+          {:ok,
+           %{
+             path: Keyword.fetch!(opts, :path),
+             steps: steps,
+             to: Keyword.get(opts, :to),
+             to_exclusive: Keyword.get(opts, :to_exclusive)
+           }}
+        end
+
+      _ ->
+        {:error,
+         migration_error("missing required migration options",
+           type: :invalid_migration_options,
+           details: %{missing: missing}
+         )}
     end
   end
 
@@ -176,39 +192,36 @@ defmodule SurrealDB.Migrations do
     end
   end
 
-  defp execute_down_files(_client, %{down_path: nil}, _rows), do: :ok
-  defp execute_down_files(_client, %{down_path: ""}, _rows), do: :ok
+  defp run_downs(client, migrations, rows) do
+    by_filename = Map.new(migrations, &{&1.filename, &1})
 
-  defp execute_down_files(client, config, rows) do
-    Enum.reduce_while(rows, :ok, fn row, :ok ->
-      path = Path.join(config.down_path, Map.fetch!(row, "filename"))
+    rows
+    |> Enum.reduce_while({:ok, []}, fn row, {:ok, acc} ->
+      filename = Map.fetch!(row, "filename")
 
-      with {:ok, contents} <- read_down_file(path),
-           {:ok, _result} <- SurrealDB.query(client, contents) do
-        {:cont, :ok}
-      else
-        {:error, %Error{} = error} -> {:halt, {:error, error}}
+      case Map.get(by_filename, filename) do
+        %{down: nil} ->
+          {:cont, {:ok, [%{filename: filename, reverted?: false} | acc]}}
+
+        %{down: down} when is_binary(down) ->
+          case SurrealDB.query(client, down) do
+            {:ok, _result} -> {:cont, {:ok, [%{filename: filename, reverted?: true} | acc]}}
+            {:error, %Error{} = error} -> {:halt, {:error, error}}
+          end
+
+        nil ->
+          {:cont, {:ok, [%{filename: filename, reverted?: false} | acc]}}
       end
     end)
-  end
-
-  defp read_down_file(path) do
-    case File.read(path) do
-      {:ok, contents} ->
-        {:ok, contents}
-
-      {:error, reason} ->
-        {:error,
-         migration_error("failed to read rollback migration file",
-           type: :migration_file_error,
-           details: %{path: path, reason: reason}
-         )}
+    |> case do
+      {:ok, acc} -> {:ok, Enum.reverse(acc)}
+      other -> other
     end
   end
 
-  defp delete_rolled_back_rows(_registry, _config, []), do: {:ok, %QueryResult{results: []}}
+  defp delete_rolled_back_rows(_registry, []), do: {:ok, %QueryResult{results: []}}
 
-  defp delete_rolled_back_rows(registry, _config, rows) do
+  defp delete_rolled_back_rows(registry, rows) do
     filenames = Enum.map(rows, &Map.fetch!(&1, "filename"))
 
     query = """

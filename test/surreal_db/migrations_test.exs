@@ -419,6 +419,12 @@ defmodule SurrealDB.MigrationsTest do
   end
 
   test "rollback removes the latest applied registry rows" do
+    path =
+      tmp_migrations(%{
+        "001_first.surql" => "-- migrate:up\nCREATE first;",
+        "002_second.surql" => "-- migrate:up\nCREATE second;"
+      })
+
     calls =
       scripted_calls([
         fn request ->
@@ -443,19 +449,33 @@ defmodule SurrealDB.MigrationsTest do
     assert {:ok, rows} =
              calls
              |> client_with_adapter()
-             |> Migrations.rollback(steps: 2)
+             |> Migrations.rollback(path: path, steps: 2)
 
-    assert Enum.map(rows, & &1["filename"]) == ["002_second.surql", "001_first.surql"]
+    assert rows == [
+             %{filename: "002_second.surql", reverted?: false},
+             %{filename: "001_first.surql", reverted?: false}
+           ]
+
     assert_no_remaining_calls(calls)
   end
 
-  test "rollback runs matching down files before deleting registry rows" do
-    down_path = tmp_migrations(%{"001_first.surql" => "REMOVE TABLE first;"})
+  test "rollback runs the down section and reports reverted?" do
+    path =
+      tmp_migrations(%{
+        "001_first.surql" => """
+        -- migrate:up
+        DEFINE TABLE first;
+
+        -- migrate:down
+        REMOVE TABLE first;
+        """
+      })
 
     calls =
       scripted_calls([
         fn request ->
           assert_registry_request(request)
+          assert request.body =~ "FROM schema_migrations"
           ok_response(request, [%{"filename" => "001_first.surql", "status" => "applied"}])
         end,
         fn request ->
@@ -470,10 +490,10 @@ defmodule SurrealDB.MigrationsTest do
         end
       ])
 
-    assert {:ok, [%{"filename" => "001_first.surql"}]} =
+    assert {:ok, [%{filename: "001_first.surql", reverted?: true}]} =
              calls
              |> client_with_adapter()
-             |> Migrations.rollback(down_path: down_path)
+             |> Migrations.rollback(path: path, steps: 1)
 
     assert_no_remaining_calls(calls)
   end
