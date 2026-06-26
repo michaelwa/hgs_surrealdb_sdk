@@ -30,7 +30,8 @@ defmodule Mix.Tasks.HgsSurrealdbSdk.InstallTest do
       namespace: "app",
       database: "app",
       username: "root",
-      password: "root"
+      password: "root",
+      repo_path: "priv/surreal_repo"
     """)
   end
 
@@ -47,7 +48,20 @@ defmodule Mix.Tasks.HgsSurrealdbSdk.InstallTest do
       namespace: "test",
       database: "test",
       username: "root",
-      password: "root"
+      password: "root",
+      repo_path: "priv/surreal_repo"
+    """)
+  end
+
+  test "scaffolds the SurrealDB repo directory" do
+    test_project()
+    |> Igniter.compose_task("hgs_surrealdb_sdk.install", [])
+    |> assert_creates("priv/surreal_repo/migrations/.gitkeep", "")
+    |> assert_creates("priv/surreal_repo/seeds.exs", """
+    # Seed script for the SurrealDB store. Run with: mix surreal.seed
+    # The store API is available, e.g.:
+    #
+    #   Test.SurrealStore.create(MyApp.User, %{name: "Jane"})
     """)
   end
 
@@ -87,7 +101,10 @@ defmodule Mix.Tasks.HgsSurrealdbSdk.InstallTest do
     ])
     |> assert_has_notice(fn notice ->
       notice =~ "mix surreal.create --store Test.SurrealStore" and
-        notice =~ ~s("app2/app2" namespace/database)
+        notice =~ ~s("app2/app2" namespace/database) and
+        notice =~ "priv/surreal_repo/migrations" and
+        notice =~ "mix surreal.seed" and
+        notice =~ "schema_migrations"
     end)
   end
 end
