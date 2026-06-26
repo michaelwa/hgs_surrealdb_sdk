@@ -61,7 +61,9 @@ if Code.ensure_loaded?(Igniter) do
         [store],
         updater: fn zipper -> Igniter.Code.List.prepend_new_to_list(zipper, store) end
       )
-      |> Igniter.create_new_file("priv/surreal_repo/migrations/.gitkeep", "")
+      |> Igniter.create_new_file("priv/surreal_repo/migrations/.gitkeep", """
+      # Keep this directory in version control.
+      """)
       |> Igniter.create_new_file("priv/surreal_repo/seeds.exs", """
       # Seed script for the SurrealDB store. Run with: mix surreal.seed
       # The store API is available, e.g.:

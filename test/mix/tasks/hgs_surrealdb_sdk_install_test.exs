@@ -56,7 +56,9 @@ defmodule Mix.Tasks.HgsSurrealdbSdk.InstallTest do
   test "scaffolds the SurrealDB repo directory" do
     test_project()
     |> Igniter.compose_task("hgs_surrealdb_sdk.install", [])
-    |> assert_creates("priv/surreal_repo/migrations/.gitkeep", "")
+    |> assert_creates("priv/surreal_repo/migrations/.gitkeep", """
+    # Keep this directory in version control.
+    """)
     |> assert_creates("priv/surreal_repo/seeds.exs", """
     # Seed script for the SurrealDB store. Run with: mix surreal.seed
     # The store API is available, e.g.:
