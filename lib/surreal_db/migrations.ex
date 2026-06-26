@@ -9,7 +9,7 @@ defmodule SurrealDB.Migrations do
 
   @default_registry_ns "sdk_meta"
   @default_registry_db "migration_registry"
-  @registry_schema_path "surrealdb_migrations/sdk_registry/001_define_migration_registry.surql"
+  @registry_schema_path "schema_migrations/001_define_schema_migrations.surql"
 
   @type run_result :: %{
           filename: String.t(),

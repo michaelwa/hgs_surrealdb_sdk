@@ -10,7 +10,7 @@ defmodule SurrealDB.MigrationsTest do
       client_with_adapter(fn request ->
         assert Req.Request.get_header(request, "ns") == ["sdk_meta"]
         assert Req.Request.get_header(request, "db") == ["migration_registry"]
-        assert request.body =~ "DEFINE TABLE IF NOT EXISTS sdk_migration SCHEMAFULL"
+        assert request.body =~ "DEFINE TABLE IF NOT EXISTS schema_migrations SCHEMAFULL"
 
         ok_response(request, [])
       end)
