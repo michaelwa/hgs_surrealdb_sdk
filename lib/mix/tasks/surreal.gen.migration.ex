@@ -4,7 +4,7 @@ defmodule Mix.Tasks.Surreal.Gen.Migration do
   Generates a timestamped `.surql` migration file.
 
       $ mix surreal.gen.migration add_users
-      $ mix surreal.gen.migration add_users --migrations-path priv/surrealdb_migrations
+      $ mix surreal.gen.migration add_users --repo-path priv/surreal_repo
   """
 
   use Mix.Task
@@ -30,6 +30,11 @@ defmodule Mix.Tasks.Surreal.Gen.Migration do
 
     File.write!(full_path, """
     -- #{name}
+
+    -- migrate:up
+
+
+    -- migrate:down
 
     """)
 
