@@ -3,11 +3,12 @@ defmodule Mix.Tasks.Surreal.Rollback do
   @moduledoc """
   Rolls back the latest recorded migrations.
 
-  Without `--down-path`, this only removes registry rows. With `--down-path`, the
-  task runs matching `.surql` files from that directory before removing rows.
+  Runs `-- migrate:down` sections from the matching migration files before
+  removing registry rows. Migrations without a down section are removed from the
+  registry only.
 
       $ mix surreal.rollback --store MyApp.SurrealStore --force
-      $ mix surreal.rollback --store MyApp.SurrealStore --steps 2 --down-path priv/surrealdb_migrations_down --force
+      $ mix surreal.rollback --store MyApp.SurrealStore --steps 2 --force
   """
 
   use Mix.Task
@@ -27,29 +28,29 @@ defmodule Mix.Tasks.Surreal.Rollback do
 
     client = Helpers.build_client!(opts)
 
-    rows =
+    results =
       client
       |> Migrations.rollback(Helpers.target_opts(client, opts))
       |> Helpers.unwrap!()
 
-    Mix.shell().info("Rolled back #{length(rows)} migration registry row(s).")
-    Helpers.print_rows(rows)
+    reverted = Enum.count(results, & &1.reverted?)
+    registry_only = Enum.reject(results, & &1.reverted?)
 
-    if rows != [] and not down_path_given?(opts) do
+    Mix.shell().info(
+      "Rolled back #{length(results)} migration(s); #{reverted} schema reversal(s) ran."
+    )
+
+    Enum.each(results, fn result ->
+      status = if result.reverted?, do: "reverted", else: "registry-only"
+      Mix.shell().info("  #{status} #{result.filename}")
+    end)
+
+    if registry_only != [] do
       Mix.shell().error("""
-      warning: no --down-path was given, so no down-migrations were run.
-      The registry rows above were removed, but the schema in the target \
-      database was NOT changed. Re-run with --down-path to execute reversal \
-      `.surql` files, or drop/recreate the database with `mix surreal.reset`.
+      warning: #{length(registry_only)} migration(s) had no `-- migrate:down` section.
+      Their registry rows were removed, but the schema was NOT changed. Add a
+      `-- migrate:down` section to make them reversible, or use `mix surreal.reset`.
       """)
-    end
-  end
-
-  defp down_path_given?(opts) do
-    case Keyword.get(opts, :down_path) do
-      nil -> false
-      "" -> false
-      _ -> true
     end
   end
 end
