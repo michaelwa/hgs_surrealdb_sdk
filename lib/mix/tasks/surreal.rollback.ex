@@ -34,5 +34,22 @@ defmodule Mix.Tasks.Surreal.Rollback do
 
     Mix.shell().info("Rolled back #{length(rows)} migration registry row(s).")
     Helpers.print_rows(rows)
+
+    if rows != [] and not down_path_given?(opts) do
+      Mix.shell().error("""
+      warning: no --down-path was given, so no down-migrations were run.
+      The registry rows above were removed, but the schema in the target \
+      database was NOT changed. Re-run with --down-path to execute reversal \
+      `.surql` files, or drop/recreate the database with `mix surreal.reset`.
+      """)
+    end
+  end
+
+  defp down_path_given?(opts) do
+    case Keyword.get(opts, :down_path) do
+      nil -> false
+      "" -> false
+      _ -> true
+    end
   end
 end

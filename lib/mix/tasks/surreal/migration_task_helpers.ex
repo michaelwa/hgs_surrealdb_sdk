@@ -4,6 +4,7 @@ defmodule Mix.Tasks.Surreal.MigrationTaskHelpers do
   alias SurrealDB.Client
   alias SurrealDB.Config
   alias SurrealDB.Error
+  alias SurrealDB.Migrations
 
   @switches [
     store: :string,
@@ -166,6 +167,25 @@ defmodule Mix.Tasks.Surreal.MigrationTaskHelpers do
     |> unwrap!()
 
     {namespace, database, existed?}
+  end
+
+  @doc """
+  Removes the migration registry rows for the target namespace/database.
+
+  The registry lives in a separate namespace/database from the target, so
+  `REMOVE DATABASE` on the target leaves its registry rows behind. Clearing them
+  keeps the registry in sync with the (now empty) target so a later
+  `mix surreal.migrate` re-applies migrations from a clean slate instead of
+  skipping them as already applied.
+
+  Idempotent: installs the registry first so this is safe even when no
+  migrations have ever run.
+  """
+  def clear_registry!(%Client{} = client, opts) do
+    target = target_opts(client, opts)
+    Migrations.install_registry!(client, target)
+    Migrations.reset!(client, target)
+    :ok
   end
 
   defp database_exists?(%Client{} = client, namespace, database) do
