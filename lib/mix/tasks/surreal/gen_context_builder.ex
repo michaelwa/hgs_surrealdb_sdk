@@ -58,6 +58,21 @@ defmodule Mix.Tasks.Surreal.GenContextBuilder do
     "DEFINE FIELD #{field.name} ON #{table} TYPE #{type}#{modifier_clauses(field.modifiers)};"
   end
 
+  def pluralize(word) when is_binary(word) do
+    cond do
+      Regex.match?(~r/(s|x|z|ch|sh)$/, word) -> word <> "es"
+      Regex.match?(~r/[^aeiou]y$/, word) -> String.slice(word, 0..-2//1) <> "ies"
+      true -> word <> "s"
+    end
+  end
+
+  def table_name(schema_arg) when is_binary(schema_arg) do
+    schema_arg
+    |> String.split(".")
+    |> List.last()
+    |> Macro.underscore()
+  end
+
   # Deterministic clause order: READONLY, DEFAULT, VALUE, ASSERT.
   defp modifier_clauses(modifiers) do
     [:readonly, :default, :value, :assert]

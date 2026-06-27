@@ -118,4 +118,30 @@ defmodule Mix.Tasks.Surreal.GenContextBuilderTest do
                )
     end
   end
+
+  describe "pluralize/1" do
+    test "regular adds s" do
+      assert "users" == Builder.pluralize("user")
+      assert "days" == Builder.pluralize("day")
+    end
+
+    test "sibilants add es" do
+      assert "classes" == Builder.pluralize("class")
+      assert "boxes" == Builder.pluralize("box")
+      assert "buzzes" == Builder.pluralize("buzz")
+      assert "watches" == Builder.pluralize("watch")
+      assert "dishes" == Builder.pluralize("dish")
+    end
+
+    test "consonant + y becomes ies" do
+      assert "companies" == Builder.pluralize("company")
+    end
+  end
+
+  describe "table_name/1" do
+    test "snake_cases the schema argument" do
+      assert "user" == Builder.table_name("User")
+      assert "user_profile" == Builder.table_name("UserProfile")
+    end
+  end
 end
