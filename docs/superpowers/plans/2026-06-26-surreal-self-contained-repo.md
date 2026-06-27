@@ -62,12 +62,12 @@ In `test/surreal_db/migrations_test.exs`, change the `install_registry` test bod
 assert request.body =~ "DEFINE TABLE IF NOT EXISTS schema_migrations SCHEMAFULL"
 ```
 
-- [ ] **Step 2: Run it to verify it fails**
+- [x] **Step 2: Run it to verify it fails**
 
 Run: `mix test test/surreal_db/migrations_test.exs -k "install_registry"`
 Expected: FAIL (body still says `sdk_migration`).
 
-- [ ] **Step 3: Create the new schema file**
+- [x] **Step 3: Create the new schema file**
 
 Create `priv/schema_migrations/001_define_schema_migrations.surql`:
 
@@ -100,7 +100,7 @@ DEFINE INDEX IF NOT EXISTS schema_migrations_status
   ON TABLE schema_migrations FIELDS status;
 ```
 
-- [ ] **Step 4: Point `@registry_schema_path` at the new file**
+- [x] **Step 4: Point `@registry_schema_path` at the new file**
 
 In `lib/surreal_db/migrations.ex`, change the attribute:
 
@@ -108,18 +108,18 @@ In `lib/surreal_db/migrations.ex`, change the attribute:
 @registry_schema_path "schema_migrations/001_define_schema_migrations.surql"
 ```
 
-- [ ] **Step 5: Delete the old schema file**
+- [x] **Step 5: Delete the old schema file**
 
 ```bash
 git rm priv/surrealdb_migrations/sdk_registry/001_define_migration_registry.surql
 ```
 
-- [ ] **Step 6: Run test to verify it passes**
+- [x] **Step 6: Run test to verify it passes**
 
 Run: `mix test test/surreal_db/migrations_test.exs -k "install_registry"`
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add priv/schema_migrations lib/surreal_db/migrations.ex test/surreal_db/migrations_test.exs
@@ -155,12 +155,12 @@ assert Req.Request.get_header(request, "db") == ["test_db"]
 
 Also update the `assert_registry_request/1` and `assert_target_request/1` private helpers so they assert the **same** (configured) scope — registry and target are now the same database. If both helpers become identical, keep both names (call sites read better) but give them the same body.
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `mix test test/surreal_db/migrations_test.exs`
 Expected: FAIL (current code sends registry SQL to `sdk_meta`).
 
-- [ ] **Step 3: Remove the registry scope plumbing**
+- [x] **Step 3: Remove the registry scope plumbing**
 
 In `lib/surreal_db/migrations.ex`:
 
@@ -247,7 +247,7 @@ end
 
 Delete `target_variables/1`, the `migration_key/3` function, and any `target_ns`/`target_db` keys in `config` builders (`build_run_config`, `build_target_config`, `build_rollback_config`). These config builders should no longer `Keyword.fetch!` `:target_ns`/`:target_db`.
 
-- [ ] **Step 5: Fix the `status`/`reset` callers**
+- [x] **Step 5: Fix the `status`/`reset` callers**
 
 `status/2` and `reset/2` currently build a target config to produce variables. Since there are no variables now, simplify: drop the `build_target_config` call where it only supplied `target_ns/target_db`. Keep `ensure_http_client(client)`. Example `reset/2`:
 
@@ -259,12 +259,12 @@ def reset(%Client{} = client, _opts \\ []) do
 end
 ```
 
-- [ ] **Step 6: Run the suite**
+- [x] **Step 6: Run the suite**
 
 Run: `mix test test/surreal_db/migrations_test.exs`
 Expected: PASS. Update any remaining assertions in that file that still reference `target_ns`/`target_db`/`migration_key`/`sdk_migration` until green.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add lib/surreal_db/migrations.ex test/surreal_db/migrations_test.exs
@@ -324,12 +324,12 @@ describe "parse_migration/2" do
 end
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `mix test test/surreal_db/migrations_test.exs -k "parse_migration"`
 Expected: FAIL (`parse_migration/2` undefined).
 
-- [ ] **Step 3: Implement the parser**
+- [x] **Step 3: Implement the parser**
 
 Add to `lib/surreal_db/migrations.ex`:
 
@@ -411,7 +411,7 @@ case File.read(full_path) do
 end
 ```
 
-- [ ] **Step 5: Run `migration.up` in `execute_migration/5`**
+- [x] **Step 5: Run `migration.up` in `execute_migration/5`**
 
 In `execute_migration/5`, change the target query from `migration.contents` to `migration.up`:
 
@@ -419,12 +419,12 @@ In `execute_migration/5`, change the target query from `migration.contents` to `
 case SurrealDB.query(target, migration.up) do
 ```
 
-- [ ] **Step 6: Run the suite**
+- [x] **Step 6: Run the suite**
 
 Run: `mix test test/surreal_db/migrations_test.exs`
 Expected: PASS. The `run` tests that script `CREATE first;` bodies must now wrap fixtures in `-- migrate:up\n...`. Update `tmp_migrations/1` fixtures in those tests accordingly (e.g. `"-- migrate:up\nCREATE first;"`), and update the scripted assertion `assert request.body == "CREATE first;"` to match the parsed up section (`"CREATE first;"`).
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add lib/surreal_db/migrations.ex test/surreal_db/migrations_test.exs
@@ -483,12 +483,12 @@ end
 
 (Use whatever scripted-adapter helper name the file already defines; `scripted/1` here is illustrative of the existing `scripted_calls` pattern.)
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `mix test test/surreal_db/migrations_test.exs -k "rollback runs the down"`
 Expected: FAIL.
 
-- [ ] **Step 3: Rewrite the rollback path**
+- [x] **Step 3: Rewrite the rollback path**
 
 In `lib/surreal_db/migrations.ex`, replace the down-path-based rollback with one that loads migrations and runs their `:down` sections. Replace `rollback/2`, `applied_rows_for_rollback/2`, `execute_down_files/3`, `read_down_file/1`, and `delete_rolled_back_rows/3` with:
 
@@ -566,12 +566,12 @@ Note `run_downs/3` receives registry rows (string keys) and returns result maps;
 
 In `build_rollback_config/1`, drop `:down_path` and any `:target_ns`/`:target_db`; require `:path` and `:steps`, allow `:to`/`:to_exclusive`.
 
-- [ ] **Step 4: Run to verify pass**
+- [x] **Step 4: Run to verify pass**
 
 Run: `mix test test/surreal_db/migrations_test.exs -k "rollback"`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/surreal_db/migrations.ex test/surreal_db/migrations_test.exs
@@ -621,16 +621,16 @@ end
 
 (If `repo_path`/`migration_paths` need store config to resolve, these tests pass `opts` that don't reference a store so the default branch is exercised. Store-config resolution is covered by the end-to-end run.)
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `mix test test/mix/tasks/surreal_migration_task_helpers_test.exs`
 Expected: FAIL.
 
-- [ ] **Step 3: Add `:repo_path` to the option schema**
+- [x] **Step 3: Add `:repo_path` to the option schema**
 
 In `@switches`, add `repo_path: :string`. Remove `registry_namespace`, `registry_database`, and `down_path` from `@switches` (and any aliases referencing them).
 
-- [ ] **Step 4: Implement `repo_path/1` and update `migration_paths/1`**
+- [x] **Step 4: Implement `repo_path/1` and update `migration_paths/1`**
 
 Add:
 
@@ -666,7 +666,7 @@ def migration_paths(opts) do
 end
 ```
 
-- [ ] **Step 5: Trim `migration_opts/2` and `target_opts/2`; remove `clear_registry!/2`**
+- [x] **Step 5: Trim `migration_opts/2` and `target_opts/2`; remove `clear_registry!/2`**
 
 In `migration_opts/2`, drop `:target_ns`, `:target_db`, `:registry_ns`, `:registry_db`, `:down_path`. Keep `:path`, `:sdk_version`, and the optional `:allow_failed_rerun?`, `:step`, `:to`, `:to_exclusive`:
 
@@ -696,12 +696,12 @@ end
 
 Delete the `clear_registry!/2` function and the `alias SurrealDB.Migrations` if it is now unused elsewhere in the module (keep it only if still referenced).
 
-- [ ] **Step 6: Run to verify pass**
+- [x] **Step 6: Run to verify pass**
 
 Run: `mix test test/mix/tasks/surreal_migration_task_helpers_test.exs`
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add lib/mix/tasks/surreal/migration_task_helpers.ex test/mix/tasks/surreal_migration_task_helpers_test.exs
@@ -733,11 +733,11 @@ else
 end
 ```
 
-- [ ] **Step 2: Remove the registry-clear from `surreal.reset`**
+- [x] **Step 2: Remove the registry-clear from `surreal.reset`**
 
 In `lib/mix/tasks/surreal.reset.ex`, delete the `Helpers.clear_registry!(client, opts)` call and its `Mix.shell().info("Cleared migration registry ...")` line. (The `Migrations.run/2` call already installs the registry idempotently.) Keep drop → create → run.
 
-- [ ] **Step 3: Rework `surreal.rollback` output for `reverted?`**
+- [x] **Step 3: Rework `surreal.rollback` output for `reverted?`**
 
 In `lib/mix/tasks/surreal.rollback.ex`, replace the body after building the client. Remove `down_path_given?/1`. Use the new return shape:
 
@@ -766,12 +766,12 @@ if registry_only != [] do
 end
 ```
 
-- [ ] **Step 4: Compile and smoke-test**
+- [x] **Step 4: Compile and smoke-test**
 
 Run: `mix compile --warnings-as-errors`
 Expected: clean compile (no references to `clear_registry!`, `down_path_given?`, `print_rows` if it became unused — remove `print_rows` from helpers only if no longer referenced anywhere).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/mix/tasks/surreal.drop.ex lib/mix/tasks/surreal.reset.ex lib/mix/tasks/surreal.rollback.ex
@@ -804,12 +804,12 @@ File.write!(full_path, """
 """)
 ```
 
-- [ ] **Step 2: Manual verification**
+- [x] **Step 2: Manual verification**
 
 Run from a host app (or temp dir with a store configured): `mix surreal.gen.migration add_widget`
 Expected: creates `priv/surreal_repo/migrations/<ts>_add_widget.surql` containing `-- migrate:up` and `-- migrate:down`.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add lib/mix/tasks/surreal.gen.migration.ex
@@ -865,7 +865,7 @@ defmodule Mix.Tasks.Surreal.Seed do
 end
 ```
 
-- [ ] **Step 2: Add it to the help listing**
+- [x] **Step 2: Add it to the help listing**
 
 In `lib/mix/tasks/surreal.ex`, add a line to the help block:
 
@@ -873,12 +873,12 @@ In `lib/mix/tasks/surreal.ex`, add a line to the help block:
   mix surreal.seed                # Runs <repo_path>/seeds.exs
 ```
 
-- [ ] **Step 3: Compile**
+- [x] **Step 3: Compile**
 
 Run: `mix compile --warnings-as-errors`
 Expected: clean.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add lib/mix/tasks/surreal.seed.ex lib/mix/tasks/surreal.ex
@@ -913,7 +913,7 @@ In the `igniter/1` function (the `Code.ensure_loaded?(Igniter)` branch), after t
 
 (If `Igniter.create_new_file/3` is not the exact name in the installed Igniter version, use the equivalent — check `Igniter` docs for creating a new source file; the key requirement is the two files exist after install.)
 
-- [ ] **Step 2: Update the post-install notice**
+- [x] **Step 2: Update the post-install notice**
 
 Extend the `Igniter.add_notice(...)` text to mention the repo folder and tasks, e.g. append:
 
@@ -924,12 +924,12 @@ seed data with `mix surreal.seed`. The migration registry table
 (schema_migrations) is created inside your configured namespace/database.
 ```
 
-- [ ] **Step 3: Verify the installer compiles**
+- [x] **Step 3: Verify the installer compiles**
 
 Run: `mix compile --warnings-as-errors`
 Expected: clean.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add lib/mix/tasks/hgs_surrealdb_sdk.install.ex
@@ -942,12 +942,12 @@ git commit -m "feat(install): scaffold repo_path config, migrations dir, seeds.e
 
 **Files:** none (verification only).
 
-- [ ] **Step 1: Run the full SDK suite**
+- [x] **Step 1: Run the full SDK suite**
 
 Run: `mix test`
 Expected: all green. Fix any remaining references to old names/columns surfaced here.
 
-- [ ] **Step 2: End-to-end against a scratch scope (in the dogfood app)**
+- [x] **Step 2: End-to-end against a scratch scope (in the dogfood app)**
 
 From the `test_igniter` app with the updated SDK vendored into `deps/` (mirror the changed files and `mix deps.compile hgs_surrealdb_sdk --force`), run, using **literal flags** (never bare):
 
@@ -964,7 +964,7 @@ mix surreal.drop     --namespace sdk_verify --database sdk_verify --force  # db+
 
 Expected: `schema_migrations` exists **inside** `sdk_verify/sdk_verify` (verify with `INFO FOR DB;` showing it in `tables`); `sdk_meta` is never created; rollback reverts schema when a down section exists.
 
-- [ ] **Step 3: Commit any fixes**
+- [x] **Step 3: Commit any fixes**
 
 ```bash
 git add -A

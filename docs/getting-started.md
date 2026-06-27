@@ -9,8 +9,7 @@ The OTP app is `:hgs_surrealdb_sdk`, but public modules live under the
 
 ## Installation
 
-This SDK is not published to Hex. Install it from GitHub, a local path, or with
-Igniter using a source-qualified package spec.
+This SDK is not published to Hex. Install it from GitHub, a local path, or with Igniter using a source-qualified package spec.
 
 ### GitHub dependency
 
