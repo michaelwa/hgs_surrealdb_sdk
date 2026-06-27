@@ -144,4 +144,62 @@ defmodule Mix.Tasks.Surreal.GenContextBuilderTest do
       assert "user_profile" == Builder.table_name("UserProfile")
     end
   end
+
+  describe "migration rendering" do
+    test "migration_filename joins timestamp and name" do
+      assert "20260627000000_create_user.surql" ==
+               Builder.migration_filename("20260627000000", "create_user")
+    end
+
+    test "migration_body renders up/down with field lines" do
+      fields = Builder.parse_fields!(["name:string", "nick:string?"])
+
+      assert Builder.migration_body("user", "create_user", fields) == """
+             -- create_user
+
+             -- migrate:up
+             DEFINE TABLE user TYPE NORMAL SCHEMAFULL PERMISSIONS NONE;
+             DEFINE FIELD name ON user TYPE STRING;
+             DEFINE FIELD nick ON user TYPE OPTION<STRING>;
+
+             -- migrate:down
+             REMOVE TABLE user;
+             """
+    end
+  end
+
+  describe "schema_module_body/2" do
+    test "renders use, table, and Zoi object with id first" do
+      fields = Builder.parse_fields!(["name:string", "age:int?"])
+      body = Builder.schema_module_body("user", fields)
+
+      assert body =~ "use SurrealDB.Schema"
+      assert body =~ ~s(table "user")
+      assert body =~ "id: Zoi.string() |> Zoi.optional()"
+      assert body =~ "name: Zoi.string()"
+      assert body =~ "age: Zoi.integer() |> Zoi.optional()"
+      assert body =~ "Zoi.object(%{"
+    end
+  end
+
+  describe "context_module_body/5" do
+    test "renders aliases and delegating CRUD functions" do
+      body =
+        Builder.context_module_body(
+          MyApp.Accounts,
+          MyApp.Accounts.User,
+          MyApp.SurrealStore,
+          "user",
+          "users"
+        )
+
+      assert body =~ "alias MyApp.Accounts.User"
+      assert body =~ "alias MyApp.SurrealStore"
+      assert body =~ "def list_users(filters \\\\ %{}), do: SurrealStore.all(User, filters)"
+      assert body =~ "def get_user(id), do: SurrealStore.get(User, id)"
+      assert body =~ "def create_user(attrs), do: SurrealStore.create(User, attrs)"
+      assert body =~ "def update_user(id, attrs), do: SurrealStore.update(User, id, attrs)"
+      assert body =~ "def delete_user(id), do: SurrealStore.delete(User, id)"
+    end
+  end
 end

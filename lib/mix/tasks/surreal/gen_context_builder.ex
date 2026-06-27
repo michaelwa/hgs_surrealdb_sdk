@@ -133,4 +133,82 @@ defmodule Mix.Tasks.Surreal.GenContextBuilder do
   defp supported_types do
     (Map.keys(@type_map) ++ ["record:<table>"]) |> Enum.sort() |> Enum.join(", ")
   end
+
+  def timestamp, do: Calendar.strftime(DateTime.utc_now(), "%Y%m%d%H%M%S")
+
+  def migration_filename(timestamp, migration_name), do: "#{timestamp}_#{migration_name}.surql"
+
+  def migration_body(table, migration_name, fields) do
+    field_lines =
+      fields
+      |> Enum.map(&define_field_line(&1, table))
+      |> Enum.join("\n")
+
+    """
+    -- #{migration_name}
+
+    -- migrate:up
+    DEFINE TABLE #{table} TYPE NORMAL SCHEMAFULL PERMISSIONS NONE;
+    #{field_lines}
+
+    -- migrate:down
+    REMOVE TABLE #{table};
+    """
+  end
+
+  def schema_module_body(table, fields) do
+    Enum.join(
+      [
+        ~s(@moduledoc """),
+        "SurrealDB schema for the `#{table}` table.",
+        ~s("""),
+        "use SurrealDB.Schema",
+        "",
+        "table #{inspect(table)}",
+        "",
+        "schema do",
+        "  Zoi.object(%{",
+        zoi_object_lines(fields),
+        "  })",
+        "end"
+      ],
+      "\n"
+    )
+  end
+
+  def context_module_body(context_mod, schema_mod, store_mod, singular, plural) do
+    schema_alias = module_last(schema_mod)
+    store_alias = module_last(store_mod)
+
+    Enum.join(
+      [
+        ~s(@moduledoc """),
+        "The #{module_last(context_mod)} context.",
+        ~s("""),
+        "alias #{inspect(schema_mod)}",
+        "alias #{inspect(store_mod)}",
+        "",
+        "def list_#{plural}(filters \\\\ %{}), do: #{store_alias}.all(#{schema_alias}, filters)",
+        "def get_#{singular}(id), do: #{store_alias}.get(#{schema_alias}, id)",
+        "def create_#{singular}(attrs), do: #{store_alias}.create(#{schema_alias}, attrs)",
+        "def update_#{singular}(id, attrs), do: #{store_alias}.update(#{schema_alias}, id, attrs)",
+        "def delete_#{singular}(id), do: #{store_alias}.delete(#{schema_alias}, id)"
+      ],
+      "\n"
+    )
+  end
+
+  defp zoi_object_lines(fields) do
+    [{"id", "Zoi.string() |> Zoi.optional()"} | Enum.map(fields, &{&1.name, zoi_expr(&1)})]
+    |> Enum.map(fn {name, expr} -> "    #{name}: #{expr}" end)
+    |> Enum.join(",\n")
+  end
+
+  defp module_last(mod) do
+    mod
+    |> Atom.to_string()
+    |> String.trim_leading("Elixir.")
+    |> String.split(".")
+    |> List.last()
+  end
 end
