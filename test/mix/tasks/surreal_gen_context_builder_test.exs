@@ -69,4 +69,53 @@ defmodule Mix.Tasks.Surreal.GenContextBuilderTest do
     assert [%Field{name: "a"}, %Field{name: "b"}] =
              Builder.parse_fields!(["a:string", "b:int"])
   end
+
+  describe "zoi_expr/1" do
+    test "returns base for required field" do
+      assert "Zoi.string()" == Builder.zoi_expr(Builder.parse_field!("name:string"))
+    end
+
+    test "pipes optional for ? field" do
+      assert "Zoi.string() |> Zoi.optional()" ==
+               Builder.zoi_expr(Builder.parse_field!("nick:string?"))
+    end
+
+    test "ignores migration-only modifiers" do
+      assert "Zoi.datetime()" ==
+               Builder.zoi_expr(Builder.parse_field!("at:datetime|readonly|default=time::now()"))
+    end
+  end
+
+  describe "define_field_line/2" do
+    test "plain required field" do
+      assert "DEFINE FIELD name ON user TYPE STRING;" ==
+               Builder.define_field_line(Builder.parse_field!("name:string"), "user")
+    end
+
+    test "optional wraps in OPTION<>" do
+      assert "DEFINE FIELD nick ON user TYPE OPTION<STRING>;" ==
+               Builder.define_field_line(Builder.parse_field!("nick:string?"), "user")
+    end
+
+    test "emits modifiers in READONLY DEFAULT VALUE ASSERT order" do
+      field = Builder.parse_field!("created_at:datetime|default=time::now()|readonly")
+
+      assert "DEFINE FIELD created_at ON user TYPE DATETIME READONLY DEFAULT time::now();" ==
+               Builder.define_field_line(field, "user")
+    end
+
+    test "emits assert last and value clause" do
+      assert "DEFINE FIELD email ON acct TYPE STRING ASSERT $value.is_email();" ==
+               Builder.define_field_line(
+                 Builder.parse_field!("email:string|assert=$value.is_email()"),
+                 "acct"
+               )
+
+      assert "DEFINE FIELD updated_at ON acct TYPE DATETIME VALUE time::now();" ==
+               Builder.define_field_line(
+                 Builder.parse_field!("updated_at:datetime|value=time::now()"),
+                 "acct"
+               )
+    end
+  end
 end

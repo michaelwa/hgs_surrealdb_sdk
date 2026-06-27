@@ -50,6 +50,27 @@ defmodule Mix.Tasks.Surreal.GenContextBuilder do
     end
   end
 
+  def zoi_expr(%Field{zoi_base: base, optional?: false}), do: base
+  def zoi_expr(%Field{zoi_base: base, optional?: true}), do: base <> " |> Zoi.optional()"
+
+  def define_field_line(%Field{} = field, table) do
+    type = if field.optional?, do: "OPTION<#{field.surreal_type}>", else: field.surreal_type
+    "DEFINE FIELD #{field.name} ON #{table} TYPE #{type}#{modifier_clauses(field.modifiers)};"
+  end
+
+  # Deterministic clause order: READONLY, DEFAULT, VALUE, ASSERT.
+  defp modifier_clauses(modifiers) do
+    [:readonly, :default, :value, :assert]
+    |> Enum.map(fn key -> {key, List.keyfind(modifiers, key, 0)} end)
+    |> Enum.reduce("", fn
+      {:readonly, {:readonly, _}}, acc -> acc <> " READONLY"
+      {:default, {:default, v}}, acc -> acc <> " DEFAULT #{v}"
+      {:value, {:value, v}}, acc -> acc <> " VALUE #{v}"
+      {:assert, {:assert, v}}, acc -> acc <> " ASSERT #{v}"
+      {_key, nil}, acc -> acc
+    end)
+  end
+
   defp parse_type!(token, spec) do
     {base, optional?} =
       if String.ends_with?(token, "?") do
