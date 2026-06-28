@@ -80,12 +80,25 @@ Living backlog for the SurrealDB Elixir SDK. Design rationale lives in
   files, complementing the existing runner.
 - LiveView live-query helper: subscribe a LiveView to a `LIVE SELECT` and push
   updates into assigns.
+- **First-class transactions (`Store.transaction/1` + a `Multi`-style builder).**
+  Today the SDK has no dedicated transaction API: callers must hand-write a raw
+  `BEGIN TRANSACTION; …; COMMIT TRANSACTION;` block and send it through `query/2,3`,
+  and the typed `Repo`/`Store` CRUD helpers can't be composed into one atomic unit
+  (each is its own query, and a raw block bypasses Zoi validation). Add a helper
+  that assembles a `BEGIN/COMMIT` block from a sequence of typed operations —
+  `Ecto.Multi`-style — running per-step Zoi validation before send, binding shared
+  variables, and surfacing the rolled-back result as `{:error, _}` (SurrealDB
+  already returns `status: "ERR"` per statement on failure, which `query/2` maps to
+  an error tuple). `CANCEL TRANSACTION` for explicit aborts. Atomicity stays
+  server-side; the helper is an ergonomics + validation layer over the existing
+  multi-statement `query` path.
 
 ### gen.context — phase 2
 
 Follow-ups deferred from the v1 `mix surreal.gen.context` generator (see its
 design spec §10). Each is additive to the existing builder/task.
 
+- **timestamps() helper functions** add helper functions that will add created_at, and updated_at colums to zoi schema, and migration fields
 - **Unique indexes.** Let the generator emit `DEFINE INDEX` statements for unique
   constraints. Sketch: a per-field `unique` modifier (e.g. `email:string|unique`)
   emits, in the migration up-section, `DEFINE INDEX <table>_<field>_idx ON <table>
