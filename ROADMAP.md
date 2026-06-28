@@ -37,6 +37,15 @@ Living backlog for the SurrealDB Elixir SDK. Design rationale lives in
   `SurrealDB.Telemetry` with `events/0` and an opt-in default logger
   (`attach_default_logger/1`). Design:
   `docs/superpowers/specs/2026-06-15-f1-telemetry-instrumentation-design.md`.
+- **gen.context generator (`mix surreal.gen.context`).** Scaffolds a context
+  module, a `SurrealDB.Schema` (Zoi) module, and a timestamped `.surql` migration
+  into the consuming app from a single command, mirroring `mix phx.gen.context`.
+  Igniter-based with a `Mix.Task` fallback when Igniter isn't installed. Field
+  syntax `name:type[?][|modifier]...` maps base types to both SurrealDB `TYPE` and
+  Zoi; `?` marks optional; `|`-delimited modifiers (`readonly`/`default=`/`assert=`/
+  `value=`) emit into the migration only (Zoi mirrors type + optional). User-
+  supplied table identifiers are validated before reaching generated SurrealQL.
+  Design: `docs/superpowers/specs/2026-06-27-surreal-gen-context-design.md`.
 
 ## Deferred ideas
 
@@ -71,6 +80,42 @@ Living backlog for the SurrealDB Elixir SDK. Design rationale lives in
   files, complementing the existing runner.
 - LiveView live-query helper: subscribe a LiveView to a `LIVE SELECT` and push
   updates into assigns.
+
+### gen.context — phase 2
+
+Follow-ups deferred from the v1 `mix surreal.gen.context` generator (see its
+design spec §10). Each is additive to the existing builder/task.
+
+- **Unique indexes.** Let the generator emit `DEFINE INDEX` statements for unique
+  constraints. Sketch: a per-field `unique` modifier (e.g. `email:string|unique`)
+  emits, in the migration up-section, `DEFINE INDEX <table>_<field>_idx ON <table>
+  FIELDS <field> UNIQUE;` and a matching `REMOVE INDEX <table>_<field>_idx ON
+  <table>;` in the down-section; plus a `--unique a,b` option for a composite
+  unique index across multiple fields (`FIELDS a, b UNIQUE`). Index-only, like the
+  other modifiers — the Zoi schema is unaffected. Naming and the down-section
+  `REMOVE INDEX` ordering (before `REMOVE TABLE`) are the main details to pin down.
+- **Curated named validators** (`email`, `min=`, `max=`, …) that emit into *both*
+  the migration `ASSERT` and a Zoi refinement — a bounded mapping table, the v2
+  alternative to the v1 "raw modifiers → migration only" policy.
+- **Generated context test files.** Blocked on a SurrealDB test-sandbox / cleanup
+  strategy that doesn't exist yet; would otherwise be integration tests requiring a
+  live DB. Pairs with a `@moduletag` opt-in approach.
+- **Auto-translate SurrealQL `ASSERT`/`DEFAULT` into Zoi refinements.** Not done in
+  v1 because the two validation languages don't map automatically; would need a
+  recognized subset.
+- **`gen.schema` / `gen.migration` composition split.** Separate sub-generators
+  instead of one combined command, for finer-grained scaffolding.
+- **Extend an existing context with a second schema** in one invocation (today each
+  run assumes a fresh context module).
+- **`belongs_to` / association-graph generation** beyond a plain `record<table>`
+  field type (relationship scaffolding, graph edges).
+- **Export a `.formatter.exs`** from the SDK with
+  `locals_without_parens: [table: 1, schema: 1]` so generated schemas render
+  `table "user"` (no parens) in host apps that `import_deps: [:hgs_surrealdb_sdk]`.
+- **`pluralize/1` doubled-consonant plurals** (e.g. `quiz → quizzes`); `--plural`
+  is the current escape hatch.
+- **`modifier_clauses/1` micro-cleanup** — collapse the map-then-reduce into a
+  single reduce (pure style).
 
 ## Publishing
 
