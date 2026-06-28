@@ -60,6 +60,10 @@ defmodule Mix.Tasks.Surreal.GenContextBuilderTest do
       assert_raise Mix.Error, fn -> Builder.parse_field!("name:widget") end
     end
 
+    test "raises on invalid record:<table> reference" do
+      assert_raise Mix.Error, fn -> Builder.parse_field!("owner:record:Bad Name") end
+    end
+
     test "raises on unknown modifier" do
       assert_raise Mix.Error, fn -> Builder.parse_field!("name:string|frobnicate") end
     end
@@ -145,6 +149,32 @@ defmodule Mix.Tasks.Surreal.GenContextBuilderTest do
     end
   end
 
+  describe "validate_identifier!/2" do
+    test "accepts valid identifiers" do
+      assert :ok == Builder.validate_identifier!("user", "table name")
+      assert :ok == Builder.validate_identifier!("user_profile", "table name")
+    end
+
+    test "raises Mix.Error for invalid identifiers" do
+      assert_raise Mix.Error, fn -> Builder.validate_identifier!("User", "table name") end
+      assert_raise Mix.Error, fn -> Builder.validate_identifier!("a-b", "table name") end
+      assert_raise Mix.Error, fn -> Builder.validate_identifier!("1x", "table name") end
+      assert_raise Mix.Error, fn -> Builder.validate_identifier!("", "table name") end
+
+      assert_raise Mix.Error, fn ->
+        Builder.validate_identifier!("user; DEFINE", "table name")
+      end
+    end
+
+    test "raised message includes the label and offending value" do
+      error =
+        assert_raise Mix.Error, fn -> Builder.validate_identifier!("Bad Name", "table name") end
+
+      assert error.message =~ "table name"
+      assert error.message =~ "Bad Name"
+    end
+  end
+
   describe "migration rendering" do
     test "migration_filename joins timestamp and name" do
       assert "20260627000000_create_user.surql" ==
@@ -166,6 +196,18 @@ defmodule Mix.Tasks.Surreal.GenContextBuilderTest do
              REMOVE TABLE user;
              """
     end
+
+    test "migration_body with no fields has no blank-line gap before migrate:down" do
+      assert Builder.migration_body("thing", "create_thing", []) == """
+             -- create_thing
+
+             -- migrate:up
+             DEFINE TABLE thing TYPE NORMAL SCHEMAFULL PERMISSIONS NONE;
+
+             -- migrate:down
+             REMOVE TABLE thing;
+             """
+    end
   end
 
   describe "schema_module_body/2" do
@@ -173,12 +215,22 @@ defmodule Mix.Tasks.Surreal.GenContextBuilderTest do
       fields = Builder.parse_fields!(["name:string", "age:int?"])
       body = Builder.schema_module_body("user", fields)
 
-      assert body =~ "use SurrealDB.Schema"
-      assert body =~ ~s(table "user")
-      assert body =~ "id: Zoi.string() |> Zoi.optional()"
-      assert body =~ "name: Zoi.string()"
-      assert body =~ "age: Zoi.integer() |> Zoi.optional()"
-      assert body =~ "Zoi.object(%{"
+      assert body == """
+             @moduledoc \"\"\"
+             SurrealDB schema for the `user` table.
+             \"\"\"
+             use SurrealDB.Schema
+
+             table "user"
+
+             schema do
+               Zoi.object(%{
+                 id: Zoi.string() |> Zoi.optional(),
+                 name: Zoi.string(),
+                 age: Zoi.integer() |> Zoi.optional()
+               })
+             end\
+             """
     end
   end
 
@@ -193,13 +245,19 @@ defmodule Mix.Tasks.Surreal.GenContextBuilderTest do
           "users"
         )
 
-      assert body =~ "alias MyApp.Accounts.User"
-      assert body =~ "alias MyApp.SurrealStore"
-      assert body =~ "def list_users(filters \\\\ %{}), do: SurrealStore.all(User, filters)"
-      assert body =~ "def get_user(id), do: SurrealStore.get(User, id)"
-      assert body =~ "def create_user(attrs), do: SurrealStore.create(User, attrs)"
-      assert body =~ "def update_user(id, attrs), do: SurrealStore.update(User, id, attrs)"
-      assert body =~ "def delete_user(id), do: SurrealStore.delete(User, id)"
+      assert body == """
+             @moduledoc \"\"\"
+             The Accounts context.
+             \"\"\"
+             alias MyApp.Accounts.User
+             alias MyApp.SurrealStore
+
+             def list_users(filters \\\\ %{}), do: SurrealStore.all(User, filters)
+             def get_user(id), do: SurrealStore.get(User, id)
+             def create_user(attrs), do: SurrealStore.create(User, attrs)
+             def update_user(id, attrs), do: SurrealStore.update(User, id, attrs)
+             def delete_user(id), do: SurrealStore.delete(User, id)\
+             """
     end
   end
 end

@@ -50,6 +50,14 @@ defmodule Mix.Tasks.Surreal.GenContextBuilder do
     end
   end
 
+  def validate_identifier!(value, label) when is_binary(value) and is_binary(label) do
+    if Regex.match?(@name_re, value) do
+      :ok
+    else
+      Mix.raise(~s(invalid #{label} "#{value}"; must match [a-z][a-z0-9_]*))
+    end
+  end
+
   def zoi_expr(%Field{zoi_base: base, optional?: false}), do: base
   def zoi_expr(%Field{zoi_base: base, optional?: true}), do: base <> " |> Zoi.optional()"
 
@@ -96,6 +104,7 @@ defmodule Mix.Tasks.Surreal.GenContextBuilder do
 
     case base do
       "record:" <> table when table != "" ->
+        validate_identifier!(table, "record table name")
         {"record<#{table}>", "Zoi.string()", optional?}
 
       _ ->
@@ -139,18 +148,18 @@ defmodule Mix.Tasks.Surreal.GenContextBuilder do
   def migration_filename(timestamp, migration_name), do: "#{timestamp}_#{migration_name}.surql"
 
   def migration_body(table, migration_name, fields) do
-    field_lines =
-      fields
-      |> Enum.map(&define_field_line(&1, table))
-      |> Enum.join("\n")
+    field_block =
+      case Enum.map(fields, &define_field_line(&1, table)) do
+        [] -> ""
+        lines -> Enum.join(lines, "\n") <> "\n"
+      end
 
     """
     -- #{migration_name}
 
     -- migrate:up
     DEFINE TABLE #{table} TYPE NORMAL SCHEMAFULL PERMISSIONS NONE;
-    #{field_lines}
-
+    #{field_block}
     -- migrate:down
     REMOVE TABLE #{table};
     """

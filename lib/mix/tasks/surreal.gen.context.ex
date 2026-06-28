@@ -59,12 +59,14 @@ if Code.ensure_loaded?(Igniter) do
 
       fields = Builder.parse_fields!(field_specs)
       table = opts[:table] || Builder.table_name(schema_arg)
+      Builder.validate_identifier!(table, "table name")
       plural = opts[:plural] || Builder.pluralize(table)
+      Builder.validate_identifier!(plural, "plural")
       migration_name = "create_#{table}"
       timestamp = opts[:migration_timestamp] || Builder.timestamp()
 
       migration_path =
-        Helpers.repo_path(Enum.to_list(opts))
+        Helpers.repo_path(opts)
         |> Path.join("migrations")
         |> Path.join(Builder.migration_filename(timestamp, migration_name))
 
