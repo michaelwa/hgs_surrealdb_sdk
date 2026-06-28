@@ -95,6 +95,7 @@ from your application:
 
 ```bash
 mix surreal.gen.migration add_users
+mix surreal.gen.context Accounts User name:string email:string "created_at:datetime|readonly|default=time::now()"
 mix surreal.create --store MyApp.SurrealStore
 mix surreal.setup --store MyApp.SurrealStore
 mix surreal.reset --store MyApp.SurrealStore --force
