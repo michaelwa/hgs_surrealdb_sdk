@@ -128,12 +128,20 @@ SurrealDB.query(client, surql, vars)     → existing path: RPC, ensure_query_su
 map RETURN payload to steps + hydrate    → {:ok, %{name => result}} | {:error, name | :transaction, error}
 ```
 
-Error mapping on server rollback: `ensure_query_success/1` already surfaces
-the failing statement's `Error.surreal_error/1`. The runner attributes it to
-a step name by locating the failing statement's index within the assembled
-block (BEGIN + one per step + RETURN + COMMIT gives a known index→step map,
-subject to spike findings in §5); if the index cannot be attributed
-(shape differs across server versions), the step slot is `:transaction`.
+Success mapping: the live spike on SurrealDB 3.1.5 showed that `BEGIN`,
+each `LET`, the terminal `RETURN`, and `COMMIT` all emit response entries.
+For the assembled block, the terminal RETURN payload is therefore expected at
+response index `length(ops) + 1` (index 0 is BEGIN; indexes `1..length(ops)`
+are step LET statements; the following index is RETURN; the last index is
+COMMIT). The runner maps that RETURN payload by key and hydrates typed steps.
+
+Error mapping on server rollback: `ensure_query_success/1` must surface the
+actual failing statement, not the generic transaction cancellation entries,
+and include the response statement index in `Error.details.statement_index`.
+For the assembled block, a server statement index maps to a step when
+`1 <= statement_index <= length(ops)`, with step index `statement_index - 1`.
+BEGIN, RETURN, COMMIT, transport/decode failures, and unrecognized response
+shapes are attributed to `:transaction`.
 
 ### 3.3 Refactor: extract statement builders from `SurrealDB.Repo`
 
@@ -175,11 +183,20 @@ building on them:
 4. `LET $x = (CREATE …)` — does `$x` hold the created record(s)? Array or
    object?
 
-**Fallback:** if `RETURN`-in-transaction is unusable, switch to positional
-mapping — send bare statements (no LET-wrap), filter BEGIN/COMMIT entries
-from the results array, zip remainder with steps in order. The Multi API and
-result contract are unchanged; only `to_query/1` and result mapping differ.
-Spike findings get recorded in the plan before the affected tasks run.
+**Spike result on SurrealDB 3.1.5:** `RETURN` inside a transaction is usable,
+and `LET $x = (CREATE …)` captures an array of created records. `BEGIN` and
+`COMMIT` do emit entries, so success mapping must read the RETURN slot at
+`length(ops) + 1` rather than `List.last(results)`. On rollback, generic
+failed/cancelled entries and the COMMIT-aborted entry can surround the real
+error; the failing step is recovered by skipping those generic transaction
+messages and then applying the `statement_index - 1` step offset.
+
+**Fallback:** if a future SurrealDB version makes `RETURN`-in-transaction
+unusable, switch to positional mapping — send bare statements (no LET-wrap),
+filter BEGIN/COMMIT entries from the results array, zip remainder with steps
+in order. The Multi API and result contract are unchanged; only `to_query/1`
+and result mapping differ. Spike findings get recorded in the plan before
+the affected tasks run.
 
 ## 6. Testing
 

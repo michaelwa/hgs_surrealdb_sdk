@@ -6,6 +6,8 @@
 
 **Architecture:** `SurrealDB.Multi` is pure data + assembly (no I/O): it validates each step client-side, namespaces per-step variables, LET-binds every step by its step name, and emits a single block ending in `RETURN { name: $name, … }` so results map back by key. `SurrealDB.transaction/2` sends the block through the existing `SurrealDB.query/3` path and hydrates the name-keyed RETURN payload. Statement fragments are extracted from `SurrealDB.Repo` into `SurrealDB.Repo.Statement` so Repo and Multi share one source of truth. Atomicity is server-side.
 
+**Spike revision:** Task 1 is complete; see `docs/superpowers/plans/2026-07-03-transactions-multi-spike-findings.md`. SurrealDB 3.1.5 returns one result entry for `BEGIN`, each step `LET`, the terminal `RETURN`, and `COMMIT`. Therefore success mapping reads the RETURN payload at response index `length(ops) + 1` instead of `List.last(results)`, and server error attribution maps response statement index `i` to step index `i - 1` when `1 <= i <= length(ops)`. `ensure_query_success/1` must skip the observed generic rollback/cancel/COMMIT-aborted messages to surface the real failing statement when present.
+
 **Tech Stack:** Elixir library (no Phoenix). Deps already present: `req`, `jason`, `zoi`. Tests: ExUnit with stubbed `Req` adapters (see `test/surreal_db/repo_test.exs` for the pattern).
 
 **Spec:** `docs/superpowers/specs/2026-07-03-transactions-multi-design.md` — read it before starting any task.
@@ -25,6 +27,10 @@
 
 ### Task 1: Runtime spike — verify SurrealDB transaction semantics
 
+**Status:** Complete. Findings committed in
+`docs/superpowers/plans/2026-07-03-transactions-multi-spike-findings.md`;
+Tasks 5-6 below have been revised to match those findings.
+
 The whole design leans on how the live server treats `LET`/`RETURN` inside `BEGIN/COMMIT`. Verify before building. This task produces a findings doc that gates Tasks 5–6.
 
 **Files:**
@@ -38,7 +44,7 @@ The whole design leans on how the live server treats `LET`/`RETURN` inside `BEGI
 
 Run: `curl -s http://localhost:8000/health && echo OK && curl -s http://localhost:8000/version`
 
-Expected: `OK` and a version string (record the version). If the health check fails, STOP and report back — do not guess.
+Expected: the health request exits successfully and `/version` prints a version string (record the version). On SurrealDB 3.1.5, `/health` returned an empty successful response rather than a body containing `OK`. If the health check fails, STOP and report back — do not guess.
 
 - [ ] **Step 2: Write the spike script**
 
@@ -55,6 +61,7 @@ Create `tmp/spike_transactions.exs`:
     password: "root"
   )
 
+{:ok, _} = SurrealDB.query(client, "DEFINE TABLE IF NOT EXISTS person SCHEMALESS")
 {:ok, _} = SurrealDB.query(client, "DELETE person")
 
 IO.puts("=== Q1/Q2/Q4: success — RETURN inside txn; BEGIN/COMMIT/LET entries; LET capture shape ===")
@@ -131,7 +138,7 @@ SurrealDB version: <paste from /version>
 - [ ] Some assumption failed — STOP; report to the orchestrator; Tasks 5–6 must be revised (spec §5 has the positional fallback) before execution.
 ```
 
-If any assumption fails, STOP after committing the findings and report back.
+If any assumption fails, STOP after committing the findings and report back. The recorded SurrealDB 3.1.5 spike did find failed assumptions, and this plan has since been revised so Tasks 5-6 can proceed.
 
 - [ ] **Step 5: Clean up and commit**
 
@@ -710,7 +717,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 
 `SurrealDB.query/3` currently reports the FIRST `status: "ERR"` statement. In a rolled-back transaction most statements carry the generic "not executed" message and the real failure can sit later — and the runner (Task 6) needs the failing statement's index to name the step.
 
-**GATE: read `docs/superpowers/plans/2026-07-03-transactions-multi-spike-findings.md` first.** If assumptions A3/A4 were NOT confirmed, STOP and report — this task's generic-message constant and index mapping come from those findings (adjust the constant to the exact message observed in the spike if it differs).
+**GATE: read `docs/superpowers/plans/2026-07-03-transactions-multi-spike-findings.md` first.** A3/A4 were only partially confirmed on SurrealDB 3.1.5, so this task is revised from the original direct mapping: preserve the raw response `statement_index`, but choose the first non-generic transaction error when one exists. The runner in Task 6 applies the transaction block offset.
 
 **Files:**
 - Modify: `lib/surreal_db.ex` (`ensure_query_success/1`)
@@ -730,7 +737,9 @@ defmodule SurrealDB.QueryErrorIndexTest do
 
   alias SurrealDB.Client
 
-  @generic "The query was not executed due to a failed transaction"
+  @failed "The query was not executed due to a failed transaction"
+  @cancelled "The query was not executed due to a cancelled transaction"
+  @commit_aborted "Cannot COMMIT: the transaction was aborted due to a prior error"
 
   defp client_with_response(statements) do
     %Client{
@@ -760,12 +769,14 @@ defmodule SurrealDB.QueryErrorIndexTest do
   test "generic rollback entries lose to the statement that actually failed" do
     client =
       client_with_response([
-        %{"status" => "ERR", "result" => @generic},
+        %{"status" => "OK", "result" => nil},
+        %{"status" => "ERR", "result" => @failed},
         %{"status" => "ERR", "result" => "Database record `person:dup` already exists"},
-        %{"status" => "ERR", "result" => @generic}
+        %{"status" => "ERR", "result" => @cancelled},
+        %{"status" => "ERR", "result" => @commit_aborted}
       ])
 
-    assert {:error, %SurrealDB.Error{message: message, details: %{statement_index: 1}}} =
+    assert {:error, %SurrealDB.Error{message: message, details: %{statement_index: 2}}} =
              SurrealDB.query(client, "BEGIN TRANSACTION; RETURN 1; COMMIT TRANSACTION;")
 
     assert message =~ "already exists"
@@ -774,8 +785,9 @@ defmodule SurrealDB.QueryErrorIndexTest do
   test "all-generic entries fall back to the first ERR entry" do
     client =
       client_with_response([
-        %{"status" => "ERR", "result" => @generic},
-        %{"status" => "ERR", "result" => @generic}
+        %{"status" => "ERR", "result" => @failed},
+        %{"status" => "ERR", "result" => @cancelled},
+        %{"status" => "ERR", "result" => @commit_aborted}
       ])
 
     assert {:error, %SurrealDB.Error{details: %{statement_index: 0}}} =
@@ -794,7 +806,11 @@ Expected: FAIL — `details` has no `statement_index` key.
 In `lib/surreal_db.ex`, replace the existing `ensure_query_success/1` clauses (currently near the bottom, using `Enum.find`) with:
 
 ```elixir
-  @generic_rollback_message "The query was not executed due to a failed transaction"
+  @generic_transaction_errors MapSet.new([
+                                "The query was not executed due to a failed transaction",
+                                "The query was not executed due to a cancelled transaction",
+                                "Cannot COMMIT: the transaction was aborted due to a prior error"
+                              ])
 
   defp ensure_query_success(body) when is_list(body) do
     body
@@ -807,7 +823,7 @@ In `lib/surreal_db.ex`, replace the existing `ensure_query_success/1` clauses (c
       errors ->
         {statement, index} =
           Enum.find(errors, hd(errors), fn {statement, _index} ->
-            Map.get(statement, "result") != @generic_rollback_message
+            not MapSet.member?(@generic_transaction_errors, Map.get(statement, "result"))
           end)
 
         {:error, Error.surreal_error(statement, index)}
@@ -858,7 +874,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 
 ### Task 6: `SurrealDB.transaction/2` runner
 
-**GATE: read `docs/superpowers/plans/2026-07-03-transactions-multi-spike-findings.md` first.** The success-mapping code below assumes A1 (RETURN payload is the sole/last results entry) and the attribution assumes A3 (entry index i ↔ step i). If the findings said otherwise, STOP and report.
+**GATE: read `docs/superpowers/plans/2026-07-03-transactions-multi-spike-findings.md` first.** The success-mapping and attribution below are already revised for the SurrealDB 3.1.5 findings: BEGIN and COMMIT emit response entries; the RETURN payload is at response index `length(ops) + 1`; response statement index `i` maps to step index `i - 1` for `1 <= i <= length(ops)`.
 
 **Files:**
 - Modify: `lib/surreal_db.ex`
@@ -910,7 +926,9 @@ defmodule SurrealDB.TransactionTest do
   end
 
   @jane %{"id" => "user:1", "name" => "Jane", "email" => "jane@example.com"}
-  @generic "The query was not executed due to a failed transaction"
+  @failed "The query was not executed due to a failed transaction"
+  @cancelled "The query was not executed due to a cancelled transaction"
+  @commit_aborted "Cannot COMMIT: the transaction was aborted due to a prior error"
 
   test "empty multi returns {:ok, %{}} without touching the network" do
     client = client_with_adapter(fn _request -> raise "network must not be called" end)
@@ -920,7 +938,17 @@ defmodule SurrealDB.TransactionTest do
 
   test "success maps the RETURN payload to step names and hydrates schema steps" do
     returned = %{"user" => [@jane], "count" => 1}
-    client = client_with_adapter(response([%{"status" => "OK", "result" => returned}]))
+
+    client =
+      client_with_adapter(
+        response([
+          %{"status" => "OK", "result" => nil},
+          %{"status" => "OK", "result" => nil},
+          %{"status" => "OK", "result" => nil},
+          %{"status" => "OK", "result" => returned},
+          %{"status" => "OK", "result" => nil}
+        ])
+      )
 
     multi =
       Multi.new()
@@ -943,9 +971,11 @@ defmodule SurrealDB.TransactionTest do
     client =
       client_with_adapter(
         response([
-          %{"status" => "ERR", "result" => @generic},
+          %{"status" => "OK", "result" => nil},
+          %{"status" => "ERR", "result" => @failed},
           %{"status" => "ERR", "result" => "Database record `user:dup` already exists"},
-          %{"status" => "ERR", "result" => @generic}
+          %{"status" => "ERR", "result" => @cancelled},
+          %{"status" => "ERR", "result" => @commit_aborted}
         ])
       )
 
@@ -971,7 +1001,16 @@ defmodule SurrealDB.TransactionTest do
 
   test "hydration failure after commit surfaces the step and a ValidationError" do
     returned = %{"user" => [%{"id" => "user:1"}]}
-    client = client_with_adapter(response([%{"status" => "OK", "result" => returned}]))
+
+    client =
+      client_with_adapter(
+        response([
+          %{"status" => "OK", "result" => nil},
+          %{"status" => "OK", "result" => nil},
+          %{"status" => "OK", "result" => returned},
+          %{"status" => "OK", "result" => nil}
+        ])
+      )
 
     multi =
       Multi.new() |> Multi.create(:user, User, %{name: "Jane", email: "jane@example.com"})
@@ -1030,7 +1069,9 @@ Add after `query/3` (keep `query/3` unchanged):
   end
 
   defp map_transaction_success(%Multi{ops: ops}, %QueryResult{results: results, raw: raw}) do
-    case List.last(results) do
+    return_index = length(ops) + 1
+
+    case Enum.at(results, return_index) do
       %{} = returned -> hydrate_steps(ops, returned)
       _other -> {:error, :transaction, Error.unexpected_response(raw)}
     end
@@ -1062,17 +1103,23 @@ Add after `query/3` (keep `query/3` unchanged):
   defp normalize_record(%{} = record), do: record
   defp normalize_record(_other), do: nil
 
-  # The block sends one statement per step (the LET lines) followed by
-  # RETURN and COMMIT; per the spike findings, response entries line up with
-  # the inner statements in order, so entry index i maps to step i.
+  # SurrealDB 3.1.5 emits entries for BEGIN, each step LET, RETURN, and
+  # COMMIT. Therefore response index 0 is BEGIN and response index i maps to
+  # step index i - 1 only when i is within the step range.
   defp attribute_step(%Multi{ops: ops}, %Error{
          type: :surreal_error,
          details: %{statement_index: index}
        })
        when is_integer(index) do
-    case Enum.at(ops, index) do
-      %{name: name} -> name
-      nil -> :transaction
+    step_index = index - 1
+
+    if step_index >= 0 do
+      case Enum.at(ops, step_index) do
+        %{name: name} -> name
+        nil -> :transaction
+      end
+    else
+      :transaction
     end
   end
 
@@ -1250,6 +1297,7 @@ end
     password: "root"
   )
 
+{:ok, _} = SurrealDB.query(client, "DEFINE TABLE IF NOT EXISTS spike_user SCHEMALESS")
 {:ok, _} = SurrealDB.query(client, "DELETE spike_user")
 
 IO.puts("=== 1. commit path ===")
