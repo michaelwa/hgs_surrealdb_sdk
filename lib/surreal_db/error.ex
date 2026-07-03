@@ -75,13 +75,20 @@ defmodule SurrealDB.Error do
     }
   end
 
-  @spec surreal_error(map()) :: t()
-  def surreal_error(statement) do
+  @spec surreal_error(map(), non_neg_integer() | nil) :: t()
+  def surreal_error(statement, statement_index \\ nil) do
+    details = Map.take(statement, ["detail", "status", "time"])
+
+    details =
+      if is_integer(statement_index),
+        do: Map.put(details, :statement_index, statement_index),
+        else: details
+
     %__MODULE__{
       type: :surreal_error,
       code: statement["code"],
       message: statement["detail"] || statement["result"] || "SurrealDB query failed",
-      details: Map.take(statement, ["detail", "status", "time"]),
+      details: details,
       raw: statement
     }
   end

@@ -111,6 +111,9 @@ defmodule SurrealDB.Schema do
   end
 
   def __dump__(_schema, other) do
-    {:error, ValidationError.from_zoi([%{path: [], message: "expected a schema struct, got: #{inspect(other)}"}])}
+    {:error,
+     ValidationError.from_zoi([
+       %{path: [], message: "expected a schema struct, got: #{inspect(other)}"}
+     ])}
   end
 end

@@ -21,6 +21,7 @@ defmodule SurrealDB.Store do
       MyApp.SurrealStore.query("SELECT * FROM person")
       MyApp.SurrealStore.get(MyApp.User, "user:abc")
       MyApp.SurrealStore.create(MyApp.User, %{name: "Jane"})
+      MyApp.SurrealStore.transaction(multi)   # see SurrealDB.Multi
   """
 
   alias SurrealDB.Client
@@ -86,6 +87,14 @@ defmodule SurrealDB.Store do
 
       def delete(schema, id, opts \\ []) do
         with {:ok, c} <- client(), do: SurrealDB.Repo.delete(c, schema, id, opts)
+      end
+
+      # Transactions (delegates to SurrealDB.transaction/2)
+      def transaction(%SurrealDB.Multi{} = multi) do
+        case client() do
+          {:ok, c} -> SurrealDB.transaction(c, multi)
+          {:error, error} -> {:error, :transaction, error}
+        end
       end
 
       # Schema query (arity 3/4 only — avoids collision with raw query/1,2)

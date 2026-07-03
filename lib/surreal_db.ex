@@ -22,6 +22,7 @@ defmodule SurrealDB do
   alias SurrealDB.Identifier
   alias SurrealDB.Live
   alias SurrealDB.Live.Subscription
+  alias SurrealDB.Multi
   alias SurrealDB.QueryResult
   alias SurrealDB.RPC
   alias SurrealDB.WebSocket
@@ -72,6 +73,35 @@ defmodule SurrealDB do
     else
       {:error, %Error{} = error} ->
         {:error, normalize_query_error(error)}
+    end
+  end
+
+  @doc """
+  Runs a `SurrealDB.Multi` as one atomic transaction.
+
+  Assembles the multi into a `BEGIN ... RETURN ... COMMIT` block, validates
+  every step client-side first, and maps the transaction's RETURN payload back
+  to step names, hydrating schema-backed steps.
+
+  Returns `{:ok, %{step_name => result}}` or `{:error, step_name, reason}`.
+  The step slot is `:transaction` when the failure cannot be attributed to a
+  single step. On any server-side failure, SurrealDB rolls back the whole
+  block; there are never partial writes.
+
+  Note: a hydration failure on the response means the transaction has
+  committed, but the returned record did not match the schema.
+  """
+  @spec transaction(Client.t(), Multi.t()) ::
+          {:ok, %{atom() => term()}} | {:error, atom(), term()}
+  def transaction(%Client{}, %Multi{ops: []}), do: {:ok, %{}}
+
+  def transaction(%Client{} = client, %Multi{} = multi) do
+    with {:ok, surql, vars} <- Multi.to_query(multi),
+         {:ok, %QueryResult{} = result} <- query(client, surql, vars) do
+      map_transaction_success(multi, result)
+    else
+      {:error, name, reason} -> {:error, name, reason}
+      {:error, %Error{} = error} -> {:error, attribute_step(multi, error), error}
     end
   end
 
@@ -149,10 +179,81 @@ defmodule SurrealDB do
     Live.kill(client, subscription)
   end
 
+  defp map_transaction_success(%Multi{ops: ops}, %QueryResult{results: results, raw: raw}) do
+    return_index = length(ops) + 1
+
+    case Enum.at(results, return_index) do
+      %{} = returned -> hydrate_steps(ops, returned)
+      _other -> {:error, :transaction, Error.unexpected_response(raw)}
+    end
+  end
+
+  defp hydrate_steps(ops, returned) do
+    Enum.reduce_while(ops, {:ok, %{}}, fn op, {:ok, acc} ->
+      value = Map.get(returned, Atom.to_string(op.name))
+
+      case hydrate_step(op, value) do
+        {:ok, hydrated} -> {:cont, {:ok, Map.put(acc, op.name, hydrated)}}
+        {:error, reason} -> {:halt, {:error, op.name, reason}}
+      end
+    end)
+  end
+
+  defp hydrate_step(%{kind: kind, schema: schema}, value)
+       when kind in [:create, :update, :delete] do
+    case normalize_record(value) do
+      nil -> {:ok, nil}
+      record -> schema.hydrate(record)
+    end
+  end
+
+  defp hydrate_step(_op, value), do: {:ok, value}
+
+  defp normalize_record([record | _rest]), do: record
+  defp normalize_record([]), do: nil
+  defp normalize_record(%{} = record), do: record
+  defp normalize_record(_other), do: nil
+
+  defp attribute_step(%Multi{ops: ops}, %Error{
+         type: :surreal_error,
+         details: %{statement_index: index}
+       })
+       when is_integer(index) do
+    step_index = index - 1
+
+    if step_index >= 0 do
+      case Enum.at(ops, step_index) do
+        %{name: name} -> name
+        nil -> :transaction
+      end
+    else
+      :transaction
+    end
+  end
+
+  defp attribute_step(_multi, _error), do: :transaction
+
+  @generic_transaction_errors MapSet.new([
+                                "The query was not executed due to a failed transaction",
+                                "The query was not executed due to a cancelled transaction",
+                                "Cannot COMMIT: the transaction was aborted due to a prior error"
+                              ])
+
   defp ensure_query_success(body) when is_list(body) do
-    case Enum.find(body, &(Map.get(&1, "status") == "ERR")) do
-      nil -> :ok
-      statement -> {:error, Error.surreal_error(statement)}
+    body
+    |> Enum.with_index()
+    |> Enum.filter(fn {statement, _index} -> Map.get(statement, "status") == "ERR" end)
+    |> case do
+      [] ->
+        :ok
+
+      errors ->
+        {statement, index} =
+          Enum.find(errors, hd(errors), fn {statement, _index} ->
+            not MapSet.member?(@generic_transaction_errors, Map.get(statement, "result"))
+          end)
+
+        {:error, Error.surreal_error(statement, index)}
     end
   end
 
