@@ -25,12 +25,15 @@ defmodule SurrealDB.Multi do
   statements such as `DEFINE` do not belong in a multi.
   """
 
+  alias SurrealDB.Repo.Statement
+
   @type step_name :: atom()
   @type t :: %__MODULE__{ops: [map()]}
 
   defstruct ops: []
 
   @name_pattern ~r/\A[A-Za-z_][A-Za-z0-9_]*\z/
+  @variable_pattern ~r/\$([A-Za-z_][A-Za-z0-9_]*)/
 
   @spec new() :: t()
   def new, do: %__MODULE__{}
@@ -63,6 +66,77 @@ defmodule SurrealDB.Multi do
       when is_atom(name) and is_map(vars) do
     add(multi, %{name: name, kind: :raw, surql: IO.iodata_to_binary(surql), vars: vars})
   end
+
+  @doc """
+  Validates every step and assembles the transaction block.
+
+  Returns `{:ok, surql, vars}` where `surql` is the full
+  `BEGIN ... RETURN ... COMMIT` block and `vars` is the merged, per-step
+  namespaced variable map, or `{:error, step_name, reason}` for the first
+  invalid step. Nothing is sent to the server in that case.
+  """
+  @spec to_query(t()) :: {:ok, String.t(), map()} | {:error, step_name(), term()}
+  def to_query(%__MODULE__{ops: ops}) do
+    ops
+    |> Enum.with_index()
+    |> Enum.reduce_while({:ok, [], %{}}, fn {op, index}, {:ok, lines, vars} ->
+      case build_op(op, index) do
+        {:ok, fragment, op_vars} ->
+          line = "LET $#{op.name} = (#{fragment});"
+          {:cont, {:ok, [line | lines], Map.merge(vars, op_vars)}}
+
+        {:error, reason} ->
+          {:halt, {:error, op.name, reason}}
+      end
+    end)
+    |> case do
+      {:ok, lines, vars} ->
+        return_line =
+          "RETURN { " <> Enum.map_join(ops, ", ", &"#{&1.name}: $#{&1.name}") <> " };"
+
+        surql =
+          Enum.join(
+            ["BEGIN TRANSACTION;"] ++
+              Enum.reverse(lines) ++ [return_line, "COMMIT TRANSACTION;"],
+            "\n"
+          )
+
+        {:ok, surql, vars}
+
+      {:error, name, reason} ->
+        {:error, name, reason}
+    end
+  end
+
+  defp build_op(%{kind: :create, schema: schema, attrs: attrs}, index) do
+    namespace_statement(Statement.create(schema, attrs), index)
+  end
+
+  defp build_op(%{kind: :update, schema: schema, id: id, attrs: attrs}, index) do
+    namespace_statement(Statement.update(schema, id, attrs), index)
+  end
+
+  defp build_op(%{kind: :delete, schema: schema, id: id}, index) do
+    namespace_statement(Statement.delete(schema, id), index)
+  end
+
+  defp build_op(%{kind: kind, surql: surql, vars: vars}, index) when kind in [:let, :raw] do
+    namespace_statement({:ok, {surql, vars}}, index)
+  end
+
+  defp namespace_statement({:ok, {surql, vars}}, index) do
+    string_vars = Map.new(vars, fn {key, value} -> {to_string(key), value} end)
+
+    fragment =
+      Regex.replace(@variable_pattern, surql, fn full, name ->
+        if Map.has_key?(string_vars, name), do: "$s#{index}_#{name}", else: full
+      end)
+
+    namespaced = Map.new(string_vars, fn {key, value} -> {"s#{index}_#{key}", value} end)
+    {:ok, fragment, namespaced}
+  end
+
+  defp namespace_statement({:error, reason}, _index), do: {:error, reason}
 
   defp add(%__MODULE__{ops: ops} = multi, op) do
     validate_name!(op.name, ops)
