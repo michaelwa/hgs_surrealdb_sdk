@@ -81,6 +81,30 @@ Add `MyApp.SurrealStore` to your supervision tree, then use it:
 Invalid data returns `{:error, %SurrealDB.Schema.ValidationError{}}`.
 Connection and query failures return `{:error, %SurrealDB.Error{}}`.
 
+## Transactions
+
+Compose typed, Zoi-validated operations - plus raw SurrealQL - into one
+atomic `BEGIN ... COMMIT` block with `SurrealDB.Multi`:
+
+```elixir
+multi =
+  SurrealDB.Multi.new()
+  |> SurrealDB.Multi.create(:user, MyApp.User, %{name: "Jane", email: "jane@example.com"})
+  |> SurrealDB.Multi.update(:acct, MyApp.Account, "account:abc", %{balance: 100})
+  |> SurrealDB.Multi.let(:owner, "SELECT * FROM $user.id")
+  |> SurrealDB.Multi.raw(:rel, "RELATE $owner->owns->$acct")
+
+case MyApp.SurrealStore.transaction(multi) do
+  {:ok, %{user: user, acct: acct}} -> ...
+  {:error, step, reason} -> ...
+end
+```
+
+Every step is `LET`-bound by its step name, so later `let`/`raw` steps can
+reference earlier results as `$<step_name>`. Validation runs client-side
+before anything is sent; on any server-side failure SurrealDB rolls back the
+whole block. There are never partial writes.
+
 ## Getting Started
 
 This SDK is not published to Hex yet. You can install it from GitHub, a local

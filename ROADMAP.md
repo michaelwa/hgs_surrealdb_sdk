@@ -46,6 +46,13 @@ Living backlog for the SurrealDB Elixir SDK. Design rationale lives in
   `value=`) emit into the migration only (Zoi mirrors type + optional). User-
   supplied table identifiers are validated before reaching generated SurrealQL.
   Design: `docs/superpowers/specs/2026-06-27-surreal-gen-context-design.md`.
+- **First-class transactions (`Store.transaction/1` + `SurrealDB.Multi`).**
+  Adds an `Ecto.Multi`-style builder and runner for composing typed,
+  Zoi-validated CRUD steps plus raw SurrealQL into one atomic
+  `BEGIN/COMMIT` block. `SurrealDB.transaction/2` maps server rollback errors
+  back to step names when the failing statement index is available, and
+  `Store.transaction/1` exposes the same contract from supervised stores.
+  Design: `docs/superpowers/specs/2026-07-03-transactions-multi-design.md`.
 
 ## Deferred ideas
 
@@ -80,19 +87,6 @@ Living backlog for the SurrealDB Elixir SDK. Design rationale lives in
   files, complementing the existing runner.
 - LiveView live-query helper: subscribe a LiveView to a `LIVE SELECT` and push
   updates into assigns.
-- **First-class transactions (`Store.transaction/1` + a `Multi`-style builder).**
-  Today the SDK has no dedicated transaction API: callers must hand-write a raw
-  `BEGIN TRANSACTION; …; COMMIT TRANSACTION;` block and send it through `query/2,3`,
-  and the typed `Repo`/`Store` CRUD helpers can't be composed into one atomic unit
-  (each is its own query, and a raw block bypasses Zoi validation). Add a helper
-  that assembles a `BEGIN/COMMIT` block from a sequence of typed operations —
-  `Ecto.Multi`-style — running per-step Zoi validation before send, binding shared
-  variables, and surfacing the rolled-back result as `{:error, _}` (SurrealDB
-  already returns `status: "ERR"` per statement on failure, which `query/2` maps to
-  an error tuple). `CANCEL TRANSACTION` for explicit aborts. Atomicity stays
-  server-side; the helper is an ergonomics + validation layer over the existing
-  multi-statement `query` path.
-
 ### gen.context — phase 2
 
 Follow-ups deferred from the v1 `mix surreal.gen.context` generator (see its
