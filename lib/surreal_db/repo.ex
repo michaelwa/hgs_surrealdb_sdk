@@ -18,7 +18,7 @@ defmodule SurrealDB.Repo do
   """
 
   alias SurrealDB.{Client, Error, Identifier, QueryResult}
-  alias SurrealDB.Repo.FilterBuilder
+  alias SurrealDB.Repo.{FilterBuilder, Statement}
 
   @type client :: Client.t()
   @type schema :: module()
@@ -54,10 +54,7 @@ defmodule SurrealDB.Repo do
   @spec create(client(), schema(), map(), keyword()) ::
           {:ok, struct()} | {:error, Error.t() | SurrealDB.Schema.ValidationError.t()}
   def create(%Client{} = client, schema, attrs, _opts \\ []) do
-    with {:ok, validated} <- schema.validate(attrs) do
-      content = validated |> Enum.reject(fn {_key, value} -> is_nil(value) end) |> Map.new()
-      surql = "CREATE type::table($__table__) CONTENT $attrs"
-      vars = %{__table__: schema.__table__(), attrs: content}
+    with {:ok, {surql, vars}} <- Statement.create(schema, attrs) do
       run_one(client, schema, surql, vars)
     end
   end
@@ -65,16 +62,16 @@ defmodule SurrealDB.Repo do
   @spec update(client(), schema(), String.t(), map(), keyword()) ::
           {:ok, struct() | nil} | {:error, Error.t() | SurrealDB.Schema.ValidationError.t()}
   def update(%Client{} = client, schema, id, attrs, _opts \\ []) do
-    with {:ok, identifier} <- Identifier.validate(id) do
-      run_one(client, schema, "UPDATE #{identifier} MERGE $attrs", %{attrs: attrs})
+    with {:ok, {surql, vars}} <- Statement.update(schema, id, attrs) do
+      run_one(client, schema, surql, vars)
     end
   end
 
   @spec delete(client(), schema(), String.t(), keyword()) ::
           {:ok, struct() | nil} | {:error, Error.t() | SurrealDB.Schema.ValidationError.t()}
   def delete(%Client{} = client, schema, id, _opts \\ []) do
-    with {:ok, identifier} <- Identifier.validate(id) do
-      run_one(client, schema, "DELETE #{identifier} RETURN BEFORE", %{})
+    with {:ok, {surql, vars}} <- Statement.delete(schema, id) do
+      run_one(client, schema, surql, vars)
     end
   end
 
