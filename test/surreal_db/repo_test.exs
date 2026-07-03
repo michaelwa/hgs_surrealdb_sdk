@@ -8,7 +8,7 @@ defmodule SurrealDB.RepoTest do
   defmodule User do
     use SurrealDB.Schema
 
-    table "user"
+    table("user")
 
     schema do
       Zoi.object(%{

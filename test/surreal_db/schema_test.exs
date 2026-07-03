@@ -6,7 +6,7 @@ defmodule SurrealDB.SchemaTest do
   defmodule User do
     use SurrealDB.Schema
 
-    table "user"
+    table("user")
 
     schema do
       Zoi.object(%{
@@ -39,6 +39,7 @@ defmodule SurrealDB.SchemaTest do
 
   test "hydrate/1 builds a struct from a DB record with string keys" do
     record = %{"id" => "user:abc", "name" => "Jane", "email" => "jane@example.com"}
+
     assert {:ok, %User{id: "user:abc", name: "Jane", email: "jane@example.com"}} =
              User.hydrate(record)
   end

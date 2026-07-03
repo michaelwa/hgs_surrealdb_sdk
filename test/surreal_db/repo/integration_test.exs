@@ -10,7 +10,7 @@ defmodule SurrealDB.Repo.IntegrationTest do
   defmodule Account do
     use SurrealDB.Schema
 
-    table "account"
+    table("account")
 
     schema do
       Zoi.object(%{
