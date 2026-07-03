@@ -98,9 +98,11 @@ Responsibilities:
    with step-name LET bindings. In `raw`/`let` fragments, only `$<key>`
    occurrences whose key appears in that step's own vars map are rewritten;
    everything else (`$<step_name>` references to earlier steps, SurrealDB
-   built-ins) is left untouched. The merged map is passed
-   as the native variables argument to `query/3` (server-side binding — the
-   `SurrealDB.Variables` interpolation path is not used).
+   built-ins) is left untouched. The merged map is passed as the variables
+   argument to `query/3`; binding is transport-dependent below that point
+   (WebSocket sends native RPC vars; HTTP interpolates via
+   `SurrealDB.Variables.apply/2`, which only rewrites `$name`s present in the
+   map — so `$<step_name>` LET references survive on both transports).
 4. **Block assembly** (`to_query/1`): produces `{surql, vars}` where surql is:
 
    ```surql
@@ -186,10 +188,16 @@ Spike findings get recorded in the plan before the affected tasks run.
   correct step attribution, duplicate-name raise, empty-multi behavior
   (`transaction` on an empty multi returns `{:ok, %{}}` without touching the
   server).
-- **Integration (live SurrealDB, tagged like existing integration tests):**
-  commit path (all steps visible after), rollback path (later step fails →
-  earlier create absent), `let` binding consumed by a later `raw` step,
-  server error attributed to the right step name.
+- **Runner tests (stubbed transport, like the existing `Repo` tests):**
+  `SurrealDB.transaction/2` against `Req` adapter stubs whose response shapes
+  are taken from the §5 spike findings — success mapping, server-error step
+  attribution, transport failure.
+- **Live verification (manual, end of implementation):** a scratch-scope
+  script against the running SurrealDB — commit path (all steps visible
+  after), rollback path (later step fails → earlier create absent), `let`
+  binding consumed by a later `raw` step. The SDK suite itself has no
+  live-DB tests; this mirrors how the SDK is verified via the test_igniter
+  host app.
 - TDD throughout; RED before GREEN per test.
 
 ## 7. Documentation
