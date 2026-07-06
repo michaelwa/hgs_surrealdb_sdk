@@ -1,0 +1,22 @@
+// Project-local debug tasks
+//
+// For more documentation on how to configure debug tasks,
+// see: https://zed.dev/docs/debugger
+[
+  {
+    "label": "Elixir/ERP: Launch rebar3 shell with EDB",
+    "adapter": "edb",
+    "request": "launch",
+    "program": "/home/michael_intandem/src/erlang/edb/_build/default/bin/ebd",
+    "cwd": "${ZED_WORKTREE_ROOT}",
+    "env": {
+      "EDB_DAP_DEBUGGEE_INIT": "true",
+      "MIX_ENV": "test",
+    },
+    "args": [
+      "sh",
+      "-c",
+      "exec iex -S mix run --no-start --eval '$EDB_DAP_DEBUGGEE_INIT'",
+    ],
+  },
+]
