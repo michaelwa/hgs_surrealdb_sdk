@@ -136,6 +136,26 @@ Igniter installer above) — the task auto-detects it.
 See [Migrations](docs/migrations.md) for task options, registry behavior, and
 rollback notes.
 
+### Testing against SurrealDB
+
+The default `mix test` suite is Docker-free and excludes live integration
+tests. To run the opt-in suite, install Docker with Compose and run:
+
+```bash
+./scripts/test-integration
+```
+
+The runner uses the pinned `surrealdb/surrealdb:v3.1.5` image on
+`127.0.0.1:18000` and removes the container when it finishes. To keep the
+service running for inspection or direct tagged-test runs, use:
+
+```bash
+KEEP_INTEGRATION_DB=1 ./scripts/test-integration
+```
+
+The retained service can be removed with
+`docker compose -f docker-compose.integration.yml down --volumes --remove-orphans`.
+
 ## Guides
 
 - [Getting Started](docs/getting-started.md)

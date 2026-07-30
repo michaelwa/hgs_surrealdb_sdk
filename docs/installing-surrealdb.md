@@ -39,6 +39,20 @@ cargo build --release
 curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8000/health   # expect 200
 ```
 
+## Run the SDK integration harness
+
+For repository development, the integration harness starts the pinned
+`surrealdb/surrealdb:v3.1.5` image through Docker Compose. It binds only to
+`127.0.0.1:18000`, so it is isolated from a developer-managed SurrealDB server
+on port `8000`:
+
+```bash
+./scripts/test-integration
+```
+
+The command removes the temporary service after the tests. Set
+`KEEP_INTEGRATION_DB=1` to leave it running for inspection.
+
 ## Create the namespace and database
 
 A fresh server has no namespaces or databases, and connecting to one that does

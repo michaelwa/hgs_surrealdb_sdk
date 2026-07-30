@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: "27.3.4.2"
+          elixir-version: "1.19.4"
+          version-type: strict
+      - run: mix deps.get
+      - run: mix format --check-formatted
+      - run: mix compile --warnings-as-errors
+      - run: mix test
+
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: "27.3.4.2"
+          elixir-version: "1.19.4"
+          version-type: strict
+      - run: mix deps.get
+      - run: ./scripts/test-integration
+      - name: Collect SurrealDB logs
+        if: failure()
+        run: docker compose -f docker-compose.integration.yml logs --no-color surrealdb

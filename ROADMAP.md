@@ -10,32 +10,6 @@ are intentionally ahead of new convenience features: dog-food value depends
 first on proving protocol compatibility, deterministic connection behavior,
 and consistent data contracts.
 
-### P0 — Real SurrealDB integration harness
-
-**Problem:** The current suite has 212 passing tests, but the HTTP and
-WebSocket tests mostly use Req adapters and fake sockets. The existing Repo
-"integration" test is also stubbed, so protocol compatibility is not being
-verified against a server.
-
-**Outcome:** Add an opt-in Docker-backed integration profile using a pinned
-SurrealDB version. Cover connect, query, CRUD, Repo hydration, transactions,
-migrations, WebSocket setup, and live-query events. Make the profile runnable
-locally and in CI without changing the default fast test suite.
-
-**Acceptance criteria:**
-
-- `mix test` remains fast and does not require Docker.
-- A documented command starts the pinned server and runs the integration suite.
-- CI runs the integration suite, or clearly reports it as an allowed/manual
-  workflow until CI resources are available.
-- The supported SurrealDB version is recorded in the README and test config.
-- Failures include server logs and distinguish SDK failures from environment
-  failures.
-
-**Likely scope:** `test/support`, a new tagged integration test directory,
-`docker-compose` or test helper scripts, CI configuration, README, and
-`docs/getting-started.md`.
-
 ### P0 — Deterministic WebSocket readiness
 
 **Problem:** `SurrealDB.connect_ws/1` returns before signin and namespace/
@@ -195,6 +169,14 @@ The following items remain useful, but should follow the reliability work
 above when the goal is dog-fooding the current library:
 
 ## Done
+
+- **P0 — Real SurrealDB integration harness (2026-07-30).** Completed with
+  pinned `surrealdb/surrealdb:v3.1.5`, localhost-only Compose lifecycle on
+  port `18000`, failure-log collection, endpoint safety checks, and opt-in
+  `@moduletag :integration` coverage for HTTP, Repo, transactions, migrations,
+  WebSocket RPC, live-query events, and disconnect telemetry. Verified locally
+  with `./scripts/test-integration`; ordinary `mix test` remains Docker-free.
+  CI runs the same runner in a separate integration job.
 
 - **R1 — Dogfood install + live round-trip.** Added the SDK to a fresh Phoenix
   app and ran live connect/query/CRUD and Schema/Repo round-trips against

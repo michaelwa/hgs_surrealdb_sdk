@@ -24,6 +24,7 @@ defmodule SurrealDB.IntegrationCase do
         only: [
           integration_client: 0,
           integration_ws_client: 0,
+          await_ws_ready: 1,
           integration_scope: 0,
           integration_table: 1
         ]
@@ -45,6 +46,28 @@ defmodule SurrealDB.IntegrationCase do
     ensure_namespace_and_database!(http_client, config)
     connect_ws!(ws_options(config))
   end
+
+  @spec await_ws_ready(Client.t()) :: Client.t()
+  def await_ws_ready(%Client{connection: pid} = client) when is_pid(pid) do
+    await_ws_ready(client, 250)
+  end
+
+  defp await_ws_ready(%Client{connection: pid} = client, attempts) when attempts > 0 do
+    cond do
+      not Process.alive?(pid) ->
+        raise "integration WebSocket connection exited before setup completed"
+
+      :sys.get_state(pid).setup_complete? ->
+        client
+
+      true ->
+        Process.sleep(20)
+        await_ws_ready(client, attempts - 1)
+    end
+  end
+
+  defp await_ws_ready(_client, 0),
+    do: raise("integration WebSocket setup did not complete within 5 seconds")
 
   @spec integration_scope() :: String.t()
   def integration_scope do

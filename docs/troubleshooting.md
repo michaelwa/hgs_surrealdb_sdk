@@ -77,3 +77,23 @@ Or use the source-qualified Igniter installer command:
 ```bash
 mix igniter.install hgs_surrealdb_sdk@github:michaelwa/hgs_surrealdb_sdk --namespace app --database app
 ```
+
+## Integration harness is not reachable on port 18000
+
+The integration runner owns a temporary Compose service and normally removes
+it when the run ends. Check its state and logs with:
+
+```bash
+docker compose -f docker-compose.integration.yml ps
+docker compose -f docker-compose.integration.yml logs --no-color surrealdb
+```
+
+To clear a stale service or port binding, run:
+
+```bash
+docker compose -f docker-compose.integration.yml down --volumes --remove-orphans
+lsof -iTCP:18000 -sTCP:LISTEN
+```
+
+Use `KEEP_INTEGRATION_DB=1 ./scripts/test-integration` when you need the
+service to remain available after a successful run.
