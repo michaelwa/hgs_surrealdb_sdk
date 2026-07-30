@@ -20,6 +20,11 @@ defmodule SurrealDB.WebSocket.Connection do
       :socket_module,
       :connect_timeout,
       :setup_complete?,
+      :setup_phase,
+      :setup_deadline,
+      :setup_request_id,
+      :setup_timer_ref,
+      :setup_waiter,
       :store,
       reconnect?: false,
       reconnect_backoff: 500,
@@ -40,6 +45,25 @@ defmodule SurrealDB.WebSocket.Connection do
   @spec stop(pid()) :: :ok
   def stop(pid) do
     GenServer.stop(pid, :normal)
+  end
+
+  @spec await_ready(pid(), timeout()) :: :ok | {:error, Error.t()}
+  def await_ready(pid, timeout \\ @default_timeout) do
+    GenServer.call(pid, :await_ready, timeout + 100)
+  catch
+    :exit, {:timeout, _} ->
+      {:error, %Error{type: :websocket_timeout, message: "websocket setup timed out"}}
+
+    :exit, {:setup_failed, %Error{} = error} ->
+      {:error, error}
+
+    :exit, reason ->
+      {:error,
+       %Error{
+         type: :websocket_closed,
+         message: "websocket connection is not available",
+         raw: reason
+       }}
   end
 
   @spec start_live_query(pid(), String.t(), pid()) ::
@@ -79,6 +103,7 @@ defmodule SurrealDB.WebSocket.Connection do
       socket_module: socket_module,
       connect_timeout: connect_timeout,
       setup_complete?: false,
+      setup_phase: :connecting,
       store: Keyword.get(options, :store),
       reconnect?: Keyword.get(options, :reconnect, false),
       reconnect_backoff: Keyword.get(options, :reconnect_backoff, 500)
@@ -98,12 +123,14 @@ defmodule SurrealDB.WebSocket.Connection do
            state.client.request_options
          ) do
       {:ok, socket_pid} ->
-        {:noreply, %State{state | socket_pid: socket_pid}}
+        {:noreply, %State{state | socket_pid: socket_pid, setup_phase: :connecting}}
 
       {:error, reason} ->
         if state.reconnect? do
           state = schedule_reconnect(state)
-          {:noreply, %State{state | socket_pid: nil, setup_complete?: false}}
+
+          {:noreply,
+           %State{state | socket_pid: nil, setup_complete?: false, setup_phase: :connecting}}
         else
           {:stop, {:websocket_connect_error, reason}, state}
         end
@@ -115,6 +142,14 @@ defmodule SurrealDB.WebSocket.Connection do
     {:reply,
      {:error, %Error{type: :websocket_connect_error, message: "websocket connection not ready"}},
      state}
+  end
+
+  def handle_call(:await_ready, _from, %State{setup_complete?: true} = state) do
+    {:reply, :ok, state}
+  end
+
+  def handle_call(:await_ready, from, %State{setup_waiter: nil} = state) do
+    {:noreply, %State{state | setup_waiter: from}}
   end
 
   def handle_call({:rpc_call, %Request{} = request, timeout}, from, %State{} = state) do
@@ -181,30 +216,15 @@ defmodule SurrealDB.WebSocket.Connection do
   end
 
   @impl true
-  def handle_info({:websocket_connected, _socket_pid}, %State{reconnect?: true} = state) do
-    case perform_setup(state) do
-      {:ok, %State{} = new_state} ->
-        {:noreply, on_connected(new_state)}
-
-      {:error, {:setup_failed, %Error{type: :websocket_closed}}, new_state} ->
-        if is_pid(new_state.socket_pid), do: new_state.socket_module.close(new_state.socket_pid)
-        new_state = schedule_reconnect(new_state)
-        {:noreply, %State{new_state | pending: %{}, setup_complete?: false, socket_pid: nil}}
-
-      {:error, reason, new_state} ->
-        {:stop, reason, new_state}
-    end
-  end
-
   def handle_info({:websocket_connected, _socket_pid}, %State{} = state) do
-    case perform_setup(state) do
-      {:ok, %State{} = new_state} -> {:noreply, on_connected(new_state)}
-      {:error, reason, new_state} -> {:stop, reason, new_state}
-    end
+    begin_setup(state)
   end
 
   def handle_info({:websocket_frame, payload}, %State{} = state) do
     case decode_incoming(payload) do
+      {:ok, %Response{id: id} = response} when id == state.setup_request_id ->
+        handle_setup_response(response, state)
+
       {:ok, %Response{id: id} = response} ->
         {entry, pending} = Map.pop(state.pending, id)
         maybe_cancel_timer(entry)
@@ -215,11 +235,21 @@ defmodule SurrealDB.WebSocket.Connection do
         route_live_event(state.subscriptions, subscription_id, event)
         {:noreply, state}
 
-      {:error, %Error{} = error} ->
+      {:error, %Error{} = error} when is_nil(state.setup_request_id) ->
         fail_all_pending(state.pending, error)
         {:stop, {:unexpected_response, error}, %State{state | pending: %{}}}
+
+      {:error, %Error{} = error} ->
+        setup_failed(state, error)
     end
   end
+
+  @impl true
+  def handle_info({:setup_timeout, request_id}, %State{setup_request_id: request_id} = state) do
+    setup_failed(state, %Error{type: :websocket_timeout, message: "websocket setup timed out"})
+  end
+
+  def handle_info({:setup_timeout, _request_id}, %State{} = state), do: {:noreply, state}
 
   def handle_info({:rpc_timeout, request_id}, %State{} = state) do
     case Map.pop(state.pending, request_id) do
@@ -238,19 +268,37 @@ defmodule SurrealDB.WebSocket.Connection do
 
   def handle_info({:websocket_closed, reason}, %State{reconnect?: true} = state) do
     error = %Error{type: :websocket_closed, message: "websocket connection closed", raw: reason}
-    fail_all_pending(state.pending, error)
-    emit_connection_event(state, :disconnected, %{reason: inspect(reason), will_reconnect?: true})
-    state = schedule_reconnect(state)
-    {:noreply, %State{state | pending: %{}, setup_complete?: false, socket_pid: nil}}
+
+    if setup_pending?(state) do
+      setup_failed(state, error)
+    else
+      fail_all_pending(state.pending, error)
+
+      emit_connection_event(state, :disconnected, %{
+        reason: inspect(reason),
+        will_reconnect?: true
+      })
+
+      state = schedule_reconnect(state)
+      {:noreply, %State{state | pending: %{}, setup_complete?: false, socket_pid: nil}}
+    end
   end
 
   def handle_info({:websocket_closed, reason}, %State{} = state) do
     error = %Error{type: :websocket_closed, message: "websocket connection closed", raw: reason}
-    fail_all_pending(state.pending, error)
 
-    emit_connection_event(state, :disconnected, %{reason: inspect(reason), will_reconnect?: false})
+    if setup_pending?(state) do
+      setup_failed(state, error)
+    else
+      fail_all_pending(state.pending, error)
 
-    {:stop, :normal, %State{state | pending: %{}}}
+      emit_connection_event(state, :disconnected, %{
+        reason: inspect(reason),
+        will_reconnect?: false
+      })
+
+      {:stop, :normal, %State{state | pending: %{}}}
+    end
   end
 
   def handle_info(:reconnect, %State{} = state) do
@@ -279,45 +327,147 @@ defmodule SurrealDB.WebSocket.Connection do
     end
   end
 
-  defp perform_setup(%State{} = state) do
-    with :ok <- maybe_signin(state),
-         :ok <- use_namespace_database(state) do
-      {:ok, state}
+  defp begin_setup(%State{} = state) do
+    state = %State{
+      state
+      | setup_complete?: false,
+        setup_phase: :connecting,
+        setup_deadline: System.monotonic_time(:millisecond) + state.connect_timeout,
+        setup_request_id: nil,
+        setup_timer_ref: nil
+    }
+
+    dispatch_next_setup(state)
+  end
+
+  defp dispatch_next_setup(
+         %State{
+           client: %Client{auth: {:basic, %{username: username, password: password}}},
+           setup_phase: phase
+         } = state
+       )
+       when phase in [:connecting, :authenticating] do
+    dispatch_setup_request(
+      state,
+      :authenticating,
+      Request.new("signin", [%{user: username, pass: password}])
+    )
+  end
+
+  defp dispatch_next_setup(
+         %State{client: %Client{auth: {:bearer, token}}, setup_phase: phase} = state
+       )
+       when phase in [:connecting, :authenticating] do
+    dispatch_setup_request(state, :authenticating, Request.new("authenticate", [token]))
+  end
+
+  defp dispatch_next_setup(%State{client: client, setup_phase: phase} = state)
+       when phase in [:connecting, :authenticating, :selecting] do
+    dispatch_setup_request(
+      state,
+      :selecting,
+      Request.new("use", [client.namespace, client.database])
+    )
+  end
+
+  defp dispatch_setup_request(%State{} = state, phase, %Request{} = request) do
+    remaining = remaining_setup_timeout(state)
+
+    if remaining <= 0 do
+      setup_failed(state, %Error{type: :websocket_timeout, message: "websocket setup timed out"})
     else
-      {:error, %Error{} = error} -> {:error, {:setup_failed, error}, state}
-    end
-  end
+      with {:ok, payload} <- encode_request(request),
+           :ok <- send_payload(state, request.id, payload) do
+        timer_ref = Process.send_after(self(), {:setup_timeout, request.id}, remaining)
 
-  defp maybe_signin(
-         %State{client: %Client{auth: {:basic, %{username: username, password: password}}}} =
+        {:noreply,
+         %State{
            state
-       ) do
-    request = Request.new("signin", [%{user: username, pass: password}])
-
-    case do_roundtrip(state, request) do
-      {:ok, _} -> :ok
-      other -> other
+           | setup_phase: phase,
+             setup_request_id: request.id,
+             setup_timer_ref: timer_ref
+         }}
+      else
+        {:error, %Error{} = error} -> setup_failed(state, error)
+      end
     end
   end
 
-  defp maybe_signin(%State{client: %Client{auth: {:bearer, token}}} = state) do
-    request = Request.new("authenticate", [token])
+  defp handle_setup_response(%Response{error: error, raw: raw}, %State{} = state)
+       when not is_nil(error) do
+    setup_failed(state, Response.to_error(%Response{error: error, raw: raw}))
+  end
 
-    case do_roundtrip(state, request) do
-      {:ok, _} -> :ok
-      other -> other
+  defp handle_setup_response(%Response{}, %State{setup_phase: :authenticating} = state) do
+    cancel_setup_timer(state)
+
+    dispatch_next_setup(%State{
+      state
+      | setup_phase: :selecting,
+        setup_request_id: nil,
+        setup_timer_ref: nil
+    })
+  end
+
+  defp handle_setup_response(%Response{}, %State{setup_phase: :selecting} = state) do
+    cancel_setup_timer(state)
+    finish_setup(%State{state | setup_request_id: nil, setup_timer_ref: nil})
+  end
+
+  defp finish_setup(%State{} = state) do
+    state = on_connected(state)
+
+    if state.setup_waiter do
+      GenServer.reply(state.setup_waiter, :ok)
+    end
+
+    {:noreply, %State{state | setup_waiter: nil}}
+  end
+
+  defp setup_failed(%State{} = state, %Error{} = error) do
+    cancel_setup_timer(state)
+
+    if state.setup_waiter do
+      GenServer.reply(state.setup_waiter, {:error, error})
+    end
+
+    cond do
+      state.reconnect? and error.type in [:websocket_closed, :websocket_timeout] ->
+        if is_pid(state.socket_pid), do: state.socket_module.close(state.socket_pid)
+        state = schedule_reconnect(state)
+
+        {:noreply,
+         %State{
+           state
+           | pending: %{},
+             setup_complete?: false,
+             setup_phase: :connecting,
+             setup_request_id: nil,
+             setup_timer_ref: nil,
+             setup_waiter: nil,
+             socket_pid: nil
+         }}
+
+      true ->
+        {:stop, {:setup_failed, error}, %State{state | setup_waiter: nil}}
     end
   end
 
-  defp maybe_signin(_state), do: :ok
+  defp remaining_setup_timeout(%State{setup_deadline: deadline}) do
+    deadline - System.monotonic_time(:millisecond)
+  end
 
-  defp use_namespace_database(%State{client: client} = state) do
-    request = Request.new("use", [client.namespace, client.database])
+  defp setup_pending?(%State{setup_complete?: false, setup_request_id: request_id})
+       when not is_nil(request_id),
+       do: true
 
-    case do_roundtrip(state, request) do
-      {:ok, _} -> :ok
-      other -> other
-    end
+  defp setup_pending?(_state), do: false
+
+  defp cancel_setup_timer(%State{setup_timer_ref: nil}), do: :ok
+
+  defp cancel_setup_timer(%State{setup_timer_ref: timer_ref}) do
+    Process.cancel_timer(timer_ref, async: true, info: false)
+    :ok
   end
 
   defp do_roundtrip(%State{} = state, %Request{} = request) do
@@ -475,7 +625,13 @@ defmodule SurrealDB.WebSocket.Connection do
 
   defp on_connected(%State{} = state) do
     emit_connection_event(state, :connected, %{reconnect?: state.connect_count > 0})
-    %State{state | setup_complete?: true, connect_count: state.connect_count + 1}
+
+    %State{
+      state
+      | setup_complete?: true,
+        setup_phase: :ready,
+        connect_count: state.connect_count + 1
+    }
   end
 
   defp schedule_reconnect(%State{} = state) do

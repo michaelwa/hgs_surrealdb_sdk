@@ -75,6 +75,31 @@ defmodule SurrealDB.WebSocketTest do
     assert elapsed < 200
   end
 
+  test "connection await_ready reports setup success and timeout" do
+    client =
+      websocket_client(request_options: [test_pid: self(), auto_setup: true])
+
+    assert {:ok, pid} =
+             SurrealDB.WebSocket.Connection.start_link(client,
+               socket_module: FakeSocket,
+               timeout: 50
+             )
+
+    assert :ok = SurrealDB.WebSocket.Connection.await_ready(pid, 50)
+
+    timeout_client =
+      websocket_client(request_options: [test_pid: self(), auto_setup: false])
+
+    assert {:ok, timeout_pid} =
+             SurrealDB.WebSocket.Connection.start_link(timeout_client,
+               socket_module: FakeSocket,
+               timeout: 20
+             )
+
+    assert {:error, %Error{type: :websocket_timeout}} =
+             SurrealDB.WebSocket.Connection.await_ready(timeout_pid, 20)
+  end
+
   test "starting a websocket connection process and setup traffic" do
     client = websocket_client(request_options: [test_pid: self(), auto_setup: true])
 
