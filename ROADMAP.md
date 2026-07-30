@@ -3,6 +3,197 @@
 Living backlog for the SurrealDB Elixir SDK. Design rationale lives in
 `docs/superpowers/specs/2026-06-14-backlog-and-roadmap-design.md`.
 
+## Dog-food priority backlog
+
+These items are ordered by value for an application using the SDK now. They
+are intentionally ahead of new convenience features: dog-food value depends
+first on proving protocol compatibility, deterministic connection behavior,
+and consistent data contracts.
+
+### P0 — Real SurrealDB integration harness
+
+**Problem:** The current suite has 212 passing tests, but the HTTP and
+WebSocket tests mostly use Req adapters and fake sockets. The existing Repo
+"integration" test is also stubbed, so protocol compatibility is not being
+verified against a server.
+
+**Outcome:** Add an opt-in Docker-backed integration profile using a pinned
+SurrealDB version. Cover connect, query, CRUD, Repo hydration, transactions,
+migrations, WebSocket setup, and live-query events. Make the profile runnable
+locally and in CI without changing the default fast test suite.
+
+**Acceptance criteria:**
+
+- `mix test` remains fast and does not require Docker.
+- A documented command starts the pinned server and runs the integration suite.
+- CI runs the integration suite, or clearly reports it as an allowed/manual
+  workflow until CI resources are available.
+- The supported SurrealDB version is recorded in the README and test config.
+- Failures include server logs and distinguish SDK failures from environment
+  failures.
+
+**Likely scope:** `test/support`, a new tagged integration test directory,
+`docker-compose` or test helper scripts, CI configuration, README, and
+`docs/getting-started.md`.
+
+### P0 — Deterministic WebSocket readiness
+
+**Problem:** `SurrealDB.connect_ws/1` returns before signin and namespace/
+database setup completes. Immediate calls can fail with "connection not ready".
+
+**Outcome:** Define one clear contract. Recommended: `connect_ws/1` waits for
+initial setup until the configured timeout and returns an error if setup fails;
+supervised stores may continue to reconnect asynchronously after startup.
+
+**Acceptance criteria:**
+
+- A successful `connect_ws/1` client can issue its first query immediately.
+- Authentication and `USE` failures are returned from `connect_ws/1`.
+- Startup timeout behavior is documented and tested.
+- Store startup remains compatible with supervisor-driven reconnect behavior.
+- Tests no longer need an undocumented `wait_for_setup/0` helper for normal
+  client usage.
+
+**Likely scope:** `SurrealDB.connect_ws/1`, `SurrealDB.WebSocket`,
+`SurrealDB.WebSocket.Connection`, fake socket tests, and transport docs.
+
+### P0 — WebSocket reconnect and live-query recovery
+
+**Problem:** Reconnect retains local subscriptions, but the server loses the
+old live-query registrations. Subscriptions can look active while silently
+orphaned.
+
+**Outcome:** Re-register active live queries after a successful reconnect, or
+explicitly mark them disconnected and notify subscribers. Re-registration is
+the preferred dog-food behavior.
+
+**Acceptance criteria:**
+
+- A live query receives events before and after a socket reconnect.
+- A failed re-registration produces a visible event or structured error.
+- Subscription identity semantics are documented when the server assigns a
+  new ID.
+- Pending RPC callers are still failed exactly once on disconnect.
+- Reconnect tests cover setup failure, successful recovery, and repeated
+  outages.
+
+**Likely scope:** WebSocket connection state, subscription model, telemetry,
+fake socket tests, and the live-query guide.
+
+### P1 — Consistent Repo update validation
+
+**Problem:** `Repo.create/4` validates attributes, while `Repo.update/5` does
+not. The README implies a broader validation guarantee than the implementation
+provides.
+
+**Outcome:** Adopt partial-schema validation for updates: validate supplied
+fields against the schema, preserve omitted fields, and reject unknown or
+invalid values before network dispatch. Document an explicit escape hatch for
+raw database-side updates if needed.
+
+**Acceptance criteria:**
+
+- Invalid update values return `SurrealDB.Schema.ValidationError` without a
+  network request.
+- Optional fields and omitted fields remain compatible with partial updates.
+- Unknown fields follow one documented policy and are tested.
+- `Multi.update` uses the same validation policy as `Repo.update`.
+- README and schema documentation match the behavior.
+
+**Likely scope:** `SurrealDB.Schema`, `SurrealDB.Repo.Statement`, `Repo`,
+`Multi`, and their tests/docs.
+
+### P1 — Migration registry correctness and recovery policy
+
+**Problem:** Registry-related options are accepted but not consistently
+applied. Migration execution and registry bookkeeping are separate requests,
+so a crash can leave a migration in `running`.
+
+**Outcome:** Make registry namespace/database configuration effective in every
+migration operation, then document and test the failure model. Add an explicit
+operator policy for stale `running` rows rather than silently guessing.
+
+**Acceptance criteria:**
+
+- `registry_ns` and `registry_db` affect install, status, run, reset, and
+  rollback consistently.
+- A migration run against a separate registry database is covered by a live
+  integration test.
+- Stale `running` rows have a documented recovery command or option.
+- Concurrent runners cannot both execute the same migration successfully.
+- The CLI and Elixir API expose the same option names and semantics.
+
+**Likely scope:** `SurrealDB.Migrations`, migration task helpers, registry
+schema, migration tests, CLI docs, and integration tests.
+
+### P1 — SurrealDB value encoding contract
+
+**Problem:** HTTP variables are interpolated textually and encoded mostly as
+JSON. This does not provide a stable contract for SurrealDB-native values and
+can replace matching variable text inside quoted strings or comments.
+
+**Outcome:** Introduce a tested encoder boundary for query values. Preserve
+safe literal generation for current JSON-compatible values and explicitly add
+or reject native types such as record IDs and datetimes.
+
+**Acceptance criteria:**
+
+- Variable replacement cannot alter quoted strings or comments.
+- Strings, booleans, numbers, nulls, lists, and maps have deterministic tests.
+- Unsupported values return structured errors rather than raising.
+- Native SurrealDB values have documented representations or explicit
+  unsupported errors.
+- The encoder is shared by Repo, Multi, migrations, and raw queries.
+
+**Likely scope:** `SurrealDB.Variables`, RPC/HTTP transport tests, value types,
+and query documentation.
+
+### P2 — Production observability and failure semantics
+
+**Problem:** Telemetry exists, but WebSocket lifecycle semantics and retry
+behavior are not yet sufficient for reliable operational diagnosis.
+
+**Outcome:** Stabilize telemetry event names and metadata, distinguish initial
+connect failure from reconnect after an established connection, and add
+bounded exponential backoff with jitter.
+
+**Acceptance criteria:**
+
+- Initial connection failure and post-connect disconnect are distinguishable.
+- Retry delays are bounded, configurable, and tested without real sleeps.
+- Sensitive credentials and variable values never appear in telemetry or
+  default logs.
+- Connection and subscription recovery events are documented.
+
+**Likely scope:** WebSocket connection state, `SurrealDB.Telemetry`, config,
+and telemetry tests/docs.
+
+### P2 — Public API and release hygiene
+
+**Problem:** The project is not yet ready for broad external adoption: public
+modules are under-documented, there is no visible CI/release workflow, and the
+repository lacks a changelog and license file.
+
+**Outcome:** Make the package self-explanatory and publishable after the P0/P1
+reliability work is complete.
+
+**Acceptance criteria:**
+
+- All supported public modules have meaningful moduledocs and specs.
+- CI runs formatting, compilation, unit tests, and integration tests where
+  available.
+- A real MIT `LICENSE` file and changelog exist.
+- Supported Elixir and SurrealDB versions are documented.
+- `mix hex.build` succeeds with the intended files and metadata.
+
+**Likely scope:** `mix.exs`, public modules, `README.md`, `docs/`, CI files,
+`LICENSE`, and `CHANGELOG.md`.
+
+## Secondary feature backlog
+
+The following items remain useful, but should follow the reliability work
+above when the goal is dog-fooding the current library:
+
 ## Done
 
 - **R1 — Dogfood install + live round-trip.** Added the SDK to a fresh Phoenix
