@@ -10,7 +10,12 @@ are intentionally ahead of new convenience features: dog-food value depends
 first on proving protocol compatibility, deterministic connection behavior,
 and consistent data contracts.
 
-### P0 — Deterministic WebSocket readiness
+### P0 — Deterministic WebSocket readiness (completed 2026-07-30)
+
+**Status:** Complete. Direct WebSocket connections now wait for authentication
+and namespace/database setup under one overall timeout; supervised stores retain
+asynchronous reconnect behavior. Coverage includes fake-socket and real-server
+integration tests, and the transport guide documents the contract.
 
 **Problem:** `SurrealDB.connect_ws/1` returns before signin and namespace/
 database setup completes. Immediate calls can fail with "connection not ready".
@@ -169,6 +174,12 @@ The following items remain useful, but should follow the reliability work
 above when the goal is dog-fooding the current library:
 
 ## Done
+
+- **P0 — Deterministic WebSocket readiness (2026-07-30).** Direct
+  `connect_ws/1` now waits for authentication and namespace/database setup under
+  one overall timeout, returns setup failures, and permits an immediate first
+  query. Supervised stores retain asynchronous reconnect behavior. Unit and
+  pinned-server integration coverage pass, and readiness polling was removed.
 
 - **P0 — Real SurrealDB integration harness (2026-07-30).** Completed with
   pinned `surrealdb/surrealdb:v3.1.5`, localhost-only Compose lifecycle on
