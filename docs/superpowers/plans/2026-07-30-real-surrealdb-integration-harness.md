@@ -197,10 +197,12 @@ Use the existing identifier validation before interpolation. Run cleanup through
 
 - [ ] **Step 5: Run focused and default test commands**
 
-Run: `./scripts/test-integration && mix test && mix test --only integration`
+Run: `./scripts/test-integration && mix test`
 
-Expected: the support case passes in the tagged suite; default `mix test`
-reports no integration execution and remains green.
+Expected: the support case passes through the runner, which provisions the
+server; default `mix test` reports no integration execution and remains green.
+Run `mix test --only integration` directly only after manually keeping the
+Compose service running with `docker compose -f docker-compose.integration.yml up -d --wait`.
 
 - [ ] **Step 6: Commit the safe test foundation**
 
