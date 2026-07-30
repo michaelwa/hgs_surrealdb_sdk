@@ -100,11 +100,13 @@ cleanup "$status"
 
 Mark it executable with `chmod +x scripts/test-integration`.
 
-- [ ] **Step 4: Verify clean lifecycle behavior before integration tests exist**
+- [ ] **Step 4: Verify Compose lifecycle before the first tagged test exists**
 
-Run: `./scripts/test-integration`
+Run: `docker compose -f docker-compose.integration.yml up -d --wait && docker compose -f docker-compose.integration.yml down --volumes --remove-orphans`
 
-Expected: Compose starts, Mix exits successfully with zero selected integration tests, and `docker compose -f docker-compose.integration.yml ps` shows no service after cleanup.
+Expected: both commands exit 0. The runner is expected to exit non-zero until
+Task 2 adds the first `@moduletag :integration` test; it must retain strict
+failure behavior rather than masking an empty or failed suite.
 
 - [ ] **Step 5: Verify retained-service behavior**
 
