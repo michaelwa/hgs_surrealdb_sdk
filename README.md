@@ -79,6 +79,10 @@ Add `MyApp.SurrealStore` to your supervision tree, then use it:
 ```
 
 Invalid data returns `{:error, %SurrealDB.Schema.ValidationError{}}`.
+Schema-backed updates validate supplied fields before dispatch, reject unknown
+top-level fields, and preserve omitted fields because updates use SurrealDB's
+`MERGE` semantics. Use `Repo.query/5` or `Multi.raw/4` for database-side
+expressions or fields outside the declared Zoi schema.
 Connection and query failures return `{:error, %SurrealDB.Error{}}`.
 
 ## Transactions

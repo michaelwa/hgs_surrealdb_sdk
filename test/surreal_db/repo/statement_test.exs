@@ -41,6 +41,21 @@ defmodule SurrealDB.Repo.StatementTest do
              Statement.update(User, "user; DROP", %{name: "X"})
   end
 
+  test "update/3 validates and returns coerced attributes" do
+    assert {:ok, {"UPDATE user:abc MERGE $attrs", %{attrs: %{email: "jane@example.com"}}}} =
+             Statement.update(User, "user:abc", %{email: "jane@example.com"})
+  end
+
+  test "update/3 rejects invalid values before building a statement" do
+    assert {:error, %ValidationError{}} =
+             Statement.update(User, "user:abc", %{age: "not an integer"})
+  end
+
+  test "update/3 rejects unknown fields before building a statement" do
+    assert {:error, %ValidationError{}} =
+             Statement.update(User, "user:abc", %{nickname: "J"})
+  end
+
   test "delete/2 builds DELETE RETURN BEFORE and validates the record id" do
     assert {:ok, {"DELETE user:abc RETURN BEFORE", %{}}} = Statement.delete(User, "user:abc")
 

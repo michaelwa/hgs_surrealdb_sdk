@@ -27,7 +27,11 @@ defmodule SurrealDB.RepoIntegrationTest do
              SurrealDB.query(client, "REMOVE TABLE IF EXISTS #{@table};")
 
     assert {:ok, %QueryResult{}} =
-             SurrealDB.query(client, "DEFINE TABLE #{@table} SCHEMALESS;")
+             SurrealDB.query(client, """
+             DEFINE TABLE #{@table} SCHEMAFULL;
+             DEFINE FIELD name ON TABLE #{@table} TYPE string;
+             DEFINE FIELD age ON TABLE #{@table} TYPE int;
+             """)
 
     on_exit(fn ->
       assert {:ok, %QueryResult{}} =
@@ -50,6 +54,9 @@ defmodule SurrealDB.RepoIntegrationTest do
 
     assert {:ok, %Person{id: ^id, name: "Jane", age: 31}} =
              Repo.update(client, Person, id, %{age: 31})
+
+    assert {:error, %SurrealDB.Schema.ValidationError{}} =
+             Repo.update(client, Person, id, %{nickname: "J"})
 
     assert {:ok, %Person{id: ^id, name: "Jane", age: 31}} = Repo.delete(client, Person, id)
   end

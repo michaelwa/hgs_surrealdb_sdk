@@ -18,6 +18,20 @@ defmodule SurrealDB.SchemaTest do
     end
   end
 
+  defmodule UserWithProfile do
+    use SurrealDB.Schema
+
+    table("user")
+
+    schema do
+      Zoi.object(%{
+        id: Zoi.string() |> Zoi.optional(),
+        name: Zoi.string(),
+        profile: Zoi.object(%{age: Zoi.integer()})
+      })
+    end
+  end
+
   test "__table__/0 returns the declared table" do
     assert User.__table__() == "user"
   end
@@ -35,6 +49,30 @@ defmodule SurrealDB.SchemaTest do
   test "validate/1 returns a ValidationError for invalid params" do
     assert {:error, %ValidationError{errors: errors}} = User.validate(%{name: "Jane"})
     assert Enum.any?(errors, fn %{path: path} -> path == [:email] end)
+  end
+
+  test "validate_partial/1 accepts a subset of declared fields" do
+    assert {:ok, %{age: 37}} = User.validate_partial(%{age: 37})
+  end
+
+  test "validate_partial/1 coerces supplied values with the field schema" do
+    assert {:ok, %{age: 37}} = User.validate_partial(%{age: "37"})
+  end
+
+  test "validate_partial/1 rejects an invalid supplied value" do
+    assert {:error, %ValidationError{}} = User.validate_partial(%{age: "not an integer"})
+  end
+
+  test "validate_partial/1 rejects unknown fields" do
+    assert {:error, %ValidationError{errors: errors}} =
+             User.validate_partial(%{nickname: "J"})
+
+    assert Enum.any?(errors, fn %{path: path} -> path == [] or path == [:nickname] end)
+  end
+
+  test "validate_partial/1 validates supplied nested values" do
+    assert {:error, %ValidationError{}} =
+             UserWithProfile.validate_partial(%{profile: %{age: "not an integer"}})
   end
 
   test "hydrate/1 builds a struct from a DB record with string keys" do

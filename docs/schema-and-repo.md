@@ -79,6 +79,23 @@ With a store module configured and supervised:
 {:ok, %MyApp.User{}} = SurrealDB.Repo.delete(client, MyApp.User, user.id)
 ```
 
+Updates are partial merges. Only supplied fields are validated and changed;
+omitted fields remain unchanged:
+
+```elixir
+{:ok, %MyApp.User{age: 37}} =
+  SurrealDB.Repo.update(client, MyApp.User, user.id, %{age: 37})
+
+{:error, %SurrealDB.Schema.ValidationError{}} =
+  SurrealDB.Repo.update(client, MyApp.User, user.id, %{unknown_field: "x"})
+```
+
+Supplied values are validated and coerced with their declared Zoi field
+schemas. Unknown top-level fields are rejected before a request is sent, while
+omitted required fields are allowed in a partial update. Use
+`SurrealDB.Repo.query/5` or `SurrealDB.Multi.raw/4` as the explicit escape hatch
+for database-side expressions or fields outside the declared Zoi schema.
+
 ## Raw schema queries
 
 Use `SurrealDB.Repo.query/5` or `Store.query/4` when you need raw SurrealQL but
@@ -118,6 +135,11 @@ Connection, auth, identifier, and query failures return:
 ```elixir
 {:error, %SurrealDB.Error{}}
 ```
+
+Client-side Zoi validation and SurrealDB's `SCHEMAFULL` rules are independent
+layers. The SDK does not derive the Zoi schema from the database; database
+defaults, computed fields, permissions, assertions, and schema mode rules
+remain database concerns.
 
 Record ids used by `get`, `update`, and `delete` are validated before they are
 interpolated as SurrealDB record identifiers. Invalid ids return

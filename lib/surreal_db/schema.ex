@@ -60,6 +60,10 @@ defmodule SurrealDB.Schema do
       def validate(params), do: SurrealDB.Schema.__validate__(__schema__(), params)
 
       @doc false
+      def validate_partial(params),
+        do: SurrealDB.Schema.__validate_partial__(__schema__(), params)
+
+      @doc false
       def hydrate(record),
         do: SurrealDB.Schema.__hydrate__(__MODULE__, __schema__(), record)
 
@@ -90,6 +94,26 @@ defmodule SurrealDB.Schema do
       {:ok, value} -> {:ok, value}
       {:error, errors} -> {:error, ValidationError.from_zoi(errors)}
     end
+  end
+
+  @doc false
+  def __validate_partial__(%Zoi.Types.Map{fields: fields}, params) when is_map(params) do
+    partial_schema =
+      fields
+      |> Map.new(fn {key, field_schema} -> {key, Zoi.optional(field_schema)} end)
+      |> Zoi.object(unrecognized_keys: :error)
+
+    case Zoi.parse(partial_schema, params, coerce: true) do
+      {:ok, value} -> {:ok, value}
+      {:error, errors} -> {:error, ValidationError.from_zoi(errors)}
+    end
+  end
+
+  def __validate_partial__(_schema, params) do
+    {:error,
+     ValidationError.from_zoi([
+       %{path: [], message: "expected a map, got: #{inspect(params)}"}
+     ])}
   end
 
   @doc false

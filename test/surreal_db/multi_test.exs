@@ -120,4 +120,18 @@ defmodule SurrealDB.MultiTest do
              |> Multi.update(:acct, Account, "account; DROP", %{balance: 1})
              |> Multi.to_query()
   end
+
+  test "to_query/1 rejects invalid update values with the update step name" do
+    assert {:error, :acct, %ValidationError{}} =
+             Multi.new()
+             |> Multi.update(:acct, Account, "account:abc", %{balance: "not an integer"})
+             |> Multi.to_query()
+  end
+
+  test "to_query/1 rejects unknown update fields with the update step name" do
+    assert {:error, :acct, %ValidationError{}} =
+             Multi.new()
+             |> Multi.update(:acct, Account, "account:abc", %{currency: "USD"})
+             |> Multi.to_query()
+  end
 end

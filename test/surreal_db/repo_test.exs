@@ -148,6 +148,20 @@ defmodule SurrealDB.RepoTest do
     assert {:ok, %User{age: 42}} = Repo.update(client, User, "user:abc", %{age: 42})
   end
 
+  test "update/4 returns a ValidationError without touching the network for invalid values" do
+    client = client_with_adapter(fn _request -> raise "network must not be called" end)
+
+    assert {:error, %ValidationError{}} =
+             Repo.update(client, User, "user:abc", %{age: "not an integer"})
+  end
+
+  test "update/4 returns a ValidationError without touching the network for unknown fields" do
+    client = client_with_adapter(fn _request -> raise "network must not be called" end)
+
+    assert {:error, %ValidationError{}} =
+             Repo.update(client, User, "user:abc", %{nickname: "J"})
+  end
+
   test "delete/3 issues DELETE ... RETURN BEFORE and returns the prior struct" do
     client =
       client_with_adapter(fn request ->
