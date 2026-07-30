@@ -36,7 +36,7 @@ supervised stores may continue to reconnect asynchronously after startup.
 **Likely scope:** `SurrealDB.connect_ws/1`, `SurrealDB.WebSocket`,
 `SurrealDB.WebSocket.Connection`, fake socket tests, and transport docs.
 
-### P0 — WebSocket reconnect and live-query recovery
+### P0 — WebSocket reconnect and live-query recovery (completed 2026-07-30)
 
 **Problem:** Reconnect retains local subscriptions, but the server loses the
 old live-query registrations. Subscriptions can look active while silently
