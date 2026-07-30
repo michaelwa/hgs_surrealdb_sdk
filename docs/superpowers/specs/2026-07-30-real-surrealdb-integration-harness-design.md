@@ -106,7 +106,7 @@ services:
     ports:
       - "127.0.0.1:18000:8000"
     healthcheck:
-      test: ["CMD", "surreal", "isready", "--endpoint", "http://localhost:8000"]
+      test: ["CMD", "/surreal", "isready", "--endpoint", "http://localhost:8000"]
       interval: 2s
       timeout: 2s
       retries: 30
