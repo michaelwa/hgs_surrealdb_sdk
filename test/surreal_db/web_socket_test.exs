@@ -130,7 +130,7 @@ defmodule SurrealDB.WebSocketTest do
         websocket_options: [socket_module: FakeSocket, timeout: 50]
       )
 
-    wait_for_setup()
+    drain_setup_traffic()
 
     request = Request.new("query", ["SELECT * FROM person"])
 
@@ -169,7 +169,7 @@ defmodule SurrealDB.WebSocketTest do
         websocket_options: [socket_module: FakeSocket, timeout: 20]
       )
 
-    wait_for_setup()
+    drain_setup_traffic()
 
     request = Request.new("query", ["SELECT * FROM person"])
 
@@ -189,7 +189,7 @@ defmodule SurrealDB.WebSocketTest do
         websocket_options: [socket_module: FakeSocket, timeout: 50]
       )
 
-    wait_for_setup()
+    drain_setup_traffic()
 
     request = Request.new("query", ["SELECT * FROM person"])
 
@@ -217,7 +217,7 @@ defmodule SurrealDB.WebSocketTest do
         websocket_options: [socket_module: FakeSocket, timeout: 50]
       )
 
-    wait_for_setup()
+    drain_setup_traffic()
 
     request = Request.new("query", ["BAD QUERY"])
 
@@ -251,7 +251,7 @@ defmodule SurrealDB.WebSocketTest do
         websocket_options: [socket_module: FakeSocket, timeout: 50]
       )
 
-    wait_for_setup()
+    drain_setup_traffic()
 
     task = Task.async(fn -> SurrealDB.query(client, "SELECT * FROM person") end)
 
@@ -283,7 +283,7 @@ defmodule SurrealDB.WebSocketTest do
         websocket_options: [socket_module: FakeSocket, timeout: 50]
       )
 
-    wait_for_setup()
+    drain_setup_traffic()
 
     task =
       Task.async(fn -> SurrealDB.live(client, "LIVE SELECT * FROM person", send_to: self()) end)
@@ -325,7 +325,7 @@ defmodule SurrealDB.WebSocketTest do
         websocket_options: [socket_module: FakeSocket, timeout: 50]
       )
 
-    wait_for_setup()
+    drain_setup_traffic()
 
     task =
       Task.async(fn -> SurrealDB.live(client, "LIVE SELECT * FROM person", send_to: target) end)
@@ -371,7 +371,7 @@ defmodule SurrealDB.WebSocketTest do
         websocket_options: [socket_module: FakeSocket, timeout: 50]
       )
 
-    wait_for_setup()
+    drain_setup_traffic()
 
     send(
       client.connection,
@@ -397,7 +397,7 @@ defmodule SurrealDB.WebSocketTest do
         websocket_options: [socket_module: FakeSocket, timeout: 50]
       )
 
-    wait_for_setup()
+    drain_setup_traffic()
 
     task =
       Task.async(fn -> SurrealDB.live(client, "LIVE SELECT * FROM person", send_to: self()) end)
@@ -453,7 +453,7 @@ defmodule SurrealDB.WebSocketTest do
         websocket_options: [socket_module: FakeSocket, timeout: 50]
       )
 
-    wait_for_setup()
+    drain_setup_traffic()
 
     handler_id = {:live, System.unique_integer()}
     test_pid = self()
@@ -498,7 +498,7 @@ defmodule SurrealDB.WebSocketTest do
         websocket_options: [socket_module: FakeSocket, timeout: 50]
       )
 
-    wait_for_setup()
+    drain_setup_traffic()
 
     task =
       Task.async(fn -> SurrealDB.live(client, "LIVE SELECT * FROM person", send_to: self()) end)
@@ -555,7 +555,7 @@ defmodule SurrealDB.WebSocketTest do
         websocket_options: [socket_module: FakeSocket, timeout: 50]
       )
 
-    wait_for_setup()
+    drain_setup_traffic()
 
     subscription = %SurrealDB.Live.Subscription{
       id: "missing",
@@ -577,7 +577,7 @@ defmodule SurrealDB.WebSocketTest do
     {:ok, pid} =
       SurrealDB.WebSocket.Connection.start_link(client, socket_module: FakeSocket, timeout: 50)
 
-    wait_for_setup()
+    drain_setup_traffic()
 
     Process.unlink(pid)
     ref = Process.monitor(pid)
@@ -600,7 +600,7 @@ defmodule SurrealDB.WebSocketTest do
         reconnect_backoff: 10
       )
 
-    wait_for_setup()
+    drain_setup_traffic()
 
     # Simulate the socket dropping.
     send(pid, {:websocket_closed, :closed})
@@ -771,7 +771,7 @@ defmodule SurrealDB.WebSocketTest do
         reconnect_backoff: 10
       )
 
-    wait_for_setup()
+    drain_setup_traffic()
 
     assert_receive {:conn_event, [:surreal_db, :connection, :connected],
                     %{namespace: "test", database: "app", reconnect?: false, store: nil}}
@@ -829,7 +829,7 @@ defmodule SurrealDB.WebSocketTest do
     )
   end
 
-  defp wait_for_setup do
+  defp drain_setup_traffic do
     assert_receive {:socket_sent, _owner, _payload}
     assert_receive {:socket_sent, _owner, _payload}
   end

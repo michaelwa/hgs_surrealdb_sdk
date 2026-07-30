@@ -10,7 +10,7 @@ defmodule SurrealDB.LiveQueryIntegrationTest do
     table = integration_table("live_people")
 
     assert {:ok, %QueryResult{}} = SurrealDB.query(client, "DEFINE TABLE #{table} SCHEMALESS;")
-    %{client: client, table: table, ws_client: await_ws_ready(integration_ws_client())}
+    %{client: client, table: table, ws_client: integration_ws_client()}
   end
 
   test "live query delivers create events and stops after kill", %{

@@ -18,7 +18,7 @@ defmodule SurrealDB.ReconnectIntegrationTest do
       nil
     )
 
-    ws_client = await_ws_ready(integration_ws_client())
+    ws_client = integration_ws_client()
 
     on_exit(fn ->
       :telemetry.detach(handler)
