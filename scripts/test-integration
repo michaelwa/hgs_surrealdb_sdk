@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+compose=(docker compose -f docker-compose.integration.yml)
+cleanup() {
+  local status="$1"
+  if [ "$status" -ne 0 ]; then
+    "${compose[@]}" logs --no-color surrealdb || true
+  fi
+  if [ "${KEEP_INTEGRATION_DB:-0}" != "1" ]; then
+    "${compose[@]}" down --volumes --remove-orphans || true
+  fi
+  exit "$status"
+}
+
+"${compose[@]}" up -d --wait
+set +e
+SURREALDB_INTEGRATION_ENDPOINT=http://127.0.0.1:18000 \
+SURREALDB_INTEGRATION_WS_ENDPOINT=ws://127.0.0.1:18000/rpc \
+SURREALDB_INTEGRATION_USERNAME=root \
+SURREALDB_INTEGRATION_PASSWORD=root \
+SURREALDB_INTEGRATION_NAMESPACE=hgs_sdk_integration \
+SURREALDB_INTEGRATION_DATABASE=hgs_sdk_integration \
+mix test --only integration
+status=$?
+set -e
+cleanup "$status"
