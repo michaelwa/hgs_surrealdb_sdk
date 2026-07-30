@@ -9,6 +9,72 @@ defmodule SurrealDB.WebSocketTest do
   alias SurrealDB.Transport.WebSocket
   alias SurrealDB.WebSocketTest.FakeSocket
 
+  test "connect_ws returns only after setup and permits an immediate query" do
+    assert {:ok, client} =
+             connect_ws(request_options: [test_pid: self(), auto_setup: true])
+
+    connection = client.connection
+
+    assert_receive {:socket_sent, ^connection, signin_payload}
+    assert Jason.decode!(signin_payload)["method"] == "signin"
+    assert_receive {:socket_sent, ^connection, use_payload}
+    assert Jason.decode!(use_payload)["method"] == "use"
+
+    task = Task.async(fn -> SurrealDB.query(client, "SELECT 1") end)
+    assert_receive {:socket_sent, ^connection, payload}
+    decoded = Jason.decode!(payload)
+
+    send(
+      client.connection,
+      {:websocket_frame,
+       Jason.encode!(%{
+         id: decoded["id"],
+         result: [%{"status" => "OK", "result" => 1}]
+       })}
+    )
+
+    assert {:ok, %QueryResult{}} = Task.await(task)
+  end
+
+  test "connect_ws returns authentication failures from setup" do
+    assert {:error, %Error{type: :rpc_error, code: "ERR_AUTH"}} =
+             connect_ws(
+               request_options: [
+                 test_pid: self(),
+                 auto_setup: true,
+                 setup_responses: %{
+                   "signin" => {:error, %{"code" => "ERR_AUTH", "message" => "bad credentials"}}
+                 }
+               ]
+             )
+  end
+
+  test "connect_ws returns USE failures from setup" do
+    assert {:error, %Error{type: :rpc_error, code: "ERR_USE"}} =
+             connect_ws(
+               request_options: [
+                 test_pid: self(),
+                 auto_setup: true,
+                 setup_responses: %{
+                   "use" => {:error, %{"code" => "ERR_USE", "message" => "unknown namespace"}}
+                 }
+               ]
+             )
+  end
+
+  test "connect_ws applies one overall timeout to setup" do
+    started_at = System.monotonic_time(:millisecond)
+
+    assert {:error, %Error{type: :websocket_timeout}} =
+             connect_ws(
+               request_options: [test_pid: self(), auto_setup: false],
+               websocket_options: [socket_module: FakeSocket, timeout: 30]
+             )
+
+    elapsed = System.monotonic_time(:millisecond) - started_at
+    assert elapsed < 200
+  end
+
   test "starting a websocket connection process and setup traffic" do
     client = websocket_client(request_options: [test_pid: self(), auto_setup: true])
 
@@ -623,6 +689,24 @@ defmodule SurrealDB.WebSocketTest do
       transport: :websocket,
       request_options: Keyword.fetch!(overrides, :request_options)
     }
+  end
+
+  defp connect_ws(overrides) do
+    defaults = [
+      endpoint: "ws://localhost:8000/rpc",
+      namespace: "test",
+      database: "app",
+      username: "root",
+      password: "root",
+      websocket_options: [socket_module: FakeSocket, timeout: 50]
+    ]
+
+    websocket_options = Keyword.get(overrides, :websocket_options, defaults[:websocket_options])
+
+    SurrealDB.connect_ws(
+      Keyword.merge(defaults, overrides)
+      |> Keyword.put(:websocket_options, websocket_options)
+    )
   end
 
   defp wait_for_setup do
