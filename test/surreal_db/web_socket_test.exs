@@ -629,6 +629,101 @@ defmodule SurrealDB.WebSocketTest do
     defdelegate close(pid), to: SurrealDB.WebSocketTest.FakeSocket
   end
 
+  defmodule TimeoutThenSucceedSocket do
+    def start_link(owner, url, headers, options) do
+      test_pid = Keyword.fetch!(options, :test_pid)
+      key = {__MODULE__, test_pid}
+      attempt = :persistent_term.get(key, 0)
+      :persistent_term.put(key, attempt + 1)
+
+      FakeSocket.start_link(
+        owner,
+        url,
+        headers,
+        Keyword.put(options, :auto_setup, attempt > 0)
+      )
+    end
+
+    defdelegate send_text(pid, payload), to: FakeSocket
+    defdelegate close(pid), to: FakeSocket
+  end
+
+  test "reconnecting connections remain asynchronous while setup is pending" do
+    client = websocket_client(request_options: [test_pid: self(), auto_setup: false])
+
+    {:ok, pid} =
+      SurrealDB.WebSocket.Connection.start_link(client,
+        socket_module: FakeSocket,
+        timeout: 50,
+        reconnect: true,
+        reconnect_backoff: 10
+      )
+
+    ws_client = %Client{client | connection: pid}
+
+    assert {:error, %Error{type: :websocket_connect_error}} =
+             SurrealDB.rpc(ws_client, "query", [])
+
+    assert_receive {:socket_sent, ^pid, signin_payload}
+    signin = Jason.decode!(signin_payload)
+
+    send(
+      pid,
+      {:websocket_frame, Jason.encode!(%{id: signin["id"], result: %{"ok" => true}})}
+    )
+
+    assert_receive {:socket_sent, ^pid, use_payload}
+    use_request = Jason.decode!(use_payload)
+
+    send(
+      pid,
+      {:websocket_frame, Jason.encode!(%{id: use_request["id"], result: %{"ok" => true}})}
+    )
+
+    task = Task.async(fn -> SurrealDB.rpc(ws_client, "query", ["RETURN 1"]) end)
+    assert_receive {:socket_sent, ^pid, query_payload}
+    query = Jason.decode!(query_payload)
+    send(pid, {:websocket_frame, Jason.encode!(%{id: query["id"], result: []})})
+
+    assert {:ok, %Response{}} = Task.await(task)
+  end
+
+  test "reconnecting setup timeout retries and emits connected only after setup" do
+    test_pid = self()
+    key = {TimeoutThenSucceedSocket, test_pid}
+    on_exit(fn -> :persistent_term.erase(key) end)
+
+    client = websocket_client(request_options: [test_pid: test_pid])
+    handler_id = {:setup_timeout_reconnect, System.unique_integer()}
+
+    :telemetry.attach(
+      handler_id,
+      [:surreal_db, :connection, :connected],
+      fn event, _measurements, metadata, _config ->
+        send(test_pid, {:setup_timeout_connection_event, event, metadata})
+      end,
+      nil
+    )
+
+    on_exit(fn -> :telemetry.detach(handler_id) end)
+
+    {:ok, pid} =
+      SurrealDB.WebSocket.Connection.start_link(client,
+        socket_module: TimeoutThenSucceedSocket,
+        timeout: 20,
+        reconnect: true,
+        reconnect_backoff: 10
+      )
+
+    assert_receive {:fake_socket_started, ^pid, _url, _headers, _socket_pid}, 100
+    refute_receive {:setup_timeout_connection_event, _, _}, 30
+    assert_receive {:fake_socket_started, ^pid, _url, _headers, _socket_pid}, 200
+
+    assert_receive {:setup_timeout_connection_event, [:surreal_db, :connection, :connected],
+                    %{reconnect?: false}},
+                   200
+  end
+
   test "reconnect: true retries after an initial connect failure instead of stopping" do
     test_pid = self()
     on_exit(fn -> :persistent_term.erase({FailThenSucceedSocket, test_pid}) end)
