@@ -44,7 +44,7 @@
 - Produces executable `./scripts/test-integration`.
 - Consumes `KEEP_INTEGRATION_DB=1` to retain the service after a run.
 
-- [ ] **Step 1: Create the pinned Compose service**
+- [x] **Step 1: Create the pinned Compose service**
 
 ```yaml
 services:
@@ -61,13 +61,13 @@ services:
       start_period: 2s
 ```
 
-- [ ] **Step 2: Verify that Compose rejects no configuration and the service becomes healthy**
+- [x] **Step 2: Verify that Compose rejects no configuration and the service becomes healthy**
 
 Run: `docker compose -f docker-compose.integration.yml up -d --wait`
 
 Expected: exit 0 and `docker compose -f docker-compose.integration.yml ps` reports `surrealdb` as healthy.
 
-- [ ] **Step 3: Write the lifecycle runner**
+- [x] **Step 3: Write the lifecycle runner**
 
 Implement `scripts/test-integration` with `#!/usr/bin/env bash` and `set -euo pipefail`. It must use this exact service file and environment contract:
 
@@ -100,7 +100,7 @@ cleanup "$status"
 
 Mark it executable with `chmod +x scripts/test-integration`.
 
-- [ ] **Step 4: Verify Compose lifecycle before the first tagged test exists**
+- [x] **Step 4: Verify Compose lifecycle before the first tagged test exists**
 
 Run: `docker compose -f docker-compose.integration.yml up -d --wait && docker compose -f docker-compose.integration.yml down --volumes --remove-orphans`
 
@@ -108,13 +108,13 @@ Expected: both commands exit 0. The runner is expected to exit non-zero until
 Task 2 adds the first `@moduletag :integration` test; it must retain strict
 failure behavior rather than masking an empty or failed suite.
 
-- [ ] **Step 5: Verify retained-service behavior**
+- [x] **Step 5: Verify retained-service behavior**
 
 Run: `KEEP_INTEGRATION_DB=1 ./scripts/test-integration`
 
 Expected: command exits 0 and the healthy service remains available on port `18000`; then run `docker compose -f docker-compose.integration.yml down --volumes --remove-orphans`.
 
-- [ ] **Step 6: Commit the infrastructure increment**
+- [x] **Step 6: Commit the infrastructure increment**
 
 ```bash
 git add docker-compose.integration.yml scripts/test-integration
@@ -132,7 +132,7 @@ git commit -m "test: add SurrealDB integration runner"
 - Produces `SurrealDB.IntegrationCase` with `integration_client/0`, `integration_ws_client/0`, `integration_scope/0`, and `integration_table/1` for tests that `use` it.
 - Consumes the six `SURREALDB_INTEGRATION_*` variables exported by Task 1.
 
-- [ ] **Step 1: Write failing support-case tests**
+- [x] **Step 1: Write failing support-case tests**
 
 Add tests proving that local defaults are accepted, an external endpoint is rejected without opt-in, and scopes are valid and distinct:
 
@@ -150,13 +150,13 @@ Add a unit-style test for the endpoint parser in the same module or a focused
 support test: `https://example.com` must raise an error mentioning
 `SURREALDB_INTEGRATION_ALLOW_EXTERNAL=1`.
 
-- [ ] **Step 2: Run the new test to verify it fails**
+- [x] **Step 2: Run the new test to verify it fails**
 
 Run: `mix test test/integration/integration_case_test.exs --only integration`
 
 Expected: FAIL because `SurrealDB.IntegrationCase` does not exist.
 
-- [ ] **Step 3: Add default integration exclusion**
+- [x] **Step 3: Add default integration exclusion**
 
 Replace `test/test_helper.exs` with:
 
@@ -165,7 +165,7 @@ ExUnit.start()
 ExUnit.configure(exclude: [integration: true])
 ```
 
-- [ ] **Step 4: Implement `SurrealDB.IntegrationCase`**
+- [x] **Step 4: Implement `SurrealDB.IntegrationCase`**
 
 Implement a `__using__/1` macro that imports the three helper functions and
 sets `async: false`. Implement endpoint validation with `URI.parse/1`:
@@ -195,7 +195,7 @@ REMOVE TABLE IF EXISTS it_123456_users;
 Use the existing identifier validation before interpolation. Run cleanup through
 `on_exit`; never call `REMOVE NAMESPACE` or `REMOVE DATABASE`.
 
-- [ ] **Step 5: Run focused and default test commands**
+- [x] **Step 5: Run focused and default test commands**
 
 Run: `./scripts/test-integration && mix test`
 
@@ -204,7 +204,7 @@ server; default `mix test` reports no integration execution and remains green.
 Run `mix test --only integration` directly only after manually keeping the
 Compose service running with `docker compose -f docker-compose.integration.yml up -d --wait`.
 
-- [ ] **Step 6: Commit the safe test foundation**
+- [x] **Step 6: Commit the safe test foundation**
 
 ```bash
 git add test/test_helper.exs test/support/integration_case.ex test/integration/integration_case_test.exs
@@ -222,7 +222,7 @@ git commit -m "test: add isolated integration test case"
 - Consumes `SurrealDB.IntegrationCase` from Task 2.
 - Exercises existing `SurrealDB` and `SurrealDB.Repo` public APIs without new production code.
 
-- [ ] **Step 1: Write failing HTTP contract tests**
+- [x] **Step 1: Write failing HTTP contract tests**
 
 Cover these exact scenarios in `http_integration_test.exs`:
 
@@ -237,7 +237,7 @@ assert {:error, %SurrealDB.Error{type: :surreal_error}} = SurrealDB.query(client
 Define a unique table and prove `SurrealDB.create/3`, `select/2`, `merge/3`,
 `patch/3`, and `delete/2` operate against it.
 
-- [ ] **Step 2: Write failing Repo contract tests**
+- [x] **Step 2: Write failing Repo contract tests**
 
 Define an integration-only Zoi schema module with a fixed table name. In
 `setup`, remove and define that table. Cover create/get/all/find/update/delete,
@@ -245,7 +245,7 @@ hydration into the schema struct, empty-result `{:ok, nil}`, and invalid ID
 rejection by using an invalid identifier. The existing unit test remains the
 proof that invalid IDs avoid network dispatch.
 
-- [ ] **Step 3: Run the HTTP and Repo tests against Compose**
+- [x] **Step 3: Run the HTTP and Repo tests against Compose**
 
 Run: `./scripts/test-integration`
 
@@ -253,20 +253,20 @@ Expected: FAIL only until the test expectations have been adjusted to the
 pinned server’s observed response shape; do not alter SDK behavior merely to
 fit an unverified assumption.
 
-- [ ] **Step 4: Implement only harness-side setup/cleanup needed by observed server behavior**
+- [x] **Step 4: Implement only harness-side setup/cleanup needed by observed server behavior**
 
 For `table = integration_table("people")`, use
 `"DEFINE TABLE #{table} SCHEMALESS;"` in test setup. Cleanup uses only
 `"REMOVE TABLE IF EXISTS #{table};"`. Keep all test record IDs and table
 names within the integration prefix.
 
-- [ ] **Step 5: Re-run focused and full suites**
+- [x] **Step 5: Re-run focused and full suites**
 
 Run: `./scripts/test-integration && mix test`
 
 Expected: live HTTP/Repo tests pass; default tests remain independent of Docker.
 
-- [ ] **Step 6: Commit HTTP and Repo coverage**
+- [x] **Step 6: Commit HTTP and Repo coverage**
 
 ```bash
 git add test/integration/http_integration_test.exs test/integration/repo_integration_test.exs test/support/integration_case.ex
@@ -284,7 +284,7 @@ git commit -m "test: cover HTTP and repo contracts against SurrealDB"
 - Consumes live table setup from Task 2 and `SurrealDB.Multi` / `SurrealDB.Migrations` APIs.
 - Produces real-server evidence for the transaction response indexing and migration registry assumptions.
 
-- [ ] **Step 1: Write a failing transaction commit/rollback test**
+- [x] **Step 1: Write a failing transaction commit/rollback test**
 
 Build a multi with two typed creates and assert both are returned and queryable
 after success. Build a second multi where the first create succeeds and a
@@ -301,7 +301,7 @@ assert {:error, :fail, %SurrealDB.Error{}} = SurrealDB.transaction(client, multi
 assert {:ok, nil} = SurrealDB.Repo.find(client, User, %{email: "first@example.com"})
 ```
 
-- [ ] **Step 2: Write a failing migration lifecycle test**
+- [x] **Step 2: Write a failing migration lifecycle test**
 
 Within a directory created by
 `Path.join(System.tmp_dir!(), "hgs_surrealdb_sdk_#{System.unique_integer([:positive])}")`,
@@ -311,7 +311,7 @@ write one `.surql` migration with required `-- migrate:up` and optional
 after changing contents, failed-migration recording, and rollback. Use a
 uniquely named migration file and tables.
 
-- [ ] **Step 3: Run the tagged suite and capture the real response shapes**
+- [x] **Step 3: Run the tagged suite and capture the real response shapes**
 
 Run: `./scripts/test-integration`
 
@@ -319,7 +319,7 @@ Expected: failures identify any mismatch between the existing fake response
 fixtures and SurrealDB `v3.1.5`; record the observed shape in the test name or
 assertion message before changing production code.
 
-- [ ] **Step 4: Add harness cleanup for registry and migration tables**
+- [x] **Step 4: Add harness cleanup for registry and migration tables**
 
 Extend `IntegrationCase` with `cleanup_migration_row!/2`, which executes only
 `DELETE schema_migrations WHERE filename = $filename;` using the unique
@@ -328,14 +328,14 @@ migration filename. Remove only the migration-created scoped table through
 shortcut until its registry-scope semantics are fixed by the separate
 migration P1 work.
 
-- [ ] **Step 5: Re-run all integration and unit tests**
+- [x] **Step 5: Re-run all integration and unit tests**
 
 Run: `./scripts/test-integration && mix test`
 
 Expected: transaction commit/rollback and migration lifecycle tests pass with
 the pinned server; the default suite stays green.
 
-- [ ] **Step 6: Commit transaction and migration coverage**
+- [x] **Step 6: Commit transaction and migration coverage**
 
 ```bash
 git add test/integration/transaction_integration_test.exs test/integration/migrations_integration_test.exs test/support/integration_case.ex
@@ -354,14 +354,14 @@ git commit -m "test: cover transaction and migration contracts live"
 - Consumes `integration_ws_client/0` from Task 2 and existing `SurrealDB.live/3`, `kill/2`, and telemetry APIs.
 - Does not change the asynchronous readiness or subscription-recovery contract; those are separate P0 implementation work.
 
-- [ ] **Step 1: Write the WebSocket contract tests**
+- [x] **Step 1: Write the WebSocket contract tests**
 
 Verify a real connection can perform signin, `use`, RPC query, public query,
 and RPC error mapping. Until the readiness P0 is implemented, wait for the
 documented connected telemetry event in the test before sending the first
 query; assert the event’s namespace/database match integration configuration.
 
-- [ ] **Step 2: Write the live-query lifecycle test**
+- [x] **Step 2: Write the live-query lifecycle test**
 
 Create a scoped table, then:
 
@@ -375,7 +375,7 @@ assert :ok = SurrealDB.kill(ws_client, subscription)
 After kill, create another record and `refute_receive` a message for that
 subscription within 300 milliseconds.
 
-- [ ] **Step 3: Write disconnect characterization without recovery assertions**
+- [x] **Step 3: Write disconnect characterization without recovery assertions**
 
 Attach a telemetry handler and read the test-only connection state with
 `:sys.get_state(ws_client.connection)`. Close its `socket_pid` through the
@@ -384,7 +384,7 @@ one structured `:websocket_closed` error and telemetry emits a disconnected
 event. Do not assert automatic live-query re-registration; the next P0 spec
 owns that behavior.
 
-- [ ] **Step 4: Run the tagged suite to establish timing bounds**
+- [x] **Step 4: Run the tagged suite to establish timing bounds**
 
 Run: `./scripts/test-integration`
 
@@ -393,13 +393,13 @@ the declared 5-second receive timeout. If timing is flaky, fix test
 synchronization by awaiting telemetry or a known write result, never by adding
 arbitrary sleeps.
 
-- [ ] **Step 5: Re-run the complete quality gate**
+- [x] **Step 5: Re-run the complete quality gate**
 
 Run: `./scripts/test-integration && mix format --check-formatted && mix compile --warnings-as-errors && mix test`
 
 Expected: all live and unit tests pass; formatting and compilation are clean.
 
-- [ ] **Step 6: Commit WebSocket and live-query coverage**
+- [x] **Step 6: Commit WebSocket and live-query coverage**
 
 ```bash
 git add test/integration/web_socket_integration_test.exs test/integration/live_query_integration_test.exs test/integration/reconnect_integration_test.exs test/support/integration_case.ex
@@ -419,7 +419,7 @@ git commit -m "test: cover WebSocket and live query contracts live"
 - CI invokes exactly `./scripts/test-integration` for live validation.
 - Documentation exposes the same command and safety behavior as Task 1.
 
-- [ ] **Step 1: Add a CI workflow with separate unit and integration jobs**
+- [x] **Step 1: Add a CI workflow with separate unit and integration jobs**
 
 The unit job runs:
 
@@ -443,7 +443,7 @@ docker compose -f docker-compose.integration.yml logs --no-color surrealdb
 
 as a CI artifact or job log.
 
-- [ ] **Step 2: Write the README testing section**
+- [x] **Step 2: Write the README testing section**
 
 Add a concise section containing:
 
@@ -456,7 +456,7 @@ State the Docker prerequisite, pinned `SurrealDB v3.1.5` target, localhost
 port `18000`, default cleanup behavior, and that ordinary `mix test` excludes
 integration tests.
 
-- [ ] **Step 3: Update installation and troubleshooting guides**
+- [x] **Step 3: Update installation and troubleshooting guides**
 
 In `docs/installing-surrealdb.md`, state that the integration Compose service
 is isolated from the developer’s server on port `8000`. In
@@ -468,26 +468,37 @@ lsof -iTCP:18000 -sTCP:LISTEN
 docker compose -f docker-compose.integration.yml logs --no-color surrealdb
 ```
 
-- [ ] **Step 4: Add final evidence to the roadmap item**
+- [x] **Step 4: Add final evidence to the roadmap item**
 
 Update the P0 integration-harness item only after CI is green. Record the
 pinned version, the exact local command, and the date verified; move the item
 to the Done section only when every §5 contract test from the approved spec is
 live and passing.
 
-- [ ] **Step 5: Run the full release-quality verification**
+- [x] **Step 5: Run the full release-quality verification**
 
 Run: `./scripts/test-integration && mix format --check-formatted && mix compile --warnings-as-errors && mix test && git diff --check`
 
 Expected: all commands exit 0. Confirm that a clean `mix test` output excludes
 the integration-tagged files and that CI uses the same runner.
 
-- [ ] **Step 6: Commit delivery and documentation**
+- [x] **Step 6: Commit delivery and documentation**
 
 ```bash
 git add .github/workflows/ci.yml README.md docs/installing-surrealdb.md docs/troubleshooting.md ROADMAP.md
 git commit -m "ci: run SurrealDB integration harness"
 ```
+
+## Completion evidence
+
+Completed 2026-07-30 on `codex/integration-harness`.
+
+- `./scripts/test-integration`: 14 passed against `surrealdb/surrealdb:v3.1.5`;
+  the runner removed the temporary service afterward.
+- `mix test`: 212 passed, with integration tests excluded.
+- `mix format --check-formatted`, `mix compile --warnings-as-errors`, and
+  `git diff --check` passed.
+- Delivery commit: `14d8901 ci: run SurrealDB integration harness`.
 
 ## Plan self-review
 
