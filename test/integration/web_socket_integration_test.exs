@@ -20,6 +20,8 @@ defmodule SurrealDB.WebSocketIntegrationTest do
 
     ws_client = integration_ws_client()
 
+    assert {:ok, %QueryResult{results: [1]}} = SurrealDB.query(ws_client, "RETURN 1")
+
     on_exit(fn ->
       :telemetry.detach(handler)
       if Process.alive?(ws_client.connection), do: SurrealDB.WebSocket.stop(ws_client)

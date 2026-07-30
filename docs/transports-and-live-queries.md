@@ -43,11 +43,20 @@ IO.inspect(response.result)
 {:ok, result} = SurrealDB.query(conn, "SELECT * FROM person")
 ```
 
+`SurrealDB.connect_ws/1` returns only after the socket is connected,
+authentication has succeeded, and the configured namespace and database have
+been selected. The first query can be issued immediately. Set the overall
+startup deadline with `websocket_options: [timeout: milliseconds]`; setup
+failures are returned as structured authentication/`USE`, timeout, or socket
+closure errors.
+
 The WebSocket transport uses [WebSockex](https://hexdocs.pm/websockex) because
 it is a maintained Elixir WebSocket client with an OTP-friendly process model.
 
 With `transport: :websocket`, a supervised `SurrealDB.Store` supervises a
-self-reconnecting WebSocket connection.
+self-reconnecting WebSocket connection. Store startup and reconnect are
+asynchronous, so calls made while setup is pending may temporarily return a
+`websocket connection not ready` error.
 
 ## Live queries
 
