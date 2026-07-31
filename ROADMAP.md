@@ -59,7 +59,13 @@ the preferred dog-food behavior.
 **Likely scope:** WebSocket connection state, subscription model, telemetry,
 fake socket tests, and the live-query guide.
 
-### P1 — Consistent Repo update validation
+### P1 — Consistent Repo update validation (completed 2026-07-30)
+
+**Status:** Complete. Typed Repo and Multi updates now validate supplied Zoi
+fields, coerce accepted values, reject unknown fields before dispatch, and
+preserve omitted fields through partial `MERGE` updates. Raw query surfaces
+remain the explicit escape hatch for database-side expressions or fields
+outside the declared schema.
 
 **Problem:** `Repo.create/4` validates attributes, while `Repo.update/5` does
 not. The README implies a broader validation guarantee than the implementation
@@ -188,6 +194,11 @@ above when the goal is dog-fooding the current library:
   WebSocket RPC, live-query events, and disconnect telemetry. Verified locally
   with `./scripts/test-integration`; ordinary `mix test` remains Docker-free.
   CI runs the same runner in a separate integration job.
+
+- **P1 — Consistent Repo update validation (2026-07-30).** Completed with
+  partial Zoi validation for typed updates, unknown-field rejection, validated
+  `$attrs` variables, Repo/Multi parity coverage, schemafull merge integration
+  coverage, and updated raw-operation documentation.
 
 - **R1 — Dogfood install + live round-trip.** Added the SDK to a fresh Phoenix
   app and ran live connect/query/CRUD and Schema/Repo round-trips against

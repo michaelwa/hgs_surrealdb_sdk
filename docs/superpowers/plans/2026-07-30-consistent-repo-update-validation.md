@@ -44,7 +44,7 @@
 - Consumes: each schema module's existing `__schema__/0` result, a map of update attributes.
 - Produces: `schema.validate_partial(attrs)` returning `{:ok, validated_map}` or `{:error, %SurrealDB.Schema.ValidationError{}}`.
 
-- [ ] **Step 1: Write failing schema tests for partial validation**
+- [x] **Step 1: Write failing schema tests for partial validation**
 
 Add tests next to the existing `validate/1` tests using the current `User` schema:
 
@@ -77,7 +77,7 @@ Define a small `UserWithProfile` schema in the test module with a required
 `profile: Zoi.object(%{name: Zoi.string()})` field. The test proves that making
 top-level fields optional does not disable nested validation.
 
-- [ ] **Step 2: Run the focused schema tests and verify failure**
+- [x] **Step 2: Run the focused schema tests and verify failure**
 
 Run:
 
@@ -88,7 +88,7 @@ mix test test/surreal_db/schema_test.exs
 Expected: FAIL because generated schema modules do not yet define
 `validate_partial/1`.
 
-- [ ] **Step 3: Generate `validate_partial/1` from `SurrealDB.Schema`**
+- [x] **Step 3: Generate `validate_partial/1` from `SurrealDB.Schema`**
 
 In the `__before_compile__/1` quoted block, add:
 
@@ -100,7 +100,7 @@ def validate_partial(params),
 
 Keep the existing `validate/1` implementation unchanged.
 
-- [ ] **Step 4: Implement `__validate_partial__/2`**
+- [x] **Step 4: Implement `__validate_partial__/2`**
 
 Build an all-optional field object from the existing Zoi map and force
 unrecognized keys to error. The implementation should follow this shape:
@@ -132,7 +132,7 @@ through tests rather than matching an implementation-specific Zoi error code.
 Do not mutate `__schema__/0`; wrapping each field with `Zoi.optional/1` must
 only affect the derived operation schema.
 
-- [ ] **Step 5: Run the focused schema tests and verify success**
+- [x] **Step 5: Run the focused schema tests and verify success**
 
 Run:
 
@@ -142,7 +142,7 @@ mix test test/surreal_db/schema_test.exs
 
 Expected: PASS, including the pre-existing full-validation tests.
 
-- [ ] **Step 6: Commit the shared validation boundary**
+- [x] **Step 6: Commit the shared validation boundary**
 
 ```bash
 git add lib/surreal_db/schema.ex test/surreal_db/schema_test.exs
@@ -159,7 +159,7 @@ git commit -m "feat: add partial schema validation"
 - Consumes: `schema.validate_partial/1` from Task 1 and `SurrealDB.Identifier.validate/1`.
 - Produces: `Statement.update/3` returning `{:ok, {surql, %{attrs: validated_attrs}}}` or the existing identifier/validation error.
 
-- [ ] **Step 1: Add failing statement tests**
+- [x] **Step 1: Add failing statement tests**
 
 Extend the existing update tests:
 
@@ -180,7 +180,7 @@ test "update/3 rejects unknown fields before building a statement" do
 end
 ```
 
-- [ ] **Step 2: Run statement tests and verify the new tests fail**
+- [x] **Step 2: Run statement tests and verify the new tests fail**
 
 Run:
 
@@ -191,7 +191,7 @@ mix test test/surreal_db/repo/statement_test.exs
 Expected: the invalid-value and unknown-field tests fail because the current
 implementation passes `attrs` directly through.
 
-- [ ] **Step 3: Add partial validation to `Statement.update/3`**
+- [x] **Step 3: Add partial validation to `Statement.update/3`**
 
 Change the function to validate both the identifier and attributes:
 
@@ -208,7 +208,7 @@ Update the typespec to include `SurrealDB.Schema.ValidationError.t()` in the
 error union. Keep `schema` as an argument even though it is now used for
 validation; do not change the generated SurrealQL.
 
-- [ ] **Step 4: Run statement tests and verify success**
+- [x] **Step 4: Run statement tests and verify success**
 
 Run:
 
@@ -218,7 +218,7 @@ mix test test/surreal_db/repo/statement_test.exs
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit the statement boundary**
+- [x] **Step 5: Commit the statement boundary**
 
 ```bash
 git add lib/surreal_db/repo/statement.ex test/surreal_db/repo/statement_test.exs
@@ -236,7 +236,7 @@ git commit -m "feat: validate repo update attributes"
 - Consumes: the validated `Statement.update/3` behavior from Task 2.
 - Produces: regression coverage proving `Repo.update/5` and `Multi.update/5` share the same policy and do not dispatch invalid data.
 
-- [ ] **Step 1: Add Repo no-dispatch tests**
+- [x] **Step 1: Add Repo no-dispatch tests**
 
 Add tests using the existing `client_with_adapter/1` helper:
 
@@ -256,7 +256,7 @@ test "update/4 returns a ValidationError without touching the network for unknow
 end
 ```
 
-- [ ] **Step 2: Add Multi parity tests**
+- [x] **Step 2: Add Multi parity tests**
 
 Extend `test/surreal_db/multi_test.exs`:
 
@@ -279,7 +279,7 @@ end
 Keep the existing valid transaction assembly test; its expected MERGE query
 must remain unchanged.
 
-- [ ] **Step 3: Run Repo and Multi tests**
+- [x] **Step 3: Run Repo and Multi tests**
 
 Run:
 
@@ -292,7 +292,7 @@ Expected: PASS. No implementation changes should be required in `Repo` or
 or typespec feedback requires a change, keep it limited to error typespecs and
 do not add a second validation path.
 
-- [ ] **Step 4: Commit the parity coverage**
+- [x] **Step 4: Commit the parity coverage**
 
 ```bash
 git add test/surreal_db/repo_test.exs test/surreal_db/multi_test.exs
@@ -309,7 +309,7 @@ git commit -m "test: enforce update validation across repo and multi"
 - Consumes: validated `Repo.update/5` behavior from Tasks 1–3 and the existing pinned integration harness.
 - Produces: an opt-in live test proving a valid partial merge preserves omitted fields against a schemafull table.
 
-- [ ] **Step 1: Change the Repo integration table to schemafull**
+- [x] **Step 1: Change the Repo integration table to schemafull**
 
 In `test/integration/repo_integration_test.exs`, keep the existing `Person`
 schema and table name, but change the setup query from:
@@ -329,7 +329,7 @@ DEFINE FIELD age ON TABLE #{@table} TYPE int;
 Reuse the existing client, cleanup, and pinned Docker lifecycle. Do not modify
 `IntegrationCase` or create a second integration harness.
 
-- [ ] **Step 2: Make the existing integration update assert partial preservation**
+- [x] **Step 2: Make the existing integration update assert partial preservation**
 
 Keep the existing create and update flow, which already updates only `age` and
 asserts that `name` remains `"Jane"`. Make the assertion explicit that this is
@@ -348,7 +348,7 @@ Add a separate assertion that an unknown field returns
 `{:error, %SurrealDB.Schema.ValidationError{}}`; the existing unit tests remain
 the authoritative no-dispatch coverage.
 
-- [ ] **Step 3: Run the opt-in integration test**
+- [x] **Step 3: Run the opt-in integration test**
 
 ```bash
 ./scripts/test-integration
@@ -356,7 +356,7 @@ the authoritative no-dispatch coverage.
 
 Expected: the integration suite passes, including the new partial-update test.
 
-- [ ] **Step 4: Commit integration coverage**
+- [x] **Step 4: Commit integration coverage**
 
 ```bash
 git add test/integration/repo_integration_test.exs
@@ -373,7 +373,7 @@ git commit -m "test: cover schemafull partial repo updates"
 - Consumes: the final behavior from Tasks 1–4.
 - Produces: public documentation that distinguishes typed update validation from raw SurrealQL and database-side schema enforcement.
 
-- [ ] **Step 1: Update the README contract**
+- [x] **Step 1: Update the README contract**
 
 In the CRUD/error guidance, state that typed `Repo` and Store updates validate
 supplied attributes before dispatch, preserve omitted fields via MERGE, and
@@ -381,7 +381,7 @@ return `SurrealDB.Schema.ValidationError` for invalid or unknown fields. Add a
 short raw-query note pointing readers to `Repo.query/5` and `Multi.raw/4` when
 they need database-side expressions or fields outside the Zoi schema.
 
-- [ ] **Step 2: Update `docs/schema-and-repo.md`**
+- [x] **Step 2: Update `docs/schema-and-repo.md`**
 
 Add a partial-update example and explicitly document:
 
@@ -399,7 +399,7 @@ are the explicit escape hatch. Clarify that Zoi validation and SurrealDB's
 `SCHEMAFULL` rules are independent layers; the Zoi schema is not automatically
 derived from the database.
 
-- [ ] **Step 3: Run formatting and focused tests**
+- [x] **Step 3: Run formatting and focused tests**
 
 Run:
 
@@ -410,7 +410,7 @@ mix test test/surreal_db/schema_test.exs test/surreal_db/repo/statement_test.exs
 
 Expected: formatting passes and all focused tests pass.
 
-- [ ] **Step 4: Run the complete ordinary test suite**
+- [x] **Step 4: Run the complete ordinary test suite**
 
 Run:
 
@@ -421,7 +421,7 @@ mix test
 Expected: PASS; the ordinary suite remains Docker-free and continues excluding
 opt-in integration tests.
 
-- [ ] **Step 5: Review the final diff and commit documentation**
+- [x] **Step 5: Review the final diff and commit documentation**
 
 Run:
 
@@ -439,14 +439,19 @@ git add README.md docs/schema-and-repo.md
 git commit -m "docs: document repo update validation"
 ```
 
+- [x] **Step 6: Update the roadmap after the final review**
+
+Mark the roadmap item complete only after the final diff review, formatting
+check, focused tests, ordinary test suite, and integration suite pass.
+
 ## Final verification checklist
 
-- [ ] `schema.validate_partial/1` accepts valid subsets and rejects unknown keys.
-- [ ] Supplied values are coerced/validated through their declared Zoi field schemas.
-- [ ] `Statement.update/3` returns validated `$attrs` and preserves MERGE SQL.
-- [ ] Invalid values and unknown fields do not reach the network through `Repo.update/5`.
-- [ ] `Multi.update/5` returns the same validation error under its step name.
-- [ ] Omitted fields survive a valid partial update in the live integration suite.
-- [ ] Raw `Repo.query/5` and `Multi.raw/4` are documented as explicit escape hatches.
-- [ ] `README.md` and `docs/schema-and-repo.md` match the implementation.
-- [ ] `mix format --check-formatted`, focused tests, `mix test`, and integration tests pass.
+- [x] `schema.validate_partial/1` accepts valid subsets and rejects unknown keys.
+- [x] Supplied values are coerced/validated through their declared Zoi field schemas.
+- [x] `Statement.update/3` returns validated `$attrs` and preserves MERGE SQL.
+- [x] Invalid values and unknown fields do not reach the network through `Repo.update/5`.
+- [x] `Multi.update/5` returns the same validation error under its step name.
+- [x] Omitted fields survive a valid partial update in the live integration suite.
+- [x] Raw `Repo.query/5` and `Multi.raw/4` are documented as explicit escape hatches.
+- [x] `README.md` and `docs/schema-and-repo.md` match the implementation.
+- [x] `mix format --check-formatted`, focused tests, `mix test`, and integration tests pass.
