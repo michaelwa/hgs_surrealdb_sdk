@@ -1,7 +1,9 @@
 defmodule Mix.Tasks.Surreal.Migrations do
   @shortdoc "Lists recorded SurrealDB migrations"
   @moduledoc """
-  Lists migration registry rows for the target namespace/database.
+  Lists migration registry rows. The registry defaults to `sdk_meta` /
+  `migration_registry`; override it with `--registry-namespace` and
+  `--registry-database`.
 
       $ mix surreal.migrations --store MyApp.SurrealStore
   """

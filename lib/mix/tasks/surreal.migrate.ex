@@ -6,7 +6,10 @@ defmodule Mix.Tasks.Surreal.Migrate do
       $ mix surreal.migrate --store MyApp.SurrealStore
       $ mix surreal.migrate --namespace app --database app --path priv/surrealdb_migrations
 
-  Use `--allow-failed-rerun` to retry a migration recorded as failed.
+  Use `--allow-failed-rerun` to retry a migration recorded as failed. Use
+  `--registry-namespace` and `--registry-database` to separate registry scope
+  from the target, and use `--recover-running` only after confirming that the
+  previous runner has stopped.
   """
 
   use Mix.Task

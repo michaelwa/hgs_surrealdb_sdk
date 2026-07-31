@@ -20,7 +20,10 @@ defmodule Mix.Tasks.Surreal.MigrationTaskHelpers do
     path: :string,
     repo_path: :string,
     sdk_version: :string,
+    registry_namespace: :string,
+    registry_database: :string,
     allow_failed_rerun: :boolean,
+    recover_running: :boolean,
     step: :integer,
     steps: :integer,
     to: :string,
@@ -73,6 +76,9 @@ defmodule Mix.Tasks.Surreal.MigrationTaskHelpers do
       sdk_version: Keyword.get(opts, :sdk_version, project_version())
     ]
     |> maybe_put(:allow_failed_rerun?, Keyword.get(opts, :allow_failed_rerun))
+    |> maybe_put(:recover_running?, Keyword.get(opts, :recover_running))
+    |> maybe_put(:registry_ns, Keyword.get(opts, :registry_namespace))
+    |> maybe_put(:registry_db, Keyword.get(opts, :registry_database))
     |> maybe_put(:step, Keyword.get(opts, :step))
     |> maybe_put(:to, Keyword.get(opts, :to))
     |> maybe_put(:to_exclusive, Keyword.get(opts, :to_exclusive))
@@ -80,6 +86,9 @@ defmodule Mix.Tasks.Surreal.MigrationTaskHelpers do
 
   def target_opts(%Client{} = _client, opts) do
     [path: migration_paths(opts)]
+    |> maybe_put(:registry_ns, Keyword.get(opts, :registry_namespace))
+    |> maybe_put(:registry_db, Keyword.get(opts, :registry_database))
+    |> maybe_put(:recover_running?, Keyword.get(opts, :recover_running))
     |> maybe_put(:steps, rollback_steps(opts))
     |> maybe_put(:to, Keyword.get(opts, :to))
     |> maybe_put(:to_exclusive, Keyword.get(opts, :to_exclusive))
@@ -126,6 +135,13 @@ defmodule Mix.Tasks.Surreal.MigrationTaskHelpers do
       Keyword.get(opts, :namespace, client.namespace),
       Keyword.get(opts, :database, client.database)
     }
+  end
+
+  def registry_scope_opts(opts) do
+    [
+      namespace: Keyword.get(opts, :registry_namespace, "sdk_meta"),
+      database: Keyword.get(opts, :registry_database, "migration_registry")
+    ]
   end
 
   def create_database!(%Client{} = client, opts) do

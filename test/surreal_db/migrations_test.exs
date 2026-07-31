@@ -8,14 +8,26 @@ defmodule SurrealDB.MigrationsTest do
   test "install_registry loads schema from priv and uses client scope" do
     client =
       client_with_adapter(fn request ->
-        assert Req.Request.get_header(request, "ns") == ["original_ns"]
-        assert Req.Request.get_header(request, "db") == ["original_db"]
+        assert Req.Request.get_header(request, "ns") == ["sdk_meta"]
+        assert Req.Request.get_header(request, "db") == ["migration_registry"]
         assert request.body =~ "DEFINE TABLE IF NOT EXISTS schema_migrations SCHEMAFULL"
 
         ok_response(request, [])
       end)
 
     assert :ok = Migrations.install_registry(client)
+  end
+
+  test "install_registry uses an explicitly configured registry scope" do
+    client =
+      client_with_adapter(fn request ->
+        assert Req.Request.get_header(request, "ns") == ["meta_ns"]
+        assert Req.Request.get_header(request, "db") == ["meta_db"]
+        ok_response(request, [])
+      end)
+
+    assert :ok =
+             Migrations.install_registry(client, registry_ns: "meta_ns", registry_db: "meta_db")
   end
 
   describe "parse_migration/2" do
@@ -248,6 +260,103 @@ defmodule SurrealDB.MigrationsTest do
     assert_no_remaining_calls(calls)
   end
 
+  test "run explicitly recovers a running migration after operator confirmation" do
+    contents = "-- migrate:up\nRETURN 1;"
+    path = tmp_migrations(%{"001_recover.surql" => contents})
+    checksum = checksum(contents)
+
+    calls =
+      scripted_calls([
+        install_registry_call(),
+        fn request ->
+          assert_registry_request(request)
+          ok_response(request, [%{"status" => "running", "checksum" => checksum}])
+        end,
+        fn request ->
+          assert_registry_request(request)
+          assert request.body =~ "status = 'running'"
+          assert request.body =~ "status = 'failed'"
+          assert request.body =~ "attempt_count += 1"
+          assert request.body =~ "recovered after operator confirmed the previous runner stopped"
+          ok_response(request, [%{"status" => "failed"}])
+        end,
+        fn request ->
+          assert_registry_request(request)
+          assert request.body =~ "status = 'failed'"
+          ok_response(request, [%{"status" => "running"}])
+        end,
+        fn request ->
+          assert_target_request(request)
+          assert request.body == "RETURN 1;"
+          ok_response(request, [%{"ok" => true}])
+        end,
+        fn request ->
+          assert_registry_request(request)
+          assert request.body =~ "status = 'applied'"
+          ok_response(request, [%{"status" => "applied"}])
+        end
+      ])
+
+    assert {:ok, [%{filename: "001_recover.surql", status: :applied}]} =
+             calls
+             |> client_with_adapter()
+             |> Migrations.run(path: path, sdk_version: "0.1.0", recover_running?: true)
+
+    assert_no_remaining_calls(calls)
+  end
+
+  test "run refuses recovery when the running row changed concurrently" do
+    contents = "-- migrate:up\nRETURN 1;"
+    path = tmp_migrations(%{"001_recover_lost.surql" => contents})
+    checksum = checksum(contents)
+
+    calls =
+      scripted_calls([
+        install_registry_call(),
+        fn request ->
+          assert_registry_request(request)
+          ok_response(request, [%{"status" => "running", "checksum" => checksum}])
+        end,
+        fn request ->
+          assert_registry_request(request)
+          assert request.body =~ "status = 'running'"
+          ok_response(request, [])
+        end
+      ])
+
+    assert {:error, %Error{type: :migration_recovery_conflict}} =
+             calls
+             |> client_with_adapter()
+             |> Migrations.run(path: path, sdk_version: "0.1.0", recover_running?: true)
+
+    assert_no_remaining_calls(calls)
+  end
+
+  test "run refuses target execution when the conditional claim returns no row" do
+    path = tmp_migrations(%{"001_claimed_elsewhere.surql" => "-- migrate:up\nRETURN 1;"})
+
+    calls =
+      scripted_calls([
+        install_registry_call(),
+        fn request ->
+          assert_registry_request(request)
+          ok_response(request, [])
+        end,
+        fn request ->
+          assert_registry_request(request)
+          assert request.body =~ "RETURN AFTER"
+          ok_response(request, [])
+        end
+      ])
+
+    assert {:error, %Error{type: :migration_claim_conflict}} =
+             calls
+             |> client_with_adapter()
+             |> Migrations.run(path: path, sdk_version: "0.1.0")
+
+    assert_no_remaining_calls(calls)
+  end
+
   test "run rejects failed migration by default" do
     path = tmp_migrations(%{"001_failed.surql" => "-- migrate:up\nRETURN 1;"})
 
@@ -272,7 +381,8 @@ defmodule SurrealDB.MigrationsTest do
   end
 
   test "failed migration rerun updates existing row instead of inserting duplicate" do
-    path = tmp_migrations(%{"001_retry.surql" => "-- migrate:up\nRETURN 1;"})
+    contents = "-- migrate:up\nRETURN 1;"
+    path = tmp_migrations(%{"001_retry.surql" => contents})
 
     calls =
       scripted_calls([
@@ -285,6 +395,7 @@ defmodule SurrealDB.MigrationsTest do
           assert_registry_request(request)
           assert request.body =~ "UPDATE schema_migrations"
           assert request.body =~ "attempt_count += 1"
+          assert request.body =~ checksum(contents)
           refute request.body =~ "INSERT INTO schema_migrations"
           ok_response(request, [%{"status" => "running"}])
         end,
@@ -356,6 +467,49 @@ defmodule SurrealDB.MigrationsTest do
     assert_no_remaining_calls(calls)
   end
 
+  test "run stops before the next migration after the first execution failure" do
+    path =
+      tmp_migrations(%{
+        "001_bad.surql" => "-- migrate:up\nBAD QUERY;",
+        "002_never_run.surql" => "-- migrate:up\nCREATE never_run;"
+      })
+
+    calls =
+      scripted_calls([
+        install_registry_call(),
+        fn request ->
+          assert_registry_request(request)
+          assert request.body =~ ~s(filename = "001_bad.surql")
+          ok_response(request, [])
+        end,
+        fn request ->
+          assert_registry_request(request)
+          ok_response(request, [%{"status" => "running"}])
+        end,
+        fn request ->
+          assert_target_request(request)
+
+          {request,
+           Req.Response.new(
+             status: 200,
+             body: [%{"status" => "ERR", "detail" => "Parse failure"}]
+           )}
+        end,
+        fn request ->
+          assert_registry_request(request)
+          assert request.body =~ "status = 'failed'"
+          ok_response(request, [%{"status" => "failed"}])
+        end
+      ])
+
+    assert {:error, %Error{type: :migration_execution_failed}} =
+             calls
+             |> client_with_adapter()
+             |> Migrations.run(path: path, sdk_version: "0.1.0")
+
+    assert_no_remaining_calls(calls)
+  end
+
   test "run validates required options and rejects websocket clients" do
     %Client{} = client = client_with_adapter(fn request -> ok_response(request, []) end)
 
@@ -374,11 +528,22 @@ defmodule SurrealDB.MigrationsTest do
              )
   end
 
-  test "status lists registry rows from the client scope" do
+  test "rejects blank or non-string registry scope options" do
+    client = client_with_adapter(fn request -> ok_response(request, []) end)
+
+    assert {:error, %Error{type: :invalid_migration_options}} =
+             Migrations.install_registry(client, registry_ns: " ", registry_db: "meta_db")
+
+    assert {:error, %Error{type: :invalid_migration_options}} =
+             Migrations.status(client, registry_ns: "meta_ns", registry_db: 123)
+  end
+
+  test "status lists registry rows from an explicitly configured registry scope" do
     calls =
       scripted_calls([
         fn request ->
-          assert_registry_request(request)
+          assert Req.Request.get_header(request, "ns") == ["meta_ns"]
+          assert Req.Request.get_header(request, "db") == ["meta_db"]
           assert request.body =~ "FROM schema_migrations"
           refute request.body =~ "target_ns"
           refute request.body =~ "target_db"
@@ -393,16 +558,17 @@ defmodule SurrealDB.MigrationsTest do
     assert {:ok, [%{"filename" => "001_first.surql", "status" => "applied"}]} =
              calls
              |> client_with_adapter()
-             |> Migrations.status([])
+             |> Migrations.status(registry_ns: "meta_ns", registry_db: "meta_db")
 
     assert_no_remaining_calls(calls)
   end
 
-  test "reset deletes registry rows from the client scope" do
+  test "reset deletes registry rows from an explicitly configured registry scope" do
     calls =
       scripted_calls([
         fn request ->
-          assert_registry_request(request)
+          assert Req.Request.get_header(request, "ns") == ["meta_ns"]
+          assert Req.Request.get_header(request, "db") == ["meta_db"]
           assert request.body =~ "DELETE schema_migrations"
           refute request.body =~ "target_ns"
           refute request.body =~ "target_db"
@@ -413,7 +579,7 @@ defmodule SurrealDB.MigrationsTest do
     assert {:ok, _result} =
              calls
              |> client_with_adapter()
-             |> Migrations.reset([])
+             |> Migrations.reset(registry_ns: "meta_ns", registry_db: "meta_db")
 
     assert_no_remaining_calls(calls)
   end
@@ -428,7 +594,8 @@ defmodule SurrealDB.MigrationsTest do
     calls =
       scripted_calls([
         fn request ->
-          assert_registry_request(request)
+          assert Req.Request.get_header(request, "ns") == ["meta_ns"]
+          assert Req.Request.get_header(request, "db") == ["meta_db"]
           assert request.body =~ "status = 'applied'"
           assert request.body =~ "ORDER BY filename DESC"
           assert request.body =~ "LIMIT 2"
@@ -439,7 +606,8 @@ defmodule SurrealDB.MigrationsTest do
           ])
         end,
         fn request ->
-          assert_registry_request(request)
+          assert Req.Request.get_header(request, "ns") == ["meta_ns"]
+          assert Req.Request.get_header(request, "db") == ["meta_db"]
           assert request.body =~ "DELETE schema_migrations"
           assert request.body =~ ~s(filename IN ["002_second.surql","001_first.surql"])
           ok_response(request, [%{"deleted" => true}])
@@ -449,7 +617,12 @@ defmodule SurrealDB.MigrationsTest do
     assert {:ok, rows} =
              calls
              |> client_with_adapter()
-             |> Migrations.rollback(path: path, steps: 2)
+             |> Migrations.rollback(
+               path: path,
+               steps: 2,
+               registry_ns: "meta_ns",
+               registry_db: "meta_db"
+             )
 
     assert rows == [
              %{filename: "002_second.surql", reverted?: false},
@@ -474,7 +647,8 @@ defmodule SurrealDB.MigrationsTest do
     calls =
       scripted_calls([
         fn request ->
-          assert_registry_request(request)
+          assert Req.Request.get_header(request, "ns") == ["meta_ns"]
+          assert Req.Request.get_header(request, "db") == ["meta_db"]
           assert request.body =~ "FROM schema_migrations"
           ok_response(request, [%{"filename" => "001_first.surql", "status" => "applied"}])
         end,
@@ -484,7 +658,8 @@ defmodule SurrealDB.MigrationsTest do
           ok_response(request, [%{"removed" => true}])
         end,
         fn request ->
-          assert_registry_request(request)
+          assert Req.Request.get_header(request, "ns") == ["meta_ns"]
+          assert Req.Request.get_header(request, "db") == ["meta_db"]
           assert request.body =~ "DELETE schema_migrations"
           ok_response(request, [%{"deleted" => true}])
         end
@@ -493,7 +668,12 @@ defmodule SurrealDB.MigrationsTest do
     assert {:ok, [%{filename: "001_first.surql", reverted?: true}]} =
              calls
              |> client_with_adapter()
-             |> Migrations.rollback(path: path, steps: 1)
+             |> Migrations.rollback(
+               path: path,
+               steps: 1,
+               registry_ns: "meta_ns",
+               registry_db: "meta_db"
+             )
 
     assert_no_remaining_calls(calls)
   end
@@ -561,8 +741,8 @@ defmodule SurrealDB.MigrationsTest do
   end
 
   defp assert_registry_request(request) do
-    assert Req.Request.get_header(request, "ns") == ["original_ns"]
-    assert Req.Request.get_header(request, "db") == ["original_db"]
+    assert Req.Request.get_header(request, "ns") == ["sdk_meta"]
+    assert Req.Request.get_header(request, "db") == ["migration_registry"]
   end
 
   # run/2 installs the registry schema (idempotently) before touching

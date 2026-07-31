@@ -190,6 +190,19 @@ defmodule Mix.Tasks.Surreal.MigrationTaskHelpersTest do
     refute Keyword.has_key?(target_opts, :down_path)
   end
 
+  test "registry_scope_opts uses defaults and CLI overrides" do
+    assert Helpers.registry_scope_opts([]) == [
+             namespace: "sdk_meta",
+             database: "migration_registry"
+           ]
+
+    assert Helpers.registry_scope_opts(
+             registry_namespace: "meta_ns",
+             registry_database: "meta_db"
+           ) ==
+             [namespace: "meta_ns", database: "meta_db"]
+  end
+
   test "create_database! emits namespace and database DDL" do
     client =
       client_with_adapter(fn request ->

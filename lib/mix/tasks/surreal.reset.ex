@@ -6,6 +6,9 @@ defmodule Mix.Tasks.Surreal.Reset do
 
   This is destructive and requires `--force`.
 
+  Registry scope defaults to `sdk_meta` / `migration_registry` and can be
+  overridden with `--registry-namespace` and `--registry-database`.
+
       $ mix surreal.reset --store MyApp.SurrealStore --force
   """
 
@@ -31,6 +34,23 @@ defmodule Mix.Tasks.Surreal.Reset do
 
     {namespace, database} = Helpers.create_database!(client, opts)
     Mix.shell().info("Created SurrealDB namespace/database #{namespace}/#{database}.")
+
+    {registry_namespace, registry_database} =
+      Helpers.create_database!(client, Helpers.registry_scope_opts(opts))
+
+    Mix.shell().info(
+      "Created migration registry namespace/database #{registry_namespace}/#{registry_database}."
+    )
+
+    registry_opts = Helpers.target_opts(client, opts)
+
+    client
+    |> Migrations.install_registry(registry_opts)
+    |> Helpers.unwrap!()
+
+    client
+    |> Migrations.reset(registry_opts)
+    |> Helpers.unwrap!()
 
     results =
       client
