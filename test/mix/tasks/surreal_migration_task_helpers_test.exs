@@ -175,6 +175,35 @@ defmodule Mix.Tasks.Surreal.MigrationTaskHelpersTest do
     assert migration_opts[:to] == "20260619000000"
   end
 
+  test "migration options map registry scope and recovery flags" do
+    opts =
+      Helpers.parse!([
+        "--namespace",
+        "app_ns",
+        "--database",
+        "app_db",
+        "--registry-namespace",
+        "meta_ns",
+        "--registry-database",
+        "meta_db",
+        "--recover-running"
+      ])
+
+    client = Helpers.build_client!(opts)
+
+    assert opts[:registry_namespace] == "meta_ns"
+    assert opts[:registry_database] == "meta_db"
+    assert opts[:recover_running]
+
+    assert Helpers.migration_opts(client, opts)[:registry_ns] == "meta_ns"
+    assert Helpers.migration_opts(client, opts)[:registry_db] == "meta_db"
+    assert Helpers.migration_opts(client, opts)[:recover_running?]
+
+    assert Helpers.target_opts(client, opts)[:registry_ns] == "meta_ns"
+    assert Helpers.target_opts(client, opts)[:registry_db] == "meta_db"
+    assert Helpers.target_opts(client, opts)[:recover_running?]
+  end
+
   test "target_opts maps rollback --all to a large step count" do
     opts = Helpers.parse!(["--namespace", "app_ns", "--database", "app_db", "--all"])
     client = Helpers.build_client!(opts)
