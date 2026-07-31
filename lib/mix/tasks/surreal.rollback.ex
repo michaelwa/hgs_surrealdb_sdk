@@ -3,6 +3,9 @@ defmodule Mix.Tasks.Surreal.Rollback do
   @moduledoc """
   Rolls back the latest recorded migrations.
 
+  Use `--registry-namespace` and `--registry-database` when the registry is
+  stored separately from the target database.
+
   Runs `-- migrate:down` sections from the matching migration files before
   removing registry rows. Migrations without a down section are removed from the
   registry only.

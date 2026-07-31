@@ -15,6 +15,7 @@ DEFINE FIELD IF NOT EXISTS finished_at   ON TABLE schema_migrations TYPE option<
 DEFINE FIELD IF NOT EXISTS applied_at    ON TABLE schema_migrations TYPE option<datetime>;
 DEFINE FIELD IF NOT EXISTS duration_ms   ON TABLE schema_migrations TYPE option<int>;
 DEFINE FIELD IF NOT EXISTS error_message ON TABLE schema_migrations TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS recovered_at  ON TABLE schema_migrations TYPE option<datetime>;
 DEFINE FIELD IF NOT EXISTS attempt_count ON TABLE schema_migrations TYPE int DEFAULT 1;
 DEFINE FIELD IF NOT EXISTS created_at    ON TABLE schema_migrations TYPE datetime DEFAULT time::now();
 DEFINE FIELD IF NOT EXISTS updated_at    ON TABLE schema_migrations TYPE datetime DEFAULT time::now();

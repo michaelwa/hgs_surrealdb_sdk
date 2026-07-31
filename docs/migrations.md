@@ -1,7 +1,8 @@
 # Migrations
 
-The migration runner applies `.surql` files in lexicographic filename order and
-records state in a SurrealDB registry table.
+The migration runner applies `.surql` files serially in lexicographic filename
+order and records state in a SurrealDB registry table. It stops at the first
+failure; later files are not attempted.
 
 ## Mix tasks
 
@@ -63,6 +64,25 @@ accepted as a shorter alias. You can pass `--migrations-path` multiple times.
 metadata is stored in namespace `sdk_meta` and database `migration_registry`
 unless overridden.
 
+The registry is independent of the target scope. Use `--recover-running` only
+after confirming that a previous runner has stopped. A process crash can leave
+a migration in `running`; recovery is explicit and records a recovery message.
+The runner never recovers rows automatically by age, and migration files may
+depend on earlier files.
+
+For a separate registry, use the same scope on every task:
+
+```bash
+mix surreal.migrations --store MyApp.SurrealStore \
+  --registry-namespace sdk_meta --registry-database migration_registry
+mix surreal.migrate --store MyApp.SurrealStore \
+  --registry-namespace sdk_meta --registry-database migration_registry \
+  --recover-running
+```
+
+Only run the recovery command after confirming that the previous migration
+runner is no longer active.
+
 Migration and rollback task options follow Ecto spelling where they apply:
 
 ```text
@@ -72,6 +92,7 @@ Migration and rollback task options follow Ecto spelling where they apply:
 --to-exclusive 20260619000000
 --all
 --allow-failed-rerun
+--recover-running
 ```
 
 `--to` and `--to-exclusive` compare against the leading numeric version in a
@@ -119,8 +140,8 @@ Run migrations:
   SurrealDB.Migrations.run(
     client,
     path: "priv/surrealdb_migrations/app",
-    target_ns: "app_ns",
-    target_db: "app_db",
+    registry_ns: "sdk_meta",
+    registry_db: "migration_registry",
     sdk_version: "0.1.0"
   )
 
@@ -128,7 +149,8 @@ IO.inspect(results)
 ```
 
 The default registry location is namespace `sdk_meta` and database
-`migration_registry`. Override it with `registry_ns:` and `registry_db:`.
+`migration_registry`. Override it with `registry_ns:` and `registry_db:`. Use
+`recover_running?: true` only after confirming the previous runner stopped.
 
 Feature 1 supports HTTP clients. WebSocket clients return a structured
 unsupported-client error because WebSocket namespace/database scope is

@@ -1,6 +1,12 @@
 defmodule SurrealDB.Migrations do
   @moduledoc """
   Runs SurrealDB `.surql` migrations with an SDK-managed registry.
+
+  Registry metadata defaults to the `sdk_meta` namespace and
+  `migration_registry` database. Configure `registry_ns` and `registry_db` to
+  keep metadata separate from the target scope. A `running` migration blocks
+  subsequent runners unless `recover_running?: true` is explicitly supplied
+  after confirming that the previous runner has stopped.
   """
 
   alias SurrealDB.Client
@@ -8,6 +14,8 @@ defmodule SurrealDB.Migrations do
   alias SurrealDB.QueryResult
 
   @registry_schema_path "schema_migrations/001_define_schema_migrations.surql"
+  @default_registry_ns "sdk_meta"
+  @default_registry_db "migration_registry"
   @up_marker ~r/^\s*-{2,}\s*migrate:up\s*$/i
   @down_marker ~r/^\s*-{2,}\s*migrate:down\s*$/i
 
@@ -22,8 +30,9 @@ defmodule SurrealDB.Migrations do
   @spec install_registry(Client.t(), keyword()) :: :ok | {:error, Error.t()}
   def install_registry(%Client{} = client, opts \\ []) when is_list(opts) do
     with :ok <- ensure_http_client(client),
+         {:ok, config} <- build_registry_config(opts),
          {:ok, schema} <- load_registry_schema(),
-         {:ok, _result} <- SurrealDB.query(client, schema) do
+         {:ok, _result} <- SurrealDB.query(registry_client(client, config), schema) do
       :ok
     end
   end
@@ -42,7 +51,7 @@ defmodule SurrealDB.Migrations do
          {:ok, config} <- build_run_config(opts),
          {:ok, migrations} <- load_migrations(config.path),
          :ok <- install_registry(client, opts) do
-      run_migrations(migrations, client, client, config, [])
+      run_migrations(migrations, registry_client(client, config), client, config, [])
     end
   end
 
@@ -56,14 +65,16 @@ defmodule SurrealDB.Migrations do
 
   @spec status(Client.t(), keyword()) :: {:ok, [registry_row()]} | {:error, Error.t()}
   def status(%Client{} = client, opts) when is_list(opts) do
-    with :ok <- ensure_http_client(client) do
+    with :ok <- ensure_http_client(client),
+         {:ok, config} <- build_registry_config(opts) do
       query = """
-      SELECT filename, checksum, sdk_version, status, applied_at, started_at, finished_at, duration_ms, error_message, attempt_count
+      SELECT filename, checksum, sdk_version, status, applied_at, started_at, finished_at, duration_ms, error_message, recovered_at, attempt_count
       FROM schema_migrations
       ORDER BY filename ASC;
       """
 
-      with {:ok, %QueryResult{} = result} <- SurrealDB.query(client, query),
+      with {:ok, %QueryResult{} = result} <-
+             SurrealDB.query(registry_client(client, config), query),
            {:ok, rows} <- first_statement_rows(result) do
         {:ok, rows}
       end
@@ -80,8 +91,9 @@ defmodule SurrealDB.Migrations do
 
   @spec reset(Client.t(), keyword()) :: {:ok, QueryResult.t()} | {:error, Error.t()}
   def reset(%Client{} = client, opts) when is_list(opts) do
-    with :ok <- ensure_http_client(client) do
-      SurrealDB.query(client, "DELETE schema_migrations;")
+    with :ok <- ensure_http_client(client),
+         {:ok, config} <- build_registry_config(opts) do
+      SurrealDB.query(registry_client(client, config), "DELETE schema_migrations;")
     end
   end
 
@@ -99,9 +111,9 @@ defmodule SurrealDB.Migrations do
     with :ok <- ensure_http_client(client),
          {:ok, config} <- build_rollback_config(opts),
          {:ok, migrations} <- load_migrations(config.path),
-         {:ok, rows} <- applied_rows_for_rollback(client, config),
+         {:ok, rows} <- applied_rows_for_rollback(registry_client(client, config), config),
          {:ok, results} <- run_downs(client, migrations, rows),
-         {:ok, _result} <- delete_rolled_back_rows(client, rows) do
+         {:ok, _result} <- delete_rolled_back_rows(registry_client(client, config), rows) do
       {:ok, results}
     end
   end
@@ -121,15 +133,18 @@ defmodule SurrealDB.Migrations do
 
     case missing do
       [] ->
-        {:ok,
-         %{
-           path: Keyword.fetch!(opts, :path),
-           sdk_version: Keyword.fetch!(opts, :sdk_version),
-           allow_failed_rerun?: Keyword.get(opts, :allow_failed_rerun?, false),
-           step: Keyword.get(opts, :step),
-           to: Keyword.get(opts, :to),
-           to_exclusive: Keyword.get(opts, :to_exclusive)
-         }}
+        with {:ok, registry} <- build_registry_config(opts) do
+          {:ok,
+           Map.merge(registry, %{
+             path: Keyword.fetch!(opts, :path),
+             sdk_version: Keyword.fetch!(opts, :sdk_version),
+             allow_failed_rerun?: Keyword.get(opts, :allow_failed_rerun?, false),
+             recover_running?: Keyword.get(opts, :recover_running?, false),
+             step: Keyword.get(opts, :step),
+             to: Keyword.get(opts, :to),
+             to_exclusive: Keyword.get(opts, :to_exclusive)
+           })}
+        end
 
       _ ->
         {:error,
@@ -147,14 +162,15 @@ defmodule SurrealDB.Migrations do
 
     case missing do
       [] ->
-        with {:ok, steps} <- validate_rollback_steps(Keyword.get(opts, :steps, 1)) do
+        with {:ok, steps} <- validate_rollback_steps(Keyword.get(opts, :steps, 1)),
+             {:ok, registry} <- build_registry_config(opts) do
           {:ok,
-           %{
+           Map.merge(registry, %{
              path: Keyword.fetch!(opts, :path),
              steps: steps,
              to: Keyword.get(opts, :to),
              to_exclusive: Keyword.get(opts, :to_exclusive)
-           }}
+           })}
         end
 
       _ ->
@@ -164,6 +180,37 @@ defmodule SurrealDB.Migrations do
            details: %{missing: missing}
          )}
     end
+  end
+
+  defp build_registry_config(opts) do
+    registry_ns = Keyword.get(opts, :registry_ns, @default_registry_ns)
+    registry_db = Keyword.get(opts, :registry_db, @default_registry_db)
+
+    cond do
+      not is_binary(registry_ns) or blank?(registry_ns) ->
+        {:error, invalid_registry_option(:registry_ns, registry_ns)}
+
+      not is_binary(registry_db) or blank?(registry_db) ->
+        {:error, invalid_registry_option(:registry_db, registry_db)}
+
+      true ->
+        {:ok,
+         %{
+           registry_ns: String.trim(registry_ns),
+           registry_db: String.trim(registry_db)
+         }}
+    end
+  end
+
+  defp invalid_registry_option(name, value) do
+    migration_error("migration registry options must be non-blank strings",
+      type: :invalid_migration_options,
+      details: %{option: name, value: value}
+    )
+  end
+
+  defp registry_client(%Client{} = client, %{registry_ns: namespace, registry_db: database}) do
+    %{client | namespace: namespace, database: database}
   end
 
   defp validate_rollback_steps(steps) when is_integer(steps) and steps > 0, do: {:ok, steps}
@@ -423,7 +470,61 @@ defmodule SurrealDB.Migrations do
 
   defp preflight(registry, migration, config) do
     with {:ok, row} <- lookup_registry_row(registry, migration, config) do
-      preflight_row(row, migration, config)
+      case row do
+        %{"status" => "running"} = row when config.recover_running? ->
+          with :ok <- recover_running(registry, migration, config) do
+            {:ok, {:rerun_failed, row}}
+          end
+
+        _ ->
+          preflight_row(row, migration, config)
+      end
+    end
+  end
+
+  defp recover_running(registry, migration, config) do
+    query = """
+    UPDATE schema_migrations
+    SET
+      status = 'failed',
+      finished_at = time::now(),
+      error_message = $recovery_message,
+      recovered_at = time::now(),
+      attempt_count += 1,
+      updated_at = time::now()
+    WHERE filename = $filename
+      AND checksum = $checksum
+      AND status = 'running'
+    RETURN AFTER;
+    """
+
+    variables =
+      migration
+      |> registry_variables(config)
+      |> Map.put(
+        :recovery_message,
+        "recovered after operator confirmed the previous runner stopped"
+      )
+
+    with {:ok, %QueryResult{} = result} <- SurrealDB.query(registry, query, variables),
+         {:ok, rows} <- first_statement_rows(result),
+         true <- Enum.any?(rows, &(&1["status"] == "failed")) do
+      :ok
+    else
+      {:error, %Error{} = error} ->
+        {:error,
+         migration_error("migration recovery claim failed",
+           type: :migration_recovery_conflict,
+           details: %{filename: migration.filename, reason: error.message},
+           raw: error
+         )}
+
+      _ ->
+        {:error,
+         migration_error("migration recovery claim was lost to another runner",
+           type: :migration_recovery_conflict,
+           details: %{filename: migration.filename}
+         )}
     end
   end
 
@@ -510,7 +611,7 @@ defmodule SurrealDB.Migrations do
   end
 
   defp execute_migration(decision, registry, target, migration, config) do
-    with {:ok, _} <- mark_running(registry, migration, config, decision) do
+    with {:ok, :claimed} <- mark_running(registry, migration, config, decision) do
       started = System.monotonic_time(:millisecond)
 
       case SurrealDB.query(target, migration.up) do
@@ -556,10 +657,12 @@ defmodule SurrealDB.Migrations do
       attempt_count: 1,
       created_at: time::now(),
       updated_at: time::now()
-    };
+    } RETURN AFTER;
     """
 
-    SurrealDB.query(registry, query, registry_variables(migration, config))
+    registry
+    |> SurrealDB.query(query, registry_variables(migration, config))
+    |> claim_result(migration)
   end
 
   defp mark_running(registry, migration, config, {:rerun_failed, _row}) do
@@ -577,10 +680,37 @@ defmodule SurrealDB.Migrations do
       attempt_count += 1,
       updated_at = time::now()
     WHERE filename = $filename
-      AND status = 'failed';
+      AND checksum = $checksum
+      AND status = 'failed'
+    RETURN AFTER;
     """
 
-    SurrealDB.query(registry, query, registry_variables(migration, config))
+    registry
+    |> SurrealDB.query(query, registry_variables(migration, config))
+    |> claim_result(migration)
+  end
+
+  defp claim_result({:ok, %QueryResult{} = result}, migration) do
+    with {:ok, rows} <- first_statement_rows(result),
+         true <- Enum.any?(rows, &(&1["status"] == "running")) do
+      {:ok, :claimed}
+    else
+      _ ->
+        {:error,
+         migration_error("migration claim was lost to another runner",
+           type: :migration_claim_conflict,
+           details: %{filename: migration.filename}
+         )}
+    end
+  end
+
+  defp claim_result({:error, %Error{} = error}, migration) do
+    {:error,
+     migration_error("migration claim failed",
+       type: :migration_claim_conflict,
+       details: %{filename: migration.filename, reason: error.message},
+       raw: error
+     )}
   end
 
   defp mark_applied(registry, migration, config, duration_ms) do
