@@ -88,29 +88,6 @@ raw database-side updates if needed.
 **Likely scope:** `SurrealDB.Schema`, `SurrealDB.Repo.Statement`, `Repo`,
 `Multi`, and their tests/docs.
 
-### P1 — Migration registry correctness and recovery policy
-
-**Problem:** Registry-related options are accepted but not consistently
-applied. Migration execution and registry bookkeeping are separate requests,
-so a crash can leave a migration in `running`.
-
-**Outcome:** Make registry namespace/database configuration effective in every
-migration operation, then document and test the failure model. Add an explicit
-operator policy for stale `running` rows rather than silently guessing.
-
-**Acceptance criteria:**
-
-- `registry_ns` and `registry_db` affect install, status, run, reset, and
-  rollback consistently.
-- A migration run against a separate registry database is covered by a live
-  integration test.
-- Stale `running` rows have a documented recovery command or option.
-- Concurrent runners cannot both execute the same migration successfully.
-- The CLI and Elixir API expose the same option names and semantics.
-
-**Likely scope:** `SurrealDB.Migrations`, migration task helpers, registry
-schema, migration tests, CLI docs, and integration tests.
-
 ### P1 — SurrealDB value encoding contract
 
 **Problem:** HTTP variables are interpolated textually and encoded mostly as
@@ -199,6 +176,12 @@ above when the goal is dog-fooding the current library:
   partial Zoi validation for typed updates, unknown-field rejection, validated
   `$attrs` variables, Repo/Multi parity coverage, schemafull merge integration
   coverage, and updated raw-operation documentation.
+- **P1 — Migration registry correctness and recovery policy (2026-08-01).**
+  Completed registry scope normalization across the API and CLI, atomic
+  migration claims with serial fail-fast execution, explicit operator-confirmed
+  recovery for `running` rows, separate-registry integration coverage, and
+  documented reset/setup/recovery behavior. Verified with the full local suite
+  and `./scripts/test-integration`.
 
 - **R1 — Dogfood install + live round-trip.** Added the SDK to a fresh Phoenix
   app and ran live connect/query/CRUD and Schema/Repo round-trips against
